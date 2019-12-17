@@ -1,20 +1,30 @@
 # -- multistage docker build: stage #1: build stage
 FROM golang:1.13-alpine AS build
+ARG KASPAD_VERSION=latest
 
-RUN mkdir -p /go/src/github.com/kaspanet/kaspad
+RUN mkdir -p /go/src/github.com/kaspanet/kasparov
 
-WORKDIR /go/src/github.com/kaspanet/kaspad
+WORKDIR /go/src/github.com/kaspanet/kasparov
 
 RUN apk add --no-cache curl git
 
 COPY go.mod .
 COPY go.sum .
 
+# For development it's useful to have kaspad from filesystem, but for deployment
+# we should use the one in github
+RUN go mod edit -dropreplace github.com/kaspanet/kaspad
+RUN go mod edit -require github.com/kaspanet/kaspad@$KASPAD_VERSION
+RUN cp go.mod go.mod.bu
+
 RUN go mod download
 
 COPY . .
 
-RUN cd kasparov/kasparovsyncd && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kasparov-syncd .
+# Restore go.mod because `COPY . .` overwrote it
+RUN mv go.mod.bu go.mod
+
+RUN cd kasparovsyncd && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kasparov-syncd .
 
 # --- multistage docker build: stage #2: runtime image
 FROM alpine
@@ -22,8 +32,8 @@ WORKDIR /app
 
 RUN apk add --no-cache tini
 
-COPY --from=build /go/src/github.com/kaspanet/kaspad/kasparov/kasparovsyncd/ /app/
-COPY --from=build /go/src/github.com/kaspanet/kaspad/kasparov/database/migrations/ /database/migrations/
+COPY --from=build /go/src/github.com/kaspanet/kasparov/kasparovsyncd/ /app/
+COPY --from=build /go/src/github.com/kaspanet/kasparov/database/migrations/ /database/migrations/
 
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/app/kasparov-syncd"]
