@@ -1,7 +1,7 @@
 package jsonrpc
 
 import (
-	"github.com/kaspanet/kaspad/kasparov/logger"
+	"github.com/kaspanet/kasparov/logger"
 	"github.com/kaspanet/kaspad/rpcclient"
 	"github.com/kaspanet/kaspad/util/panics"
 )

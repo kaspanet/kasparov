@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kaspanet/kaspad/kasparov/database"
-	"github.com/kaspanet/kaspad/kasparov/dbmodels"
-	"github.com/kaspanet/kaspad/kasparov/jsonrpc"
-	"github.com/kaspanet/kaspad/kasparov/kasparovsyncd/config"
-	"github.com/kaspanet/kaspad/kasparov/kasparovsyncd/mqtt"
+	"github.com/kaspanet/kasparov/database"
+	"github.com/kaspanet/kasparov/dbmodels"
+	"github.com/kaspanet/kasparov/jsonrpc"
+	"github.com/kaspanet/kasparov/kasparovsyncd/config"
+	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
 
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/blockdag"

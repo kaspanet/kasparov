@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/jessevdk/go-flags"
 	"github.com/kaspanet/kaspad/config"
-	"github.com/kaspanet/kaspad/kasparov/logger"
+	"github.com/kaspanet/kasparov/logger"
 	"github.com/pkg/errors"
 	"path/filepath"
 )

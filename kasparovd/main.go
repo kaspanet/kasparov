@@ -9,12 +9,12 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/kaspanet/kaspad/kasparov/database"
-	"github.com/kaspanet/kaspad/kasparov/jsonrpc"
-	"github.com/kaspanet/kaspad/kasparov/kasparovd/config"
-	"github.com/kaspanet/kaspad/kasparov/kasparovd/server"
 	"github.com/kaspanet/kaspad/signal"
 	"github.com/kaspanet/kaspad/util/panics"
+	"github.com/kaspanet/kasparov/database"
+	"github.com/kaspanet/kasparov/jsonrpc"
+	"github.com/kaspanet/kasparov/kasparovd/config"
+	"github.com/kaspanet/kasparov/kasparovd/server"
 )
 
 func main() {

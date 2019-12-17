@@ -3,8 +3,8 @@ package controllers
 import (
 	"encoding/hex"
 
-	"github.com/kaspanet/kaspad/kasparov/dbmodels"
-	"github.com/kaspanet/kaspad/kasparov/kasparovd/apimodels"
+	"github.com/kaspanet/kasparov/dbmodels"
+	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 	"github.com/kaspanet/kaspad/rpcmodel"
 )
 
