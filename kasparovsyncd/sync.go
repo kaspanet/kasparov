@@ -9,13 +9,13 @@ import (
 
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
+	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/config"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
 
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/blockdag"
-	"github.com/kaspanet/kaspad/httpserverutils"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/txscript"
 	"github.com/kaspanet/kaspad/util"

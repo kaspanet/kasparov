@@ -7,16 +7,16 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 	"github.com/kaspanet/kasparov/kasparovd/config"
-	"github.com/kaspanet/kaspad/util"
 
 	"github.com/kaspanet/kaspad/blockdag"
-	"github.com/kaspanet/kaspad/httpserverutils"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
+	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 
 	"github.com/jinzhu/gorm"

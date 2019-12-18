@@ -8,10 +8,10 @@ import (
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 
-	"github.com/kaspanet/kaspad/httpserverutils"
 	"github.com/pkg/errors"
 
 	"github.com/kaspanet/kaspad/util/daghash"
+	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 const (

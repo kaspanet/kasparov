@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/kaspanet/kaspad/httpserverutils"
+	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/kasparovd/controllers"
 	"github.com/pkg/errors"
 
