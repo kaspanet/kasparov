@@ -2,12 +2,12 @@ package server
 
 import (
 	"context"
-	"github.com/kaspanet/kaspad/httpserverutils"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 const gracefulShutdownTimeout = 30 * time.Second
