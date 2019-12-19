@@ -3,28 +3,27 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 func main() {
-	subCommand, config := parseCommandLine()
+	subCmd, config := parseCommandLine()
 
-	switch subCommand {
+	var err error
+	switch subCmd {
 	case createSubCmd:
 		create(config.(*createConfig))
 	case balanceSubCmd:
-		err := balance(config.(*balanceConfig))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s", err)
-			os.Exit(1)
-		}
+		err = balance(config.(*balanceConfig))
 	case sendSubCmd:
-		err := send(config.(*sendConfig))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s", err)
-			os.Exit(1)
-		}
+		err = send(config.(*sendConfig))
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown sub-command '%s'\n", subCommand)
+		err = errors.Errorf("Unknown sub-command '%s'\n", subCmd)
+	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 }
