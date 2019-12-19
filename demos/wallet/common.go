@@ -10,18 +10,34 @@ import (
 	"github.com/pkg/errors"
 )
 
+func readResponse(response *http.Response) (body []byte, err error) {
+	defer response.Body.Close()
+
+	body, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error reading response")
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("Response status %s\nResponseBody:\n%s", response.Status, body)
+	}
+
+	return body, nil
+}
+
 func getUTXOs(apiAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/utxos/%s", apiAddress, address))
+	response, err := http.Get(fmt.Sprintf("%s/utxos/address/%s", apiAddress, address))
 	if err != nil {
 		return nil, errors.Wrap(err, "Error getting utxos from API server")
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := readResponse(response)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error reading utxos from API server response")
 	}
 
 	utxos := []*apimodels.TransactionOutputResponse{}
+
+	fmt.Printf("Body: %s\n", body)
 
 	err = json.Unmarshal(body, utxos)
 	if err != nil {

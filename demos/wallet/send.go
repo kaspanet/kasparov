@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/kaspanet/kaspad/ecc"
@@ -149,12 +148,9 @@ func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 	if err != nil {
 		return errors.Wrap(err, "Error posting transaction to server")
 	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(response.Body)
-		return errors.Errorf("Got status %d(%s) from server. \nResponse Body: %s",
-			response.StatusCode, http.StatusText(response.StatusCode), body)
+	_, err = readResponse(response)
+	if err != nil {
+		return errors.Wrap(err, "Error reading send transaction response")
 	}
 
 	return err
