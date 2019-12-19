@@ -6,7 +6,13 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-type newConfig struct {
+const (
+	createSubCmd  = "create"
+	balanceSubCmd = "balance"
+	sendSubCmd    = "send"
+)
+
+type createConfig struct {
 }
 
 type balanceConfig struct {
@@ -25,16 +31,16 @@ func parseCommandLine() (subCommand string, config interface{}) {
 	cfg := &struct{}{}
 	parser := flags.NewParser(cfg, flags.PrintErrors|flags.HelpFlag)
 
-	newConf := &newConfig{}
-	parser.AddCommand("new", "Creates a new wallet",
-		"Creates a new wallet and prints it's private key as well as addresses to all networks", newConf)
+	createConf := &createConfig{}
+	parser.AddCommand(createSubCmd, "Creates a new wallet",
+		"Creates a new wallet and prints it's private key as well as addresses to all networks", createConf)
 
 	balanceConf := &balanceConfig{}
-	parser.AddCommand("balance", "Shows the balance for a given address",
+	parser.AddCommand(balanceSubCmd, "Shows the balance for a given address",
 		"Shows the balance for a given address", balanceConf)
 
 	sendConf := &sendConfig{}
-	parser.AddCommand("send", "Sends a transaction to given address",
+	parser.AddCommand(sendSubCmd, "Sends a transaction to given address",
 		"Sends a transaction to given address", sendConf)
 
 	_, err := parser.Parse()
@@ -49,11 +55,11 @@ func parseCommandLine() (subCommand string, config interface{}) {
 	}
 
 	switch parser.Command.Active.Name {
-	case "new":
-		config = newConf
-	case "balance":
+	case createSubCmd:
+		config = createConf
+	case balanceSubCmd:
 		config = balanceConf
-	case "send":
+	case sendSubCmd:
 		config = sendConf
 	}
 
