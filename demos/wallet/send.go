@@ -8,12 +8,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/daglabs/btcd/apiserver/apimodels"
-	"github.com/daglabs/btcd/btcec"
-	"github.com/daglabs/btcd/txscript"
-	"github.com/daglabs/btcd/util"
-	"github.com/daglabs/btcd/util/daghash"
-	"github.com/daglabs/btcd/wire"
+	"github.com/kaspanet/kaspad/ecc"
+	"github.com/kaspanet/kaspad/txscript"
+	"github.com/kaspanet/kaspad/util"
+	"github.com/kaspanet/kaspad/util/daghash"
+	"github.com/kaspanet/kaspad/wire"
+	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 	"github.com/pkg/errors"
 )
 
@@ -40,7 +40,7 @@ func send(conf *sendConfig) error {
 		return err
 	}
 
-	satoshisToSend := uint64(conf.SendAmount * util.SatoshiPerBitcoin)
+	satoshisToSend := uint64(conf.SendAmount * util.SompiPerKaspa)
 	totalToSpend := satoshisToSend + feeSatoshis
 
 	selectedUTXOs, totalValue, err := selectUTXOs(utxos, totalToSpend)
@@ -58,7 +58,7 @@ func send(conf *sendConfig) error {
 
 func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 	txBuffer := bytes.NewBuffer(make([]byte, 0, msgTx.SerializeSize()))
-	if err := msgTx.BtcEncode(txBuffer, 0); err != nil {
+	if err := msgTx.KaspaEncode(txBuffer, 0); err != nil {
 		return err
 	}
 	rawTx := &apimodels.RawTransaction{
@@ -84,7 +84,7 @@ func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 	return err
 }
 
-func generateTx(privateKey *btcec.PrivateKey, selectedUTXOs []*apimodels.TransactionOutputResponse, satoshisToSend uint64, totalValue uint64,
+func generateTx(privateKey *ecc.PrivateKey, selectedUTXOs []*apimodels.TransactionOutputResponse, satoshisToSend uint64, totalValue uint64,
 	toAddress util.Address, fromAddress util.Address) (*wire.MsgTx, error) {
 
 	txIns := make([]*wire.TxIn, len(selectedUTXOs))
@@ -145,17 +145,17 @@ func selectUTXOs(utxos []*apimodels.TransactionOutputResponse, totalToSpend uint
 
 	if totalValue < totalToSpend {
 		return nil, 0, errors.Errorf("Insufficient funds for send: %f required, while only %f available",
-			float64(totalToSpend)/util.SatoshiPerBitcoin, float64(totalValue)/util.SatoshiPerBitcoin)
+			float64(totalToSpend)/util.SompiPerKaspa, float64(totalValue)/util.SompiPerKaspa)
 	}
 
 	return selectedUTXOs, totalValue, nil
 }
 
-func parsePrivateKey(privateKeyHex string) (*btcec.PrivateKey, *btcec.PublicKey, error) {
+func parsePrivateKey(privateKeyHex string) (*ecc.PrivateKey, *ecc.PublicKey, error) {
 	privateKeyBytes, err := hex.DecodeString(privateKeyHex)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Error parsing private key hex")
 	}
-	privateKey, publicKey := btcec.PrivKeyFromBytes(btcec.S256(), privateKeyBytes)
+	privateKey, publicKey := ecc.PrivKeyFromBytes(ecc.S256(), privateKeyBytes)
 	return privateKey, publicKey, nil
 }

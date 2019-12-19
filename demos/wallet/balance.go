@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/daglabs/btcd/apiserver/apimodels"
-	"github.com/daglabs/btcd/util"
+	"github.com/kaspanet/kaspad/util"
+	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 	"github.com/pkg/errors"
 )
 
@@ -47,8 +47,8 @@ func balance(conf *balanceConfig) error {
 		}
 	}
 
-	fmt.Printf("Available balance is %f", float64(availableBalance)/util.SatoshiPerBitcoin)
-	fmt.Printf("In addition, immature coinbase balance is %f", float64(availableBalance)/util.SatoshiPerBitcoin)
+	fmt.Printf("Available balance is %f", float64(availableBalance)/util.SompiPerKaspa)
+	fmt.Printf("In addition, immature coinbase balance is %f", float64(availableBalance)/util.SompiPerKaspa)
 
 	return nil
 }
