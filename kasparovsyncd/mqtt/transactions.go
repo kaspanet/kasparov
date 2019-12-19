@@ -1,11 +1,11 @@
 package mqtt
 
 import (
-	"github.com/kaspanet/kasparov/kasparovd/apimodels"
-	"github.com/kaspanet/kasparov/kasparovd/controllers"
 	"github.com/kaspanet/kaspad/rpcclient"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util/daghash"
+	"github.com/kaspanet/kasparov/kasparovd/apimodels"
+	"github.com/kaspanet/kasparov/kasparovd/controllers"
 	"path"
 )
 
@@ -69,6 +69,9 @@ func publishTransactionNotificationForAddress(transaction *apimodels.Transaction
 
 // PublishAcceptedTransactionsNotifications publishes notification for each accepted transaction of the given chain-block
 func PublishAcceptedTransactionsNotifications(addedChainBlocks []*rpcclient.ChainBlock) error {
+	if !isConnected() {
+		return nil
+	}
 	for _, addedChainBlock := range addedChainBlocks {
 		for _, acceptedBlock := range addedChainBlock.AcceptedBlocks {
 			transactionIDs := make([]string, len(acceptedBlock.AcceptedTxIDs))
@@ -95,6 +98,9 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []*rpcclient.Chai
 
 // PublishUnacceptedTransactionsNotifications publishes notification for each unaccepted transaction of the given chain-block
 func PublishUnacceptedTransactionsNotifications(removedChainHashes []*daghash.Hash) error {
+	if !isConnected() {
+		return nil
+	}
 	for _, removedHash := range removedChainHashes {
 		transactionIDs, err := controllers.GetAcceptedTransactionIDsByBlockHashHandler(removedHash.String())
 		if err != nil {
