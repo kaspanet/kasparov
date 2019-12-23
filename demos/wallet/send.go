@@ -52,7 +52,14 @@ func send(conf *sendConfig) error {
 		return err
 	}
 
-	return sendTx(conf, msgTx)
+	err = sendTx(conf, msgTx)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Transaction was sent successfully")
+
+	return nil
 }
 
 func parsePrivateKey(privateKeyHex string) (*ecc.PrivateKey, *ecc.PublicKey, error) {
@@ -136,8 +143,12 @@ func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 	if err := msgTx.KaspaEncode(txBuffer, 0); err != nil {
 		return err
 	}
+
+	txHex := make([]byte, hex.EncodedLen(txBuffer.Len()))
+	hex.Encode(txHex, txBuffer.Bytes())
+
 	rawTx := &apimodels.RawTransaction{
-		RawTransaction: txBuffer.String(),
+		RawTransaction: string(txHex),
 	}
 	txBytes, err := json.Marshal(rawTx)
 	if err != nil {

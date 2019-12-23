@@ -10,6 +10,26 @@ import (
 	"github.com/pkg/errors"
 )
 
+func getUTXOs(apiAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
+	response, err := http.Get(fmt.Sprintf("%s/utxos/address/%s", apiAddress, address))
+	if err != nil {
+		return nil, errors.Wrap(err, "Error getting utxos from API server")
+	}
+	body, err := readResponse(response)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error reading utxos from API server response")
+	}
+
+	utxos := []*apimodels.TransactionOutputResponse{}
+
+	err = json.Unmarshal(body, &utxos)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error unmarshalling utxos")
+	}
+
+	return utxos, nil
+}
+
 func readResponse(response *http.Response) (body []byte, err error) {
 	defer response.Body.Close()
 
@@ -23,26 +43,4 @@ func readResponse(response *http.Response) (body []byte, err error) {
 	}
 
 	return body, nil
-}
-
-func getUTXOs(apiAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
-	response, err := http.Get(fmt.Sprintf("%s/utxos/address/%s", apiAddress, address))
-	if err != nil {
-		return nil, errors.Wrap(err, "Error getting utxos from API server")
-	}
-	body, err := readResponse(response)
-	if err != nil {
-		return nil, errors.Wrap(err, "Error reading utxos from API server response")
-	}
-
-	utxos := []*apimodels.TransactionOutputResponse{}
-
-	fmt.Printf("Body: %s\n", body)
-
-	err = json.Unmarshal(body, utxos)
-	if err != nil {
-		return nil, errors.Wrap(err, "Error unmarshalling utxos")
-	}
-
-	return utxos, nil
 }

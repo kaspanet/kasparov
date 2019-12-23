@@ -3,9 +3,10 @@ package database
 import (
 	nativeerrors "errors"
 	"fmt"
+	"os"
+
 	"github.com/kaspanet/kasparov/config"
 	"github.com/pkg/errors"
-	"os"
 
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/jinzhu/gorm"
@@ -53,6 +54,7 @@ func Connect(cfg *config.KasparovFlags) error {
 		return err
 	}
 
+	db.LogMode(true)
 	db.SetLogger(gormLogger{})
 	return nil
 }
