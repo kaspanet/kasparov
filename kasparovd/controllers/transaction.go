@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/jsonrpc"
@@ -85,6 +84,10 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 			errors.Errorf("Limit higher than %d or lower than 1 was requested.", maxGetTransactionsLimit))
 	}
 
+	if err := validateAddress(address); err != nil {
+		return nil, err
+	}
+
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
@@ -149,11 +152,8 @@ func areTxsInBlock(blockID uint64, txIDs []uint64) (map[uint64]bool, error) {
 
 // GetUTXOsByAddressHandler searches for all UTXOs that belong to a certain address.
 func GetUTXOsByAddressHandler(address string) (interface{}, error) {
-	_, err := util.DecodeAddress(address, config.ActiveConfig().ActiveNetParams.Prefix)
-	if err != nil {
-		return nil, httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,
-			errors.Wrap(err, "error decoding address"),
-			"The given address is not a well-formatted P2PKH or P2SH address.")
+	if err := validateAddress(address); err != nil {
+		return nil, err
 	}
 
 	db, err := database.DB()
