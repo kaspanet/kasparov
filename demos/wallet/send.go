@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const feeSatoshis uint64 = 1000
+const feeSompis uint64 = 1000
 
 func send(conf *sendConfig) error {
 	toAddress, err := util.DecodeAddress(conf.ToAddress, util.Bech32PrefixUnknown)
@@ -40,7 +40,7 @@ func send(conf *sendConfig) error {
 	}
 
 	sendAmountSompi := uint64(conf.SendAmount * util.SompiPerKaspa)
-	totalToSend := sendAmountSompi + feeSatoshis
+	totalToSend := sendAmountSompi + feeSompis
 
 	selectedUTXOs, change, err := selectUTXOs(utxos, totalToSend)
 	if err != nil {
@@ -98,7 +98,7 @@ func selectUTXOs(utxos []*apimodels.TransactionOutputResponse, totalToSpend uint
 	return selectedUTXOs, totalValue - totalToSpend, nil
 }
 
-func generateTx(privateKey *ecc.PrivateKey, selectedUTXOs []*apimodels.TransactionOutputResponse, satoshisToSend uint64, change uint64,
+func generateTx(privateKey *ecc.PrivateKey, selectedUTXOs []*apimodels.TransactionOutputResponse, sompisToSend uint64, change uint64,
 	toAddress util.Address, fromAddress util.Address) (*wire.MsgTx, error) {
 
 	txIns := make([]*wire.TxIn, len(selectedUTXOs))
@@ -115,7 +115,7 @@ func generateTx(privateKey *ecc.PrivateKey, selectedUTXOs []*apimodels.Transacti
 	if err != nil {
 		return nil, err
 	}
-	mainTxOut := wire.NewTxOut(satoshisToSend, toScript)
+	mainTxOut := wire.NewTxOut(sompisToSend, toScript)
 
 	fromScript, err := txscript.PayToAddrScript(fromAddress)
 	if err != nil {
