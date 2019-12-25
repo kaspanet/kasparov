@@ -16,15 +16,15 @@ type createConfig struct {
 }
 
 type balanceConfig struct {
-	APIAddress string `long:"api-address" short:"a" description:"Address of API-Server" required:"true"`
-	Address    string `long:"address" short:"d" description:"Address whose balance to check" required:"true"`
+	APIAddress string `long:"api-address" short:"a" description:"An address of a Kasparov API Server to use to check the balance. Must include http:// or https:// (e.g. https://api.kas.pa)" required:"true"`
+	Address    string `long:"address" short:"d" description:"The public address to check the balance of" required:"true"`
 }
 
 type sendConfig struct {
-	APIAddress string  `long:"api-address" short:"a" description:"Address of API-Server" required:"true"`
-	PrivateKey string  `long:"private-key" short:"k" description:"Signing private key in hex" required:"true"`
-	ToAddress  string  `long:"to-address" short:"t" description:"Address to which to send funds" required:"true"`
-	SendAmount float64 `long:"send-amount" short:"v" description:"Amount of coins to send" required:"true"`
+	APIAddress string  `long:"api-address" short:"a" description:"An address of a Kasparov API Server to use to relay the transaction. Must include http:// or https:// (e.g. https://api.kas.pa)" required:"true"`
+	PrivateKey string  `long:"private-key" short:"k" description:"The private key of the sender (encoded in hex)" required:"true"`
+	ToAddress  string  `long:"to-address" short:"t" description:"The public address to send Kaspa to" required:"true"`
+	SendAmount float64 `long:"send-amount" short:"v" description:"An amount to send in Kaspa (e.g. 1234.12345678)" required:"true"`
 }
 
 func parseCommandLine() (subCommand string, config interface{}) {
@@ -33,15 +33,15 @@ func parseCommandLine() (subCommand string, config interface{}) {
 
 	createConf := &createConfig{}
 	parser.AddCommand(createSubCmd, "Creates a new wallet",
-		"Creates a new wallet and prints it's private key as well as addresses to all networks", createConf)
+		"Creates a private key and 3 public addresses, one for each of MainNet, TestNet and DevNet", createConf)
 
 	balanceConf := &balanceConfig{}
-	parser.AddCommand(balanceSubCmd, "Shows the balance for a given address",
-		"Shows the balance for a given address", balanceConf)
+	parser.AddCommand(balanceSubCmd, "Shows the balance for a public address",
+		"Shows the balance for a public address in Kaspa", balanceConf)
 
 	sendConf := &sendConfig{}
-	parser.AddCommand(sendSubCmd, "Sends a transaction to given address",
-		"Sends a transaction to given address", sendConf)
+	parser.AddCommand(sendSubCmd, "Send a Kaspa transaction to a public address",
+		"Send a Kaspa transaction to a public address", sendConf)
 
 	_, err := parser.Parse()
 

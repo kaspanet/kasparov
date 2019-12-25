@@ -21,9 +21,9 @@ func balance(conf *balanceConfig) error {
 		}
 	}
 
-	fmt.Printf("Available balance is %f\n", float64(availableBalance)/util.SompiPerKaspa)
+	fmt.Printf("Balance:\t\tKAS %f\n", float64(availableBalance)/util.SompiPerKaspa)
 	if pendingBalance > 0 {
-		fmt.Printf("In addition, immature coinbase balance is %f\n", float64(pendingBalance)/util.SompiPerKaspa)
+		fmt.Printf("Pending balance:\tKAS %f\n", float64(pendingBalance)/util.SompiPerKaspa)
 	}
 
 	return nil

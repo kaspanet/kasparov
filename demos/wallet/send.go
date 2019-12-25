@@ -57,7 +57,8 @@ func send(conf *sendConfig) error {
 		return err
 	}
 
-	fmt.Printf("Transaction was sent successfully")
+	fmt.Println("Transaction was sent successfully")
+	fmt.Printf("Transaction ID: \t%s", msgTx.TxID())
 
 	return nil
 }
