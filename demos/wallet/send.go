@@ -34,7 +34,7 @@ func send(conf *sendConfig) error {
 		return err
 	}
 
-	utxos, err := getUTXOs(conf.APIAddress, fromAddress.String())
+	utxos, err := getUTXOs(conf.KasparovAddress, fromAddress.String())
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 		return errors.Wrap(err, "Error marshalling transaction to json")
 	}
 
-	response, err := http.Post(fmt.Sprintf("%s/transaction", conf.APIAddress), "application/json", bytes.NewBuffer(txBytes))
+	response, err := http.Post(fmt.Sprintf("%s/transaction", conf.KasparovAddress), "application/json", bytes.NewBuffer(txBytes))
 	if err != nil {
 		return errors.Wrap(err, "Error posting transaction to server")
 	}

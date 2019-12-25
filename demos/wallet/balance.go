@@ -7,7 +7,7 @@ import (
 )
 
 func balance(conf *balanceConfig) error {
-	utxos, err := getUTXOs(conf.APIAddress, conf.Address)
+	utxos, err := getUTXOs(conf.KasparovAddress, conf.Address)
 	if err != nil {
 		return err
 	}

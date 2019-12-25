@@ -16,15 +16,15 @@ type createConfig struct {
 }
 
 type balanceConfig struct {
-	APIAddress string `long:"api-address" short:"a" description:"An address of a Kasparov API Server to use to check the balance. Must include http:// or https:// (e.g. https://api.kas.pa)" required:"true"`
-	Address    string `long:"address" short:"d" description:"The public address to check the balance of" required:"true"`
+	KasparovAddress string `long:"kasparov-address" short:"a" description:"An address of a Kasparov API Server to use to check the balance. Must include http:// or https:// (e.g. https://kasparov.kas.pa)" required:"true"`
+	Address         string `long:"address" short:"d" description:"The public address to check the balance of" required:"true"`
 }
 
 type sendConfig struct {
-	APIAddress string  `long:"api-address" short:"a" description:"An address of a Kasparov API Server to use to relay the transaction. Must include http:// or https:// (e.g. https://api.kas.pa)" required:"true"`
-	PrivateKey string  `long:"private-key" short:"k" description:"The private key of the sender (encoded in hex)" required:"true"`
-	ToAddress  string  `long:"to-address" short:"t" description:"The public address to send Kaspa to" required:"true"`
-	SendAmount float64 `long:"send-amount" short:"v" description:"An amount to send in Kaspa (e.g. 1234.12345678)" required:"true"`
+	KasparovAddress string  `long:"kasparov-address" short:"a" description:"An address of a Kasparov API Server to use to relay the transaction. Must include http:// or https:// (e.g. https://kasparov.kas.pa)" required:"true"`
+	PrivateKey      string  `long:"private-key" short:"k" description:"The private key of the sender (encoded in hex)" required:"true"`
+	ToAddress       string  `long:"to-address" short:"t" description:"The public address to send Kaspa to" required:"true"`
+	SendAmount      float64 `long:"send-amount" short:"v" description:"An amount to send in Kaspa (e.g. 1234.12345678)" required:"true"`
 }
 
 func parseCommandLine() (subCommand string, config interface{}) {
@@ -36,7 +36,7 @@ func parseCommandLine() (subCommand string, config interface{}) {
 		"Creates a private key and 3 public addresses, one for each of MainNet, TestNet and DevNet", createConf)
 
 	balanceConf := &balanceConfig{}
-	parser.AddCommand(balanceSubCmd, "Shows the balance for a public address",
+	parser.AddCommand(balanceSubCmd, "Shows the balance of a public address",
 		"Shows the balance for a public address in Kaspa", balanceConf)
 
 	sendConf := &sendConfig{}

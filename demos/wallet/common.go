@@ -13,11 +13,11 @@ import (
 func getUTXOs(apiAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
 	response, err := http.Get(fmt.Sprintf("%s/utxos/address/%s", apiAddress, address))
 	if err != nil {
-		return nil, errors.Wrap(err, "Error getting utxos from API server")
+		return nil, errors.Wrap(err, "Error getting utxos from Kasparov server")
 	}
 	body, err := readResponse(response)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error reading utxos from API server response")
+		return nil, errors.Wrap(err, "Error reading utxos from Kasparov server response")
 	}
 
 	utxos := []*apimodels.TransactionOutputResponse{}
