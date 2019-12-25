@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"net/http"
 	_ "net/http/pprof"
 
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
@@ -22,10 +21,6 @@ import (
 func main() {
 	defer panics.HandlePanic(log, nil, nil)
 	interrupt := signal.InterruptListener()
-
-	go func() {
-		http.ListenAndServe("localhost:6063", nil)
-	}()
 
 	err := config.Parse()
 	if err != nil {
