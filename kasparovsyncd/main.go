@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	_ "net/http/pprof"
-
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
