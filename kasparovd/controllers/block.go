@@ -57,7 +57,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 func GetBlocksHandler(order string, skip uint64, limit uint64) (interface{}, error) {
 	if limit < 1 || limit > maxGetBlocksLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("Limit higher than %d or lower than 1 was requested.", maxGetTransactionsLimit))
+			errors.Errorf("Limit higher than %d or lower than 1 was requested.", maxGetBlocksLimit))
 	}
 	blocks := []*dbmodels.Block{}
 	db, err := database.DB()
