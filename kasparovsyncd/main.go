@@ -7,17 +7,18 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/kaspanet/kaspad/signal"
+	"github.com/kaspanet/kaspad/util/panics"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/config"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
-	"github.com/kaspanet/kaspad/signal"
-	"github.com/kaspanet/kaspad/util/panics"
 	"github.com/pkg/errors"
 )
 
 func main() {
 	defer panics.HandlePanic(log, nil, nil)
+	interrupt := signal.InterruptListener()
 
 	err := config.Parse()
 	if err != nil {
@@ -68,7 +69,6 @@ func main() {
 		}
 	})
 
-	interrupt := signal.InterruptListener()
 	<-interrupt
 
 	// Gracefully stop syncing
