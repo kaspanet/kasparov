@@ -145,11 +145,10 @@ func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 		return err
 	}
 
-	txHex := make([]byte, hex.EncodedLen(txBuffer.Len()))
-	hex.Encode(txHex, txBuffer.Bytes())
+	txHex := hex.EncodeToString(txBuffer.Bytes())
 
 	rawTx := &apimodels.RawTransaction{
-		RawTransaction: string(txHex),
+		RawTransaction: txHex,
 	}
 	txBytes, err := json.Marshal(rawTx)
 	if err != nil {
