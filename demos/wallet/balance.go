@@ -12,7 +12,7 @@ func balance(conf *balanceConfig) error {
 		return err
 	}
 
-	var availableBalance, pendingBalance uint64 = 0, 0
+	var availableBalance, pendingBalance uint64
 	for _, utxo := range utxos {
 		if utxo.IsSpendable != nil && *utxo.IsSpendable {
 			availableBalance += utxo.Value

@@ -54,7 +54,6 @@ func Connect(cfg *config.KasparovFlags) error {
 		return err
 	}
 
-	db.LogMode(true)
 	db.SetLogger(gormLogger{})
 	return nil
 }
