@@ -895,7 +895,7 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 				}
 			}
 
-			dbAcceptedTransaction.AcceptingBlockID = &dbAccepedBlock.ID
+			dbAcceptedTransaction.AcceptingBlockID = &dbAddedBlock.ID
 			dbResult = dbTx.Save(&dbAcceptedTransaction)
 			dbErrors = dbResult.GetErrors()
 			if httpserverutils.HasDBError(dbErrors) {
