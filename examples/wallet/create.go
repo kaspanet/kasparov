@@ -9,7 +9,7 @@ import (
 	"github.com/kaspanet/kaspad/util"
 )
 
-func create(*createConfig) {
+func create() {
 	privateKey, err := ecc.NewPrivateKey(ecc.S256())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to generate private key: %s", err)
