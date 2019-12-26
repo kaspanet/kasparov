@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
+	"github.com/kaspanet/kaspad/logger"
 	"strconv"
 	"strings"
 	"time"
@@ -771,36 +773,63 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 		return errors.Errorf("block erroneously marked as not a chain block: %s", removedHash)
 	}
 
-	var dbTransactions []dbmodels.Transaction
+	//var dbTransactions []dbmodels.Transaction
+	//dbResult = dbTx.
+	//	Where(&dbmodels.Transaction{AcceptingBlockID: &dbBlock.ID}).
+	//	Where("`blocks`.`accepting_block_id` = `transactions`.`accepting_block_id`").
+	//	Joins("LEFT JOIN `transactions_to_blocks`.`transaction_id` = `transactions`.`id`").
+	//	Joins("LEFT JOIN `blocks` ON `blocks`.`id` = `transactions_to_blocks`.`block_id`").
+	//	Order("blue_score ASC").
+	//	Preload("TransactionInputs.PreviousTransactionOutput").
+	//	Find(&dbTransactions)
+	//dbErrors = dbResult.GetErrors()
+	//if httpserverutils.HasDBError(dbErrors) {
+	//	return httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
+	//}
+	var dbAcceptedBlocks []dbmodels.Block
 	dbResult = dbTx.
-		Where(&dbmodels.Transaction{AcceptingBlockID: &dbBlock.ID}).
-		Preload("TransactionInputs.PreviousTransactionOutput").
-		Find(&dbTransactions)
+		Where(&dbmodels.Block{AcceptingBlockID: &dbBlock.ID}).
+		Order("blue_score ASC").
+		Find(&dbAcceptedBlocks)
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
+		return httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
 	}
-	for _, dbTransaction := range dbTransactions {
-		for _, dbTransactionInput := range dbTransaction.TransactionInputs {
-			dbPreviousTransactionOutput := dbTransactionInput.PreviousTransactionOutput
-			if !dbPreviousTransactionOutput.IsSpent {
-				return errors.Errorf("cannot de-spend an unspent transaction output: %s index: %d",
-					dbTransaction.TransactionID, dbTransactionInput.Index)
-			}
-
-			dbPreviousTransactionOutput.IsSpent = false
-			dbResult = dbTx.Save(&dbPreviousTransactionOutput)
-			dbErrors = dbResult.GetErrors()
-			if httpserverutils.HasDBError(dbErrors) {
-				return httpserverutils.NewErrorFromDBErrors("failed to update transactionOutput: ", dbErrors)
-			}
-		}
-
-		dbTransaction.AcceptingBlockID = nil
-		dbResult := dbTx.Save(&dbTransaction)
-		dbErrors := dbResult.GetErrors()
+	for _, dbAcceptedBlock := range dbAcceptedBlocks {
+		var dbTransactions []dbmodels.Transaction
+		dbResult = dbTx.
+			Where(&dbmodels.Transaction{AcceptingBlockID: &dbBlock.ID}).
+			Where("`transactions_to_blocks`.`block_id` = ?", dbAcceptedBlock.ID).
+			Joins("LEFT JOIN `transactions_to_blocks` ON `transactions_to_blocks`.`transaction_id` = `transactions`.`id`").
+			Joins("LEFT JOIN `blocks` ON `blocks`.`id` = `transactions_to_blocks`.`block_id`").
+			Preload("TransactionInputs.PreviousTransactionOutput").
+			Find(&dbTransactions)
+		dbErrors = dbResult.GetErrors()
 		if httpserverutils.HasDBError(dbErrors) {
-			return httpserverutils.NewErrorFromDBErrors("failed to update transaction: ", dbErrors)
+			return httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
+		}
+		for _, dbTransaction := range dbTransactions {
+			for _, dbTransactionInput := range dbTransaction.TransactionInputs {
+				dbPreviousTransactionOutput := dbTransactionInput.PreviousTransactionOutput
+				if !dbPreviousTransactionOutput.IsSpent {
+					return errors.Errorf("cannot de-spend an unspent transaction output: %s index: %d",
+						dbTransaction.TransactionID, dbTransactionInput.Index)
+				}
+
+				dbPreviousTransactionOutput.IsSpent = false
+				dbResult = dbTx.Save(&dbPreviousTransactionOutput)
+				dbErrors = dbResult.GetErrors()
+				if httpserverutils.HasDBError(dbErrors) {
+					return httpserverutils.NewErrorFromDBErrors("failed to update transactionOutput: ", dbErrors)
+				}
+			}
+
+			dbTransaction.AcceptingBlockID = nil
+			dbResult := dbTx.Save(&dbTransaction)
+			dbErrors := dbResult.GetErrors()
+			if httpserverutils.HasDBError(dbErrors) {
+				return httpserverutils.NewErrorFromDBErrors("failed to update transaction: ", dbErrors)
+			}
 		}
 	}
 
@@ -903,7 +932,7 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 			}
 		}
 
-		dbAccepedBlock.AcceptingBlockID = rpcmodel.Uint64(dbAddedBlock.ID)
+		dbAccepedBlock.AcceptingBlockID = &dbAddedBlock.ID
 		dbResult = dbTx.Save(&dbAccepedBlock)
 		dbErrors = dbResult.GetErrors()
 		if httpserverutils.HasDBError(dbErrors) {
@@ -1062,6 +1091,18 @@ func handleChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) error {
 	// Convert the data in chainChanged to something we can feed into
 	// updateSelectedParentChain
 	removedHashes, addedBlocks := convertChainChangedMsg(chainChanged)
+
+	log.Tracef("Handling chain changed message: %s", logger.NewLogClosure(func() string {
+		removedHashesStr := fmt.Sprintf("\tRemoved hashes: [%s]\n", strings.Join(removedHashes, ","))
+		addedBlocksStr := ""
+		for _, addedBlock := range addedBlocks {
+			addedBlocksStr += fmt.Sprintf("\tAdded block %s")
+			for _, acceptedBlock := range addedBlock.AcceptedBlocks {
+				addedBlocksStr += fmt.Sprintf("\n\t\tAccepted Block: %s", acceptedBlock.Hash)
+			}
+		}
+		return fmt.Sprintf("\n%s\n%s", removedHashesStr, addedBlocksStr)
+	}))
 
 	err := updateSelectedParentChain(removedHashes, addedBlocks)
 	if err != nil {
