@@ -10,21 +10,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getUTXOs(apiAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
-	response, err := http.Get(fmt.Sprintf("%s/utxos/address/%s", apiAddress, address))
+func getUTXOs(kasparovAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
+	response, err := http.Get(fmt.Sprintf("%s/utxos/address/%s", kasparovAddress, address))
 	if err != nil {
-		return nil, errors.Wrap(err, "Error getting utxos from Kasparov server")
+		return nil, errors.Wrap(err, "Error getting UTXOs from Kasparov server")
 	}
 	body, err := readResponse(response)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error reading utxos from Kasparov server response")
+		return nil, errors.Wrap(err, "Error reading UTXOs from Kasparov server response")
 	}
 
 	utxos := []*apimodels.TransactionOutputResponse{}
 
 	err = json.Unmarshal(body, &utxos)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error unmarshalling utxos")
+		return nil, errors.Wrap(err, "Error unmarshalling UTXOs")
 	}
 
 	return utxos, nil
