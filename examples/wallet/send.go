@@ -42,12 +42,12 @@ func send(conf *sendConfig) error {
 	sendAmountSompi := uint64(conf.SendAmount * util.SompiPerKaspa)
 	totalToSend := sendAmountSompi + feeSompis
 
-	selectedUTXOs, change, err := selectUTXOs(utxos, totalToSend)
+	selectedUTXOs, changeSompi, err := selectUTXOs(utxos, totalToSend)
 	if err != nil {
 		return err
 	}
 
-	msgTx, err := generateTx(privateKey, selectedUTXOs, sendAmountSompi, change, toAddress, fromAddress)
+	msgTx, err := generateTx(privateKey, selectedUTXOs, sendAmountSompi, changeSompi, toAddress, fromAddress)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func parsePrivateKey(privateKeyHex string) (*ecc.PrivateKey, *ecc.PublicKey, err
 }
 
 func selectUTXOs(utxos []*apimodels.TransactionOutputResponse, totalToSpend uint64) (
-	selectedUTXOs []*apimodels.TransactionOutputResponse, change uint64, err error) {
+	selectedUTXOs []*apimodels.TransactionOutputResponse, changeSompi uint64, err error) {
 
 	selectedUTXOs = []*apimodels.TransactionOutputResponse{}
 	totalValue := uint64(0)
@@ -146,7 +146,6 @@ func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 	}
 
 	txHex := hex.EncodeToString(txBuffer.Bytes())
-
 	rawTx := &apimodels.RawTransaction{
 		RawTransaction: txHex,
 	}

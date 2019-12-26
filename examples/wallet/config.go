@@ -40,8 +40,8 @@ func parseCommandLine() (subCommand string, config interface{}) {
 		"Shows the balance for a public address in Kaspa", balanceConf)
 
 	sendConf := &sendConfig{}
-	parser.AddCommand(sendSubCmd, "Send a Kaspa transaction to a public address",
-		"Send a Kaspa transaction to a public address", sendConf)
+	parser.AddCommand(sendSubCmd, "Sends a Kaspa transaction to a public address",
+		"Sends a Kaspa transaction to a public address", sendConf)
 
 	_, err := parser.Parse()
 
