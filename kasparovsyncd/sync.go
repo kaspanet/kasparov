@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
+	"github.com/kaspanet/kaspad/logger"
 	"strconv"
 	"strings"
 	"time"
@@ -771,6 +773,8 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 		return errors.Errorf("block erroneously marked as not a chain block: %s", removedHash)
 	}
 
+	log.Criticalf("updateRemovedChainHashes removedHash: %s", removedHash)
+
 	var dbTransactions []dbmodels.Transaction
 	dbResult = dbTx.
 		Where(&dbmodels.Transaction{AcceptingBlockID: &dbBlock.ID}).
@@ -780,14 +784,20 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 	if httpserverutils.HasDBError(dbErrors) {
 		return httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
 	}
+	log.Criticalf("updateRemovedChainHashes len(dbTransactions): %d", len(dbTransactions))
 	for _, dbTransaction := range dbTransactions {
+		log.Criticalf("updateRemovedChainHashes dbTransaction: %s, %s", removedHash, dbTransaction.TransactionID)
 		for _, dbTransactionInput := range dbTransaction.TransactionInputs {
 			dbPreviousTransactionOutput := dbTransactionInput.PreviousTransactionOutput
+
+			//log.Criticalf("setting isSpent = false for dbPreviousTransactionOutput %s:%d for removedHash %s",
+			//	dbPreviousTransactionOutput.TransactionID, dbPreviousTransactionOutput.Index, removedHash)
+			log.Criticalf("setting isSpent = false %s %d", dbTransaction.TransactionID, dbTransactionInput.Index)
+
 			if !dbPreviousTransactionOutput.IsSpent {
 				return errors.Errorf("cannot de-spend an unspent transaction output: %s index: %d",
 					dbTransaction.TransactionID, dbTransactionInput.Index)
 			}
-
 			dbPreviousTransactionOutput.IsSpent = false
 			dbResult = dbTx.Save(&dbPreviousTransactionOutput)
 			dbErrors = dbResult.GetErrors()
@@ -796,8 +806,10 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 			}
 		}
 
-		dbTransaction.AcceptingBlockID = nil
-		dbResult := dbTx.Save(&dbTransaction)
+		dbResult = dbTx.
+			Model(&dbmodels.Transaction{}).
+			Where("id = ?", dbTransaction.ID).
+			Update("accepting_block_id", nil)
 		dbErrors := dbResult.GetErrors()
 		if httpserverutils.HasDBError(dbErrors) {
 			return httpserverutils.NewErrorFromDBErrors("failed to update transaction: ", dbErrors)
@@ -808,14 +820,15 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 		Model(&dbmodels.Block{}).
 		Where(&dbmodels.Block{AcceptingBlockID: rpcmodel.Uint64(dbBlock.ID)}).
 		Updates(map[string]interface{}{"AcceptingBlockID": nil})
-
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return httpserverutils.NewErrorFromDBErrors("failed to update blocks: ", dbErrors)
 	}
 
-	dbBlock.IsChainBlock = false
-	dbResult = dbTx.Save(&dbBlock)
+	dbResult = dbTx.
+		Model(&dbmodels.Block{}).
+		Where("id = ?", dbBlock.ID).
+		Update("is_chain_block", false)
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
@@ -882,11 +895,15 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 		for _, dbAcceptedTransaction := range dbAcceptedTransactions {
 			for _, dbTransactionInput := range dbAcceptedTransaction.TransactionInputs {
 				dbPreviousTransactionOutput := dbTransactionInput.PreviousTransactionOutput
+
+				//log.Criticalf("setting isSpent = true for dbPreviousTransactionOutput %s:%d for addedBlock %s for acceptedBlock %s",
+				//	dbPreviousTransactionOutput.TransactionID, dbPreviousTransactionOutput.Index, addedBlock.Hash, acceptedBlock.Hash)
+				//log.Criticalf("setting isSpent = true %s %d", dbAcceptedTransaction.TransactionID, dbTransactionInput.Index)
+
 				if dbPreviousTransactionOutput.IsSpent {
 					return errors.Errorf("cannot spend an already spent transaction output: %s index: %d",
 						dbAcceptedTransaction.TransactionID, dbTransactionInput.Index)
 				}
-
 				dbPreviousTransactionOutput.IsSpent = true
 				dbResult = dbTx.Save(&dbPreviousTransactionOutput)
 				dbErrors = dbResult.GetErrors()
@@ -895,24 +912,30 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 				}
 			}
 
-			dbAcceptedTransaction.AcceptingBlockID = &dbAddedBlock.ID
-			dbResult = dbTx.Save(&dbAcceptedTransaction)
+			dbResult = dbTx.
+				Model(&dbmodels.Transaction{}).
+				Where("id = ?", dbAcceptedTransaction.ID).
+				Update("accepting_block_id", dbAddedBlock.ID)
 			dbErrors = dbResult.GetErrors()
 			if httpserverutils.HasDBError(dbErrors) {
 				return httpserverutils.NewErrorFromDBErrors("failed to update transaction: ", dbErrors)
 			}
 		}
 
-		dbAccepedBlock.AcceptingBlockID = rpcmodel.Uint64(dbAddedBlock.ID)
-		dbResult = dbTx.Save(&dbAccepedBlock)
+		dbResult = dbTx.
+			Model(&dbmodels.Block{}).
+			Where("id = ?", dbAccepedBlock.ID).
+			Update("accepting_block_id", dbAddedBlock.ID)
 		dbErrors = dbResult.GetErrors()
 		if httpserverutils.HasDBError(dbErrors) {
 			return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
 		}
 	}
 
-	dbAddedBlock.IsChainBlock = true
-	dbResult = dbTx.Save(&dbAddedBlock)
+	dbResult = dbTx.
+		Model(&dbmodels.Block{}).
+		Where("id = ?", dbAddedBlock.ID).
+		Update("is_chain_block", true)
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
@@ -1062,6 +1085,21 @@ func handleChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) error {
 	// Convert the data in chainChanged to something we can feed into
 	// updateSelectedParentChain
 	removedHashes, addedBlocks := convertChainChangedMsg(chainChanged)
+
+	log.Criticalf("Handling chain changed message: %s", logger.NewLogClosure(func() string {
+		removedHashesStr := fmt.Sprintf("\tRemoved hashes: [%s]\n", strings.Join(removedHashes, ","))
+		addedBlocksStr := ""
+		for _, addedBlock := range addedBlocks {
+			addedBlocksStr += fmt.Sprintf("\tAdded block %s", addedBlock.Hash)
+			for _, acceptedBlock := range addedBlock.AcceptedBlocks {
+				addedBlocksStr += fmt.Sprintf("\n\t\tAccepted Block: %s", acceptedBlock.Hash)
+				for _, acceptedTxID := range acceptedBlock.AcceptedTxIDs {
+					addedBlocksStr += fmt.Sprintf("\n\t\t\tAccepted TxID: %s", acceptedTxID)
+				}
+			}
+		}
+		return fmt.Sprintf("\n%s\n%s", removedHashesStr, addedBlocksStr)
+	}))
 
 	err := updateSelectedParentChain(removedHashes, addedBlocks)
 	if err != nil {
