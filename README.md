@@ -7,7 +7,7 @@ Warning: This is pre-alpha software. There's no guarantee anything works.
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/kaspanet/kasparov)
 
-Kasparov is the reference API server for Kaspa written in Go (golang).
+Kasparov is an API server for Kaspa written in Go (golang).
 
 This project contains the following executables:
 - kasparovd - the Kasparov server. Handles user requests.
