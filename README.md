@@ -40,7 +40,7 @@ recommended that `GOPATH` is set to a directory in your home directory such as
 `~/dev/go` to avoid write permission issues. It is also recommended to add
 `$GOPATH/bin` to your `PATH` at this point.
 
-- Run the following commands to obtain and install kaspad including all dependencies:
+- Run the following commands to obtain and install kasparovd, kasparovsyncd, and the wallet including all dependencies:
 
 ```bash
 $ git clone https://github.com/kaspanet/kasparov $GOPATH/src/github.com/kaspanet/kasparov
@@ -67,20 +67,20 @@ Kasparov expects to have access to the following systems:
 #### kasparovd
 
 ```bash
-$ ./kaspad
+$ ./kasparovd --rpcserver=localhost:16615 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov
 ```
 
 #### kasparovsyncd
 
 ```bash
-$ ./kasparovsyncd --rpcserver=path.to.kaspad:16615 --rpcuser=user --rpcpass=pass --migrate --dbuser=mysqluser --dbpass=mysqlpass --dbaddress=path.to.mysql:3306 --dbname=mysqldbname
-$ ./kaspad
+$ ./kasparovsyncd --rpcserver=localhost:16615 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov --migrate
+$ ./kasparovsyncd --rpcserver=localhost:16615 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov --mqttaddress=localhost:1883 --mqttuser=user --mqttpass=pass
 ```
 
 #### wallet
 
 ```bash
-$ ./kaspad
+$ ./wallet create     
 ```
 
 ## Discord
