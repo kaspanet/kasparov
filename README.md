@@ -65,14 +65,14 @@ Kasparov expects to have access to the following systems:
 #### kasparovd
 
 ```bash
-$ ./kasparovd --rpcserver=localhost:16615 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov
+$ ./kasparovd --rpcserver=localhost:16210 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov --testnet
 ```
 
 #### kasparovsyncd
 
 ```bash
-$ ./kasparovsyncd --rpcserver=localhost:16615 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov --migrate
-$ ./kasparovsyncd --rpcserver=localhost:16615 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov --mqttaddress=localhost:1883 --mqttuser=user --mqttpass=pass
+$ ./kasparovsyncd --rpcserver=localhost:16210 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov --migrate --testnet
+$ ./kasparovsyncd --rpcserver=localhost:16210 --rpccert=path/to/rpc.cert --rpcuser=user --rpcpass=pass --dbuser=user --dbpass=pass --dbaddress=localhost:3306 --dbname=kasparov --mqttaddress=localhost:1883 --mqttuser=user --mqttpass=pass --testnet
 ```
 
 #### wallet
