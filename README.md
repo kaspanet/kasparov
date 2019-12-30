@@ -77,9 +77,7 @@ $ ./kasparovsyncd --rpcserver=localhost:16615 --rpccert=path/to/rpc.cert --rpcus
 
 #### wallet
 
-```bash
-$ ./wallet create     
-```
+See the full [wallet documentation](https://docs.kas.pa/kaspa/try-kaspa/cli-wallet).
 
 ## Discord
 Join our discord server using the following link: https://discord.gg/WmGhhzk
