@@ -10,9 +10,9 @@ Warning: This is pre-alpha software. There's no guarantee anything works.
 Kasparov is the reference API server for Kaspa written in Go (golang).
 
 This project contains the following executables:
-* kasparovd - the Kasparov server. Handles user requests.
-* kasparovsyncd - the Kasparov sync daemon. Maintains sync with a full Kaspa node.
-* examples/wallet - an example Kaspa wallet. Provides wallet services via communication with a kasparovd instance. 
+- kasparovd - the Kasparov server. Handles user requests.
+- kasparovsyncd - the Kasparov sync daemon. Maintains sync with a full Kaspa node.
+- examples/wallet - an example Kaspa wallet. Interfaces with a kasparovd instance. 
 
 This project is currently under active development and is in a pre-Alpha state. 
 Some things still don't work and APIs are far from finalized. The code is provided for reference only.
@@ -58,9 +58,9 @@ $ go install . ./examples/wallet/...
 ## Getting Started
 
 Kasparov expects to have access to the following systems:
-* A full Kaspa node
-* A MySQL database
-* An optional MQTT broker
+- A Kaspa RPC server (usually [kaspad](https://github.com/kaspanet/kaspad) with RPC turned on)
+- A MySQL database
+- An optional MQTT broker
 
 ### Linux/BSD/POSIX/Source
 
