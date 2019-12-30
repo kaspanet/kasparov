@@ -903,7 +903,7 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 			}
 
 			// Don't use Save() here--it updates all fields in dbAcceptedTransaction
-			dbAcceptedTransaction.AcceptingBlockID = &dbAddedBlock.ID
+			dbAcceptedTransaction.AcceptingBlockID = rpcmodel.Uint64(dbAddedBlock.ID)
 			dbResult = dbTx.
 				Model(&dbmodels.Transaction{}).
 				Where("id = ?", dbAcceptedTransaction.ID).
@@ -915,7 +915,7 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 		}
 
 		// Don't use Save() here--it updates all fields in dbAcceptedBlock
-		dbAccepedBlock.AcceptingBlockID = &dbAddedBlock.ID
+		dbAccepedBlock.AcceptingBlockID = rpcmodel.Uint64(dbAddedBlock.ID)
 		dbResult = dbTx.
 			Model(&dbmodels.Block{}).
 			Where("id = ?", dbAccepedBlock.ID).
