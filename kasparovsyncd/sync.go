@@ -783,11 +783,11 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 	for _, dbTransaction := range dbTransactions {
 		for _, dbTransactionInput := range dbTransaction.TransactionInputs {
 			dbPreviousTransactionOutput := dbTransactionInput.PreviousTransactionOutput
+
 			if !dbPreviousTransactionOutput.IsSpent {
 				return errors.Errorf("cannot de-spend an unspent transaction output: %s index: %d",
 					dbTransaction.TransactionID, dbTransactionInput.Index)
 			}
-
 			dbPreviousTransactionOutput.IsSpent = false
 			dbResult = dbTx.Save(&dbPreviousTransactionOutput)
 			dbErrors = dbResult.GetErrors()
@@ -796,8 +796,12 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 			}
 		}
 
+		// Don't use Save() here--it updates all fields in dbTransaction
 		dbTransaction.AcceptingBlockID = nil
-		dbResult := dbTx.Save(&dbTransaction)
+		dbResult = dbTx.
+			Model(&dbmodels.Transaction{}).
+			Where("id = ?", dbTransaction.ID).
+			Update("accepting_block_id", nil)
 		dbErrors := dbResult.GetErrors()
 		if httpserverutils.HasDBError(dbErrors) {
 			return httpserverutils.NewErrorFromDBErrors("failed to update transaction: ", dbErrors)
@@ -808,14 +812,17 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 		Model(&dbmodels.Block{}).
 		Where(&dbmodels.Block{AcceptingBlockID: rpcmodel.Uint64(dbBlock.ID)}).
 		Updates(map[string]interface{}{"AcceptingBlockID": nil})
-
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return httpserverutils.NewErrorFromDBErrors("failed to update blocks: ", dbErrors)
 	}
 
+	// Don't use Save() here--it updates all fields in dbBlock
 	dbBlock.IsChainBlock = false
-	dbResult = dbTx.Save(&dbBlock)
+	dbResult = dbTx.
+		Model(&dbmodels.Block{}).
+		Where("id = ?", dbBlock.ID).
+		Update("is_chain_block", false)
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
@@ -882,11 +889,11 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 		for _, dbAcceptedTransaction := range dbAcceptedTransactions {
 			for _, dbTransactionInput := range dbAcceptedTransaction.TransactionInputs {
 				dbPreviousTransactionOutput := dbTransactionInput.PreviousTransactionOutput
+
 				if dbPreviousTransactionOutput.IsSpent {
 					return errors.Errorf("cannot spend an already spent transaction output: %s index: %d",
 						dbAcceptedTransaction.TransactionID, dbTransactionInput.Index)
 				}
-
 				dbPreviousTransactionOutput.IsSpent = true
 				dbResult = dbTx.Save(&dbPreviousTransactionOutput)
 				dbErrors = dbResult.GetErrors()
@@ -895,24 +902,36 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 				}
 			}
 
-			dbAcceptedTransaction.AcceptingBlockID = &dbAddedBlock.ID
-			dbResult = dbTx.Save(&dbAcceptedTransaction)
+			// Don't use Save() here--it updates all fields in dbAcceptedTransaction
+			dbAcceptedTransaction.AcceptingBlockID = rpcmodel.Uint64(dbAddedBlock.ID)
+			dbResult = dbTx.
+				Model(&dbmodels.Transaction{}).
+				Where("id = ?", dbAcceptedTransaction.ID).
+				Update("accepting_block_id", dbAddedBlock.ID)
 			dbErrors = dbResult.GetErrors()
 			if httpserverutils.HasDBError(dbErrors) {
 				return httpserverutils.NewErrorFromDBErrors("failed to update transaction: ", dbErrors)
 			}
 		}
 
+		// Don't use Save() here--it updates all fields in dbAcceptedBlock
 		dbAccepedBlock.AcceptingBlockID = rpcmodel.Uint64(dbAddedBlock.ID)
-		dbResult = dbTx.Save(&dbAccepedBlock)
+		dbResult = dbTx.
+			Model(&dbmodels.Block{}).
+			Where("id = ?", dbAccepedBlock.ID).
+			Update("accepting_block_id", dbAddedBlock.ID)
 		dbErrors = dbResult.GetErrors()
 		if httpserverutils.HasDBError(dbErrors) {
 			return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
 		}
 	}
 
+	// Don't use Save() here--it updates all fields in dbAddedBlock
 	dbAddedBlock.IsChainBlock = true
-	dbResult = dbTx.Save(&dbAddedBlock)
+	dbResult = dbTx.
+		Model(&dbmodels.Block{}).
+		Where("id = ?", dbAddedBlock.ID).
+		Update("is_chain_block", true)
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
