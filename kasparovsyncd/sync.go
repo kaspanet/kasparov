@@ -796,6 +796,8 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 			}
 		}
 
+		// Don't use Save() here--it updates all fields in dbTransaction
+		dbTransaction.AcceptingBlockID = nil
 		dbResult = dbTx.
 			Model(&dbmodels.Transaction{}).
 			Where("id = ?", dbTransaction.ID).
@@ -815,6 +817,8 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 		return httpserverutils.NewErrorFromDBErrors("failed to update blocks: ", dbErrors)
 	}
 
+	// Don't use Save() here--it updates all fields in dbBlock
+	dbBlock.IsChainBlock = false
 	dbResult = dbTx.
 		Model(&dbmodels.Block{}).
 		Where("id = ?", dbBlock.ID).
@@ -898,6 +902,8 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 				}
 			}
 
+			// Don't use Save() here--it updates all fields in dbAcceptedTransaction
+			dbAcceptedTransaction.AcceptingBlockID = &dbAddedBlock.ID
 			dbResult = dbTx.
 				Model(&dbmodels.Transaction{}).
 				Where("id = ?", dbAcceptedTransaction.ID).
@@ -908,6 +914,8 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 			}
 		}
 
+		// Don't use Save() here--it updates all fields in dbAcceptedBlock
+		dbAccepedBlock.AcceptingBlockID = &dbAddedBlock.ID
 		dbResult = dbTx.
 			Model(&dbmodels.Block{}).
 			Where("id = ?", dbAccepedBlock.ID).
@@ -918,6 +926,8 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 		}
 	}
 
+	// Don't use Save() here--it updates all fields in dbAddedBlock
+	dbAddedBlock.IsChainBlock = true
 	dbResult = dbTx.
 		Model(&dbmodels.Block{}).
 		Where("id = ?", dbAddedBlock.ID).
