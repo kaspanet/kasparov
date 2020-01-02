@@ -1,9 +1,15 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/jessevdk/go-flags"
-	"github.com/kaspanet/kasparov/config"
 	"github.com/kaspanet/kaspad/util"
+	"github.com/kaspanet/kasparov/config"
+	"github.com/kaspanet/kasparov/version"
 )
 
 const (
@@ -25,7 +31,8 @@ func ActiveConfig() *Config {
 
 // Config defines the configuration options for the API server.
 type Config struct {
-	HTTPListen string `long:"listen" description:"HTTP address to listen on (default: 0.0.0.0:8080)"`
+	ShowVersion bool   `short:"V" long:"version" description:"Display version information and exit"`
+	HTTPListen  string `long:"listen" description:"HTTP address to listen on (default: 0.0.0.0:8080)"`
 	config.KasparovFlags
 }
 
@@ -34,8 +41,18 @@ func Parse() error {
 	activeConfig = &Config{
 		HTTPListen: defaultHTTPListen,
 	}
-	parser := flags.NewParser(activeConfig, flags.PrintErrors|flags.HelpFlag)
+	parser := flags.NewParser(activeConfig, flags.HelpFlag)
+
 	_, err := parser.Parse()
+
+	// Show the version and exit if the version flag was specified.
+	if activeConfig.ShowVersion {
+		appName := filepath.Base(os.Args[0])
+		appName = strings.TrimSuffix(appName, filepath.Ext(appName))
+		fmt.Println(appName, "version", version.Version())
+		os.Exit(0)
+	}
+
 	if err != nil {
 		return err
 	}
