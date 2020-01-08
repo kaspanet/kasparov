@@ -13,6 +13,7 @@ import (
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/config"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
+	"github.com/kaspanet/kasparov/version"
 	"github.com/pkg/errors"
 )
 
@@ -22,13 +23,16 @@ func main() {
 
 	err := config.Parse()
 	if err != nil {
-		errString := fmt.Sprintf("Error parsing command-line arguments: %s", err)
+		errString := fmt.Sprintf("Error parsing command-line arguments: %s\n", err)
 		_, fErr := fmt.Fprintf(os.Stderr, errString)
 		if fErr != nil {
 			panic(errString)
 		}
 		return
 	}
+
+	// Show version at startup.
+	log.Infof("Version %s", version.Version())
 
 	if config.ActiveConfig().Migrate {
 		err := database.Migrate(&config.ActiveConfig().KasparovFlags)

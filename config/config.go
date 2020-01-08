@@ -1,11 +1,12 @@
 package config
 
 import (
+	"path/filepath"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/kaspanet/kaspad/config"
 	"github.com/kaspanet/kasparov/logger"
 	"github.com/pkg/errors"
-	"path/filepath"
 )
 
 var (
@@ -15,6 +16,7 @@ var (
 
 // KasparovFlags holds configuration common to both the Kasparov server and the Kasparov daemon.
 type KasparovFlags struct {
+	ShowVersion bool   `short:"V" long:"version" description:"Display version information and exit"`
 	LogDir      string `long:"logdir" description:"Directory to log output."`
 	DebugLevel  string `short:"d" long:"debuglevel" description:"Set log level {trace, debug, info, warn, error, critical}"`
 	DBAddress   string `long:"dbaddress" description:"Database address"`
