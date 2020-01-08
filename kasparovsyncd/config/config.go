@@ -31,7 +31,6 @@ func ActiveConfig() *Config {
 
 // Config defines the configuration options for the sync daemon.
 type Config struct {
-	ShowVersion       bool   `short:"V" long:"version" description:"Display version information and exit"`
 	Migrate           bool   `long:"migrate" description:"Migrate the database to the latest version. The daemon will not start when using this flag."`
 	MQTTBrokerAddress string `long:"mqttaddress" description:"MQTT broker address" required:"false"`
 	MQTTUser          string `long:"mqttuser" description:"MQTT server user" required:"false"`

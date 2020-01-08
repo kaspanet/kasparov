@@ -31,8 +31,7 @@ func ActiveConfig() *Config {
 
 // Config defines the configuration options for the API server.
 type Config struct {
-	ShowVersion bool   `short:"V" long:"version" description:"Display version information and exit"`
-	HTTPListen  string `long:"listen" description:"HTTP address to listen on (default: 0.0.0.0:8080)"`
+	HTTPListen string `long:"listen" description:"HTTP address to listen on (default: 0.0.0.0:8080)"`
 	config.KasparovFlags
 }
 
