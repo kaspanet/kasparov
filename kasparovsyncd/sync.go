@@ -666,6 +666,11 @@ func insertAddress(dbTx *gorm.DB, scriptPubKey []byte) (*dbmodels.Address, error
 	if err != nil {
 		return nil, err
 	}
+
+	if addr == nil {
+		return nil, nil
+	}
+
 	hexAddress := addr.EncodeAddress()
 
 	var dbAddress dbmodels.Address
@@ -707,7 +712,9 @@ func insertTransactionOutput(dbTx *gorm.DB, dbTransaction *dbmodels.Transaction,
 			Value:         output.Value,
 			IsSpent:       false, // This must be false for updateSelectedParentChain to work properly
 			ScriptPubKey:  scriptPubKey,
-			AddressID:     dbAddress.ID,
+		}
+		if dbAddress != nil {
+			dbTransactionOutput.AddressID = dbAddress.ID
 		}
 		dbResult := dbTx.Create(&dbTransactionOutput)
 		dbErrors := dbResult.GetErrors()
