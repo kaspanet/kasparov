@@ -20,7 +20,7 @@ func create() {
 	fmt.Printf("Private key (hex):\t%x\n\n", privateKey.Serialize())
 
 	fmt.Println("These are your public addresses for each network, where money is to be sent.")
-	for _, netParams := range []*dagconfig.Params{&dagconfig.MainNetParams, &dagconfig.TestNetParams, &dagconfig.DevNetParams} {
+	for _, netParams := range []*dagconfig.Params{&dagconfig.MainnetParams, &dagconfig.TestnetParams, &dagconfig.DevnetParams} {
 		addr, err := util.NewAddressPubKeyHashFromPublicKey(privateKey.PubKey().SerializeCompressed(), netParams.Prefix)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to generate p2pkh address: %s", err)
