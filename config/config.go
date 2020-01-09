@@ -28,7 +28,7 @@ type KasparovFlags struct {
 	RPCServer   string `short:"s" long:"rpcserver" description:"RPC server to connect to"`
 	RPCCert     string `short:"c" long:"rpccert" description:"RPC server certificate chain for validation"`
 	DisableTLS  bool   `long:"notls" description:"Disable TLS"`
-	config.NetworkFlagsfdsfs
+	config.NetworkFlagsfdsfsaaa
 }
 
 // ResolveKasparovFlags parses command line arguments and sets KasparovFlags accordingly.
