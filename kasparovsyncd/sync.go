@@ -664,7 +664,8 @@ func insertTransactionOutputs(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult, 
 func insertAddress(dbTx *gorm.DB, scriptPubKey []byte) (*dbmodels.Address, error) {
 	_, addr, err := txscript.ExtractScriptPubKeyAddress(scriptPubKey, config.ActiveConfig().NetParams())
 	if err != nil {
-		return nil, err
+		// ignore the error - it's probably not a standard script, and therefore doesn't correspond to any address
+		return nil, nil
 	}
 	hexAddress := addr.EncodeAddress()
 
@@ -707,7 +708,9 @@ func insertTransactionOutput(dbTx *gorm.DB, dbTransaction *dbmodels.Transaction,
 			Value:         output.Value,
 			IsSpent:       false, // This must be false for updateSelectedParentChain to work properly
 			ScriptPubKey:  scriptPubKey,
-			AddressID:     dbAddress.ID,
+		}
+		if dbAddress != nil {
+			dbTransactionOutput.AddressID = dbAddress.ID
 		}
 		dbResult := dbTx.Create(&dbTransactionOutput)
 		dbErrors := dbResult.GetErrors()
