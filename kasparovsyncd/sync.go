@@ -663,10 +663,14 @@ func insertTransactionOutputs(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult, 
 
 func insertAddress(dbTx *gorm.DB, scriptPubKey []byte) (*dbmodels.Address, error) {
 	addrType, addr, err := txscript.ExtractScriptPubKeyAddress(scriptPubKey, config.ActiveConfig().NetParams())
-	if err != nil || addrType == txscript.NonStandardTy {
-		// ignore the error - it's probably not a standard script, and therefore doesn't correspond to any address
+	if err != nil {
+		return nil, err
+	}
+
+	if addr == nil && addrType == txscript.NonStandardTy {
 		return nil, nil
 	}
+
 	hexAddress := addr.EncodeAddress()
 
 	var dbAddress dbmodels.Address
