@@ -11,6 +11,7 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/kaspanet/kaspad v0.0.4
 	github.com/pkg/errors v0.8.1
+	github.com/t-tiger/gorm-bulk-insert v1.2.0
 	google.golang.org/appengine v1.5.0
 )
 

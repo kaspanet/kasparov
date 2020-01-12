@@ -88,8 +88,8 @@ type TransactionOutput struct {
 	Value         uint64
 	ScriptPubKey  []byte
 	IsSpent       bool
-	AddressID     uint64
-	Address       Address
+	AddressID     *uint64
+	Address       *Address
 }
 
 // TransactionInput is the gorm model for the 'transaction_inputs' table
