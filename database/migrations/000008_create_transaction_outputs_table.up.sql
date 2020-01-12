@@ -6,13 +6,10 @@ CREATE TABLE `transaction_outputs`
     `value`          BIGINT UNSIGNED NOT NULL,
     `script_pub_key` BLOB            NOT NULL,
     `is_spent`       TINYINT         NOT NULL,
-    `address_id`     BIGINT UNSIGNED NOT NULL,
+    `address_id`     BIGINT UNSIGNED NULL,
     PRIMARY KEY (`id`),
     INDEX `idx_transaction_outputs_transaction_id` (`transaction_id`),
     CONSTRAINT `fk_transaction_outputs_transaction_id`
         FOREIGN KEY (`transaction_id`)
-            REFERENCES `transactions` (`id`),
-    CONSTRAINT `fk_transaction_outputs_address_id`
-        FOREIGN KEY (`address_id`)
-            REFERENCES `addresses` (`id`)
+            REFERENCES `transactions` (`id`)
 );
