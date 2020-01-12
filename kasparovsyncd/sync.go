@@ -714,7 +714,7 @@ func insertTransactionOutput(dbTx *gorm.DB, dbTransaction *dbmodels.Transaction,
 			ScriptPubKey:  scriptPubKey,
 		}
 		if dbAddress != nil {
-			dbTransactionOutput.AddressID = dbAddress.ID
+			dbTransactionOutput.AddressID = &dbAddress.ID
 		}
 		dbResult := dbTx.Create(&dbTransactionOutput)
 		dbErrors := dbResult.GetErrors()
