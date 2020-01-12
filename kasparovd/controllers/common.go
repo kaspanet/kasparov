@@ -45,8 +45,10 @@ func convertTxDBModelToTxResponse(tx *dbmodels.Transaction) *apimodels.Transacti
 		txRes.Outputs[i] = &apimodels.TransactionOutputResponse{
 			Value:        txOut.Value,
 			ScriptPubKey: hex.EncodeToString(txOut.ScriptPubKey),
-			Address:      txOut.Address.Address,
 			Index:        txOut.Index,
+		}
+		if txOut.Address != nil {
+			txRes.Outputs[i].Address = txOut.Address.Address
 		}
 	}
 	for i, txIn := range tx.TransactionInputs {
@@ -55,7 +57,9 @@ func convertTxDBModelToTxResponse(tx *dbmodels.Transaction) *apimodels.Transacti
 			PreviousTransactionOutputIndex: txIn.PreviousTransactionOutput.Index,
 			SignatureScript:                hex.EncodeToString(txIn.SignatureScript),
 			Sequence:                       txIn.Sequence,
-			Address:                        txIn.PreviousTransactionOutput.Address.Address,
+		}
+		if txIn.PreviousTransactionOutput.Address != nil {
+			txRes.Inputs[i].Address = txIn.PreviousTransactionOutput.Address.Address
 		}
 	}
 	return txRes
