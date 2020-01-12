@@ -666,11 +666,9 @@ func insertAddress(dbTx *gorm.DB, scriptPubKey []byte) (*dbmodels.Address, error
 	if err != nil {
 		return nil, err
 	}
-
 	if addr == nil {
 		return nil, nil
 	}
-
 	hexAddress := addr.EncodeAddress()
 
 	var dbAddress dbmodels.Address
@@ -714,7 +712,7 @@ func insertTransactionOutput(dbTx *gorm.DB, dbTransaction *dbmodels.Transaction,
 			ScriptPubKey:  scriptPubKey,
 		}
 		if dbAddress != nil {
-			dbTransactionOutput.AddressID = dbAddress.ID
+			dbTransactionOutput.AddressID = &dbAddress.ID
 		}
 		dbResult := dbTx.Create(&dbTransactionOutput)
 		dbErrors := dbResult.GetErrors()
