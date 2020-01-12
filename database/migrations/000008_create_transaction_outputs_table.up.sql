@@ -11,5 +11,8 @@ CREATE TABLE `transaction_outputs`
     INDEX `idx_transaction_outputs_transaction_id` (`transaction_id`),
     CONSTRAINT `fk_transaction_outputs_transaction_id`
         FOREIGN KEY (`transaction_id`)
-            REFERENCES `transactions` (`id`)
+            REFERENCES `transactions` (`id`),
+    CONSTRAINT `fk_transaction_outputs_address_id`
+        FOREIGN KEY (`address_id`)
+            REFERENCES `addresses` (`id`)
 );
