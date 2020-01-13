@@ -330,7 +330,7 @@ func insertTransactionBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockH
 			})
 		}
 	}
-	return gormbulk.BulkInsert(dbTx, transactionBlocksToAdd, insertChunkSize)
+	return bulkInsert(dbTx, transactionBlocksToAdd, insertChunkSize)
 }
 
 type outpoint struct {
@@ -422,7 +422,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData 
 			inputIterator++
 		}
 	}
-	return gormbulk.BulkInsert(dbTx, inputsToAdd, insertChunkSize)
+	return bulkInsert(dbTx, inputsToAdd, insertChunkSize)
 }
 
 func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData map[string]*txWithMetaData) error {
@@ -456,7 +456,7 @@ func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData
 		}
 	}
 
-	return gormbulk.BulkInsert(dbTx, outputsToAdd, insertChunkSize)
+	return bulkInsert(dbTx, outputsToAdd, insertChunkSize)
 }
 
 func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDtoTxWithMetaData map[string]*txWithMetaData) (map[string]uint64, error) {
@@ -508,7 +508,7 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDtoTxWithMetaDa
 		}
 	}
 
-	err := gormbulk.BulkInsert(dbTx, addressesToAdd, insertChunkSize)
+	err := bulkInsert(dbTx, addressesToAdd, insertChunkSize)
 	if err != nil {
 		return nil, err
 	}
@@ -613,7 +613,7 @@ func insertBlocksTransactions(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*r
 		}
 	}
 
-	err = gormbulk.BulkInsert(dbTx, transactionsToAdd, insertChunkSize)
+	err = bulkInsert(dbTx, transactionsToAdd, insertChunkSize)
 	if err != nil {
 		return nil, err
 	}
@@ -688,7 +688,7 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ra
 		i++
 	}
 
-	err := gormbulk.BulkInsert(dbTx, subnetworksToAdd, insertChunkSize)
+	err := bulkInsert(dbTx, subnetworksToAdd, insertChunkSize)
 	if err != nil {
 		return nil, err
 	}
@@ -1367,4 +1367,8 @@ func convertChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (
 	}
 
 	return removedHashes, addedBlocks
+}
+
+func bulkInsert(db *gorm.DB, objects []interface{}, chunkSize int, excludeColumns ...string) error {
+	return errors.WithStack(gormbulk.BulkInsert(db, objects, chunkSize, excludeColumns...))
 }
