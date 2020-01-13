@@ -502,7 +502,7 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDtoTxWithMetaDa
 	}
 
 	addressesToAdd := make([]interface{}, len(newAddresses))
-	for _, address := range newAddresses {
+	for i, address := range newAddresses {
 		addressesToAdd[i] = &dbmodels.Address{
 			Address: address,
 		}
