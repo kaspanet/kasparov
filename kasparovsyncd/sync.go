@@ -466,7 +466,7 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDtoTxWithMetaDa
 			continue
 		}
 		for _, txOut := range transaction.verboseTx.Vout {
-			if txOut.ScriptPubKey.Address != nil {
+			if txOut.ScriptPubKey.Address == nil {
 				continue
 			}
 			addressToAddressID[*txOut.ScriptPubKey.Address] = 0
