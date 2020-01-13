@@ -56,7 +56,7 @@ func Parse() error {
 		return err
 	}
 
-	err = activeConfig.ResolveKasparovFlags(parser, defaultLogDir, logFilename, errLogFilename)
+	err = activeConfig.ResolveKasparovFlags(parser, defaultLogDir, logFilename, errLogFilename, false)
 	if err != nil {
 		return err
 	}
