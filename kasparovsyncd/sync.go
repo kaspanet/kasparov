@@ -366,6 +366,10 @@ func getBlocksAndParentsIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[st
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
 	}
 
+	if len(dbBlocks) != len(blockSet) {
+		return nil, errors.Errorf("couldn't retrieve all block IDs")
+	}
+
 	blockHashToID := make(map[string]uint64)
 	for _, dbBlock := range dbBlocks {
 		blockHashToID[dbBlock.BlockHash] = dbBlock.ID
