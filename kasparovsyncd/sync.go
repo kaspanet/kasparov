@@ -343,17 +343,17 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTx
 }
 
 func getBlocksAndParentsIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
-	blockHashMap := make(map[string]struct{})
+	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
-		blockHashMap[block.verboseBlock.Hash] = struct{}{}
+		blockSet[block.verboseBlock.Hash] = struct{}{}
 		for _, parentHash := range block.verboseBlock.ParentHashes {
-			blockHashMap[parentHash] = struct{}{}
+			blockSet[parentHash] = struct{}{}
 		}
 	}
 
-	blockHashes := make([]string, len(blockHashMap))
+	blockHashes := make([]string, len(blockSet))
 	i := 0
-	for hash := range blockHashMap {
+	for hash := range blockSet {
 		blockHashes[i] = hash
 	}
 
@@ -396,7 +396,7 @@ type outpoint struct {
 	index         uint32
 }
 
-func outpointToIDMapToSqlTuples(outpointToID map[outpoint]uint64) [][]interface{} {
+func outpointSetToSqlTuples(outpointToID map[outpoint]struct{}) [][]interface{} {
 	outpoints := make([][]interface{}, len(outpointToID))
 	i := 0
 	for o := range outpointToID {
@@ -407,7 +407,7 @@ func outpointToIDMapToSqlTuples(outpointToID map[outpoint]uint64) [][]interface{
 }
 
 func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData map[string]*txWithMetaData) error {
-	outpointToID := make(map[outpoint]uint64)
+	outpointsSet := make(map[outpoint]struct{})
 	newNonCoinbaseTransactions := make(map[string]*txWithMetaData)
 	inputsCount := 0
 	for transactionID, transaction := range transactionIDtoTxWithMetaData {
@@ -425,10 +425,10 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData 
 		newNonCoinbaseTransactions[transactionID] = transaction
 		inputsCount += len(transaction.verboseTx.Vin)
 		for _, txIn := range transaction.verboseTx.Vin {
-			outpointToID[outpoint{
+			outpointsSet[outpoint{
 				transactionID: txIn.TxID,
 				index:         txIn.Vout,
-			}] = 0
+			}] = struct{}{}
 		}
 	}
 
@@ -436,7 +436,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData 
 		return nil
 	}
 
-	outpoints := outpointToIDMapToSqlTuples(outpointToID)
+	outpoints := outpointSetToSqlTuples(outpointsSet)
 
 	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
 	dbResult := dbTx.
@@ -453,6 +453,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData 
 		return errors.New("couldn't fetch all of the requested outpoints")
 	}
 
+	outpointToID := make(map[outpoint]uint64)
 	for _, dbTransactionOutput := range dbPreviousTransactionsOutputs {
 		outpointToID[outpoint{
 			transactionID: dbTransactionOutput.Transaction.TransactionID,
@@ -523,7 +524,7 @@ func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData
 }
 
 func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDtoTxWithMetaData map[string]*txWithMetaData) (map[string]uint64, error) {
-	addressToAddressID := make(map[string]uint64)
+	addressSet := make(map[string]struct{})
 	for _, transaction := range transactionIDtoTxWithMetaData {
 		if !transaction.isNew {
 			continue
@@ -532,10 +533,10 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDtoTxWithMetaDa
 			if txOut.ScriptPubKey.Address == nil {
 				continue
 			}
-			addressToAddressID[*txOut.ScriptPubKey.Address] = 0
+			addressSet[*txOut.ScriptPubKey.Address] = struct{}{}
 		}
 	}
-	addresses := mapStringIDtoIntegerIDToStringIDs(addressToAddressID)
+	addresses := stringsSetToSlice(addressSet)
 
 	var dbAddresses []*dbmodels.Address
 	dbResult := dbTx.
@@ -546,6 +547,7 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDtoTxWithMetaDa
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find addresses: ", dbErrors)
 	}
 
+	addressToAddressID := make(map[string]uint64)
 	for _, dbAddress := range dbAddresses {
 		addressToAddressID[dbAddress.Address] = dbAddress.ID
 	}
@@ -700,10 +702,10 @@ func insertBlocksTransactions(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*r
 	return transactionIDtoTxWithMetaData, nil
 }
 
-func mapStringIDtoIntegerIDToStringIDs(m map[string]uint64) []string {
-	ids := make([]string, len(m))
+func stringsSetToSlice(set map[string]struct{}) []string {
+	ids := make([]string, len(set))
 	i := 0
-	for id := range m {
+	for id := range set {
 		ids[i] = id
 		i++
 	}
@@ -711,14 +713,14 @@ func mapStringIDtoIntegerIDToStringIDs(m map[string]uint64) []string {
 }
 
 func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
-	subnetworkIDToID := make(map[string]uint64)
+	subnetworkSet := make(map[string]struct{})
 	for _, block := range blocks {
 		for _, transaction := range block.verboseBlock.RawTx {
-			subnetworkIDToID[transaction.Subnetwork] = 0
+			subnetworkSet[transaction.Subnetwork] = struct{}{}
 		}
 	}
 
-	subnetworkIDs := mapStringIDtoIntegerIDToStringIDs(subnetworkIDToID)
+	subnetworkIDs := stringsSetToSlice(subnetworkSet)
 
 	var dbSubnetworks []*dbmodels.Subnetwork
 	dbResult := dbTx.
@@ -729,6 +731,7 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ra
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find subnetworks: ", dbErrors)
 	}
 
+	subnetworkIDToID := make(map[string]uint64)
 	for _, dbSubnetwork := range dbSubnetworks {
 		subnetworkIDToID[dbSubnetwork.SubnetworkID] = dbSubnetwork.ID
 	}
