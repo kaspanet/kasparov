@@ -218,6 +218,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 	}
 
 	blocks := make([]*rawAndVerboseBlock, 0)
+	blocksMap := make(map[string]*rawAndVerboseBlock)
 	for i, rawBlock := range rawBlocks {
 		blockExists, err := doesBlockExist(db, verboseBlocks[i].Hash)
 		if err != nil {
@@ -230,12 +231,15 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 		blockAndMissingAncestors, err := fetchBlockAndMissingAncestors(client, &rawAndVerboseBlock{
 			rawBlock:     rawBlock,
 			verboseBlock: &verboseBlocks[i],
-		})
+		}, blocksMap)
 		if err != nil {
 			return err
 		}
 
 		blocks = append(blocks, blockAndMissingAncestors...)
+		for _, block := range blockAndMissingAncestors {
+			blocksMap[block.verboseBlock.Hash] = block
+		}
 	}
 	return addBlocksAndTransactions(client, blocks)
 }
@@ -1149,7 +1153,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 		return err
 	}
 
-	blocks, err := fetchBlockAndMissingAncestors(client, block)
+	blocks, err := fetchBlockAndMissingAncestors(client, block, nil)
 	if err != nil {
 		return err
 	}
@@ -1168,14 +1172,14 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	return nil
 }
 
-func fetchBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
+func fetchBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
 	pendingBlocks := []*rawAndVerboseBlock{block}
 	blocksToAdd := make([]*rawAndVerboseBlock, 0)
 	blocksToAddSet := make(map[string]struct{})
 	for len(pendingBlocks) > 0 {
 		var currentBlock *rawAndVerboseBlock
 		currentBlock, pendingBlocks = pendingBlocks[0], pendingBlocks[1:]
-		missingHashes, err := missingParentHashes(currentBlock.verboseBlock.ParentHashes)
+		missingHashes, err := missingParentHashes(currentBlock.verboseBlock.ParentHashes, blockExistingInMemory)
 		if err != nil {
 			return nil, err
 		}
@@ -1206,27 +1210,34 @@ func fetchBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseB
 	return blocksToAdd, nil
 }
 
-func missingParentHashes(parentHashes []string) ([]string, error) {
+func missingParentHashes(parentHashes []string, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
+	}
+
+	parentsNotInMemory := make([]string, 0)
+	for _, hash := range parentHashes {
+		if _, ok := blockExistingInMemory[hash]; !ok {
+			parentsNotInMemory = append(parentsNotInMemory, hash)
+		}
 	}
 
 	// Make sure that all the parent hashes exist in the database
 	var dbParentBlocks []dbmodels.Block
 	dbResult := db.
 		Model(&dbmodels.Block{}).
-		Where("block_hash in (?)", parentHashes).
+		Where("block_hash in (?)", parentsNotInMemory).
 		Find(&dbParentBlocks)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find parent blocks: ", dbErrors)
 	}
-	if len(parentHashes) != len(dbParentBlocks) {
+	if len(parentsNotInMemory) != len(dbParentBlocks) {
 		// Some parent hashes are missing. Collect and return them
 		var missingHashes []string
 	outerLoop:
-		for _, hash := range parentHashes {
+		for _, hash := range parentsNotInMemory {
 			for _, dbParentBlock := range dbParentBlocks {
 				if dbParentBlock.BlockHash == hash {
 					continue outerLoop
