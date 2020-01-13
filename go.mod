@@ -11,7 +11,6 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/kaspanet/kaspad v0.1.1
 	github.com/pkg/errors v0.8.1
-	google.golang.org/appengine v1.5.0
 )
 
 replace github.com/kaspanet/kaspad => ../kaspad
