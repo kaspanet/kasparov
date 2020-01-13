@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/kaspanet/kasparov/database"
@@ -295,26 +294,81 @@ func addBlocksAndTransactions(client *jsonrpc.Client, blocks []*rawAndVerboseBlo
 }
 
 func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTxWithMetaData map[string]*txWithMetaData) (map[string]uint64, error) {
-	blockHashToID := make(map[string]uint64)
-	for _, block := range blocks {
+	blocksToAdd := make([]interface{}, len(blocks))
+	for i, block := range blocks {
 		blockMass := uint64(0)
 		for _, tx := range block.verboseBlock.RawTx {
 			blockMass += transactionIDtoTxWithMetaData[tx.TxID].mass
 		}
-		dbBlock, err := insertBlock(dbTx, block.verboseBlock, blockMass)
+		var err error
+		blocksToAdd[i], err = makeDBBlock(block.verboseBlock, blockMass)
 		if err != nil {
 			return nil, err
 		}
-		blockHashToID[block.verboseBlock.Hash] = dbBlock.ID
+	}
+	err := bulkInsert(dbTx, blocksToAdd, insertChunkSize)
+	if err != nil {
+		return nil, err
+	}
 
-		err = insertBlockParents(dbTx, block.verboseBlock, dbBlock)
+	blockHashToID, err := getBlocksAndParentsIDs(dbTx, blocks)
+	if err != nil {
+		return nil, err
+	}
+
+	dataToAdd := make([]interface{}, 0)
+	for _, block := range blocks {
+		blockID, ok := blockHashToID[block.verboseBlock.Hash]
+		if !ok {
+			return nil, errors.Errorf("couldn't find block ID for block %s", block.verboseBlock.Hash)
+		}
+		dbBlockParents, err := makeBlockParents(blockHashToID, block.verboseBlock)
 		if err != nil {
 			return nil, err
 		}
-		err = insertRawBlockData(dbTx, block.rawBlock, dbBlock)
+		dbRawBlock, err := makeDBRawBlock(block.rawBlock, blockID)
 		if err != nil {
 			return nil, err
 		}
+		for _, dbBlockParent := range dbBlockParents {
+			dataToAdd = append(dataToAdd, dbBlockParent)
+		}
+		dataToAdd = append(dataToAdd, dbRawBlock)
+	}
+	err = bulkInsert(dbTx, dataToAdd, insertChunkSize)
+	if err != nil {
+		return nil, err
+	}
+	return blockHashToID, nil
+}
+
+func getBlocksAndParentsIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
+	blockHashMap := make(map[string]struct{})
+	for _, block := range blocks {
+		blockHashMap[block.verboseBlock.Hash] = struct{}{}
+		for _, parentHash := range block.verboseBlock.ParentHashes {
+			blockHashMap[parentHash] = struct{}{}
+		}
+	}
+
+	blockHashes := make([]string, len(blockHashMap))
+	i := 0
+	for hash := range blockHashMap {
+		blockHashes[i] = hash
+	}
+
+	var dbBlocks []*dbmodels.Block
+	dbResult := dbTx.
+		Where("block_hash in (?)", blockHashes).
+		Find(&dbBlocks)
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
+	}
+
+	blockHashToID := make(map[string]uint64)
+	for _, dbBlock := range dbBlocks {
+		blockHashToID[dbBlock.BlockHash] = dbBlock.ID
 	}
 	return blockHashToID, nil
 }
@@ -723,7 +777,7 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ra
 	return subnetworkIDToID, nil
 }
 
-func insertBlock(dbTx *gorm.DB, verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*dbmodels.Block, error) {
+func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*dbmodels.Block, error) {
 	bits, err := strconv.ParseUint(verboseBlock.Bits, 16, 32)
 	if err != nil {
 		return nil, err
@@ -746,75 +800,42 @@ func insertBlock(dbTx *gorm.DB, verboseBlock *rpcmodel.GetBlockVerboseResult, ma
 	if len(verboseBlock.ParentHashes) == 0 {
 		dbBlock.IsChainBlock = true
 	}
-	dbResult := dbTx.Create(&dbBlock)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to insert block: ", dbErrors)
-	}
 	return &dbBlock, nil
 }
 
-func insertBlockParents(dbTx *gorm.DB, verboseBlock *rpcmodel.GetBlockVerboseResult, dbBlock *dbmodels.Block) error {
+func makeBlockParents(blockHashToID map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.ParentBlock, error) {
 	// Exit early if this is the genesis block
 	if len(verboseBlock.ParentHashes) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	hashesIn := make([]string, len(verboseBlock.ParentHashes))
+	blockID, ok := blockHashToID[verboseBlock.Hash]
+	if !ok {
+		return nil, errors.Errorf("couldn't find block ID for block %s", verboseBlock.Hash)
+	}
+	dbParentBlocks := make([]*dbmodels.ParentBlock, len(verboseBlock.ParentHashes))
 	for i, parentHash := range verboseBlock.ParentHashes {
-		hashesIn[i] = parentHash
-	}
-	var dbParents []dbmodels.Block
-	dbResult := dbTx.
-		Where("block_hash in (?)", hashesIn).
-		Find(&dbParents)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
-	}
-	if len(dbParents) != len(verboseBlock.ParentHashes) {
-		missingParents := make([]string, 0, len(verboseBlock.ParentHashes)-len(dbParents))
-	outerLoop:
-		for _, parentHash := range verboseBlock.ParentHashes {
-			for _, dbParent := range dbParents {
-				if dbParent.BlockHash == parentHash {
-					continue outerLoop
-				}
-			}
-			missingParents = append(missingParents, parentHash)
+		parentID, ok := blockHashToID[parentHash]
+		if !ok {
+			return nil, errors.Errorf("missing parent %s for block %s", parentHash, verboseBlock.Hash)
 		}
-		return errors.Errorf("some parents are missing for block %s: %s", verboseBlock.Hash, strings.Join(missingParents, ", "))
-	}
-
-	for _, dbParent := range dbParents {
-		dbParentBlock := dbmodels.ParentBlock{
-			BlockID:       dbBlock.ID,
-			ParentBlockID: dbParent.ID,
-		}
-		dbResult := dbTx.Create(&dbParentBlock)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return httpserverutils.NewErrorFromDBErrors("failed to insert parentBlock: ", dbErrors)
+		dbParentBlocks[i] = &dbmodels.ParentBlock{
+			BlockID:       blockID,
+			ParentBlockID: parentID,
 		}
 	}
-	return nil
+	return dbParentBlocks, nil
 }
 
-func insertRawBlockData(dbTx *gorm.DB, rawBlock string, dbBlock *dbmodels.Block) error {
+func makeDBRawBlock(rawBlock string, blockID uint64) (*dbmodels.RawBlock, error) {
 	blockData, err := hex.DecodeString(rawBlock)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	dbRawBlock := dbmodels.RawBlock{
-		BlockID:   dbBlock.ID,
+	return &dbmodels.RawBlock{
+		BlockID:   blockID,
 		BlockData: blockData,
-	}
-	dbResult := dbTx.Create(&dbRawBlock)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to insert rawBlock: ", dbErrors)
-	}
-	return nil
+	}, nil
 }
 
 func calcTxMass(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult) (uint64, error) {
