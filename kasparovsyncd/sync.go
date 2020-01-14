@@ -316,8 +316,9 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTx
 		return nil, err
 	}
 
-	dataToAdd := make([]interface{}, 0)
-	for _, block := range blocks {
+	parentsToAdd := make([]interface{}, 0)
+	rawBlocksToAdd := make([]interface{}, len(blocks))
+	for i, block := range blocks {
 		blockID, ok := blockHashToID[block.verboseBlock.Hash]
 		if !ok {
 			return nil, errors.Errorf("couldn't find block ID for block %s", block.verboseBlock.Hash)
@@ -331,11 +332,15 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTx
 			return nil, err
 		}
 		for _, dbBlockParent := range dbBlockParents {
-			dataToAdd = append(dataToAdd, dbBlockParent)
+			parentsToAdd = append(parentsToAdd, dbBlockParent)
 		}
-		dataToAdd = append(dataToAdd, dbRawBlock)
+		rawBlocksToAdd[i] = dbRawBlock
 	}
-	err = bulkInsert(dbTx, dataToAdd, insertChunkSize)
+	err = bulkInsert(dbTx, parentsToAdd, insertChunkSize)
+	if err != nil {
+		return nil, err
+	}
+	err = bulkInsert(dbTx, rawBlocksToAdd, insertChunkSize)
 	if err != nil {
 		return nil, err
 	}
@@ -351,12 +356,7 @@ func getBlocksAndParentsIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[st
 		}
 	}
 
-	blockHashes := make([]string, len(blockSet))
-	i := 0
-	for hash := range blockSet {
-		blockHashes[i] = hash
-	}
-
+	blockHashes := stringsSetToSlice(blockSet)
 	var dbBlocks []*dbmodels.Block
 	dbResult := dbTx.
 		Where("block_hash in (?)", blockHashes).
