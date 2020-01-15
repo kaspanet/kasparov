@@ -90,7 +90,6 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []*rpcclient.Chai
 					return err
 				}
 			}
-			return nil
 		}
 	}
 	return nil
