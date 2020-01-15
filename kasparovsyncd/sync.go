@@ -293,7 +293,7 @@ func addBlocksAndTransactions(client *jsonrpc.Client, blocks []*rawAndVerboseBlo
 	return nil
 }
 
-func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTxWithMetaData map[string]*txWithMetaData) (map[string]uint64, error) {
+func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTxWithMetaData map[string]*txWithMetaData) (blockHashesToID map[string]uint64, err error) {
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockMass := uint64(0)
@@ -306,12 +306,12 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTx
 			return nil, err
 		}
 	}
-	err := bulkInsert(dbTx, blocksToAdd, insertChunkSize)
+	err = bulkInsert(dbTx, blocksToAdd, insertChunkSize)
 	if err != nil {
 		return nil, err
 	}
 
-	blockHashToID, err := getBlocksAndParentsIDs(dbTx, blocks)
+	blockHashesToID, err = getBlocksAndParentsIDs(dbTx, blocks)
 	if err != nil {
 		return nil, err
 	}
@@ -319,11 +319,11 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTx
 	parentsToAdd := make([]interface{}, 0)
 	rawBlocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
-		blockID, ok := blockHashToID[block.verboseBlock.Hash]
+		blockID, ok := blockHashesToID[block.verboseBlock.Hash]
 		if !ok {
 			return nil, errors.Errorf("couldn't find block ID for block %s", block.verboseBlock.Hash)
 		}
-		dbBlockParents, err := makeBlockParents(blockHashToID, block.verboseBlock)
+		dbBlockParents, err := makeBlockParents(blockHashesToID, block.verboseBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -344,7 +344,7 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDtoTx
 	if err != nil {
 		return nil, err
 	}
-	return blockHashToID, nil
+	return blockHashesToID, nil
 }
 
 func getBlocksAndParentsIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
