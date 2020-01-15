@@ -124,9 +124,9 @@ func insertBlockTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, 
 func insertTransactionBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, blockHashesToIDs map[string]uint64, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
 	transactionBlocksToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
-		blockID, ok := blockHashesToIDs[block.Verbose.Hash]
+		blockID, ok := blockHashesToIDs[block.Hash()]
 		if !ok {
-			return errors.Errorf("couldn't find block ID for block %s", block.Verbose.Hash)
+			return errors.Errorf("couldn't find block ID for block %s", block)
 		}
 		for i, tx := range block.Verbose.RawTx {
 			transactionBlocksToAdd = append(transactionBlocksToAdd, &dbmodels.TransactionBlock{

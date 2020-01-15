@@ -11,5 +11,10 @@ type RawAndVerboseBlock struct {
 }
 
 func (r *RawAndVerboseBlock) String() string {
+	return r.Hash()
+}
+
+// Hash returns the block hash
+func (r *RawAndVerboseBlock) Hash() string {
 	return r.Verbose.Hash
 }

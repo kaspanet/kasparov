@@ -500,7 +500,7 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *utils.RawAndVerboseBlo
 		}
 		if len(blocksToPrependToPending) == 0 {
 			if currentBlock != block {
-				missingAncestorsSet[currentBlock.Verbose.Hash] = struct{}{}
+				missingAncestorsSet[currentBlock.Hash()] = struct{}{}
 				missingAncestors = append(missingAncestors, currentBlock)
 			}
 			continue
@@ -726,11 +726,11 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 		}
 
 		blocks = append(blocks, block)
-		blockHashesToRawAndVerboseBlock[block.Verbose.Hash] = block
+		blockHashesToRawAndVerboseBlock[block.Hash()] = block
 
 		blocks = append(blocks, missingAncestors...)
 		for _, block := range missingAncestors {
-			blockHashesToRawAndVerboseBlock[block.Verbose.Hash] = block
+			blockHashesToRawAndVerboseBlock[block.Hash()] = block
 		}
 	}
 	return dataaccess.BulkInsertBlocksData(client, blocks)

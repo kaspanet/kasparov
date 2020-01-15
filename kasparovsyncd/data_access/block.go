@@ -85,9 +85,9 @@ func insertBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, transaction
 	parentsToAdd := make([]interface{}, 0)
 	rawBlocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
-		blockID, ok := blockHashesToIDs[block.Verbose.Hash]
+		blockID, ok := blockHashesToIDs[block.Hash()]
 		if !ok {
-			return nil, errors.Errorf("couldn't find block ID for block %s", block.Verbose.Hash)
+			return nil, errors.Errorf("couldn't find block ID for block %s", block)
 		}
 		dbBlockParents, err := makeBlockParents(blockHashesToIDs, block.Verbose)
 		if err != nil {
@@ -116,7 +116,7 @@ func insertBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, transaction
 func getBlocksAndParentIDs(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock) (map[string]uint64, error) {
 	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
-		blockSet[block.Verbose.Hash] = struct{}{}
+		blockSet[block.Hash()] = struct{}{}
 		for _, parentHash := range block.Verbose.ParentHashes {
 			blockSet[parentHash] = struct{}{}
 		}
