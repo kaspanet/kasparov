@@ -501,7 +501,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaDat
 }
 
 func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
-	addressToAddressID, err := insertBlocksTransactionAddresses(dbTx, transactionIDsToTxsWithMetaData)
+	addressesToAddressIDs, err := insertBlocksTransactionAddresses(dbTx, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
 	}
@@ -518,7 +518,7 @@ func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaDa
 			}
 			var addressID *uint64
 			if txOut.ScriptPubKey.Address != nil {
-				addressID = rpcmodel.Uint64(addressToAddressID[*txOut.ScriptPubKey.Address])
+				addressID = rpcmodel.Uint64(addressesToAddressIDs[*txOut.ScriptPubKey.Address])
 			}
 			outputsToAdd = append(outputsToAdd, &dbmodels.TransactionOutput{
 				TransactionID: transaction.id,
@@ -558,13 +558,13 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMeta
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find addresses: ", dbErrors)
 	}
 
-	addressToAddressID := make(map[string]uint64)
+	addressesToAddressIDs := make(map[string]uint64)
 	for _, dbAddress := range dbAddresses {
-		addressToAddressID[dbAddress.Address] = dbAddress.ID
+		addressesToAddressIDs[dbAddress.Address] = dbAddress.ID
 	}
 
 	newAddresses := make([]string, 0)
-	for address, id := range addressToAddressID {
+	for address, id := range addressesToAddressIDs {
 		if id != 0 {
 			continue
 		}
@@ -597,9 +597,9 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMeta
 	}
 
 	for _, dbNewAddress := range dbNewAddresses {
-		addressToAddressID[dbNewAddress.Address] = dbNewAddress.ID
+		addressesToAddressIDs[dbNewAddress.Address] = dbNewAddress.ID
 	}
-	return addressToAddressID, nil
+	return addressesToAddressIDs, nil
 }
 
 type txWithMetaData struct {
