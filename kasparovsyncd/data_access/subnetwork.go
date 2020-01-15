@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) (subnetworkIDToID map[string]uint64, err error) {
+func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) (subnetworkIDsToIDs map[string]uint64, err error) {
 	subnetworkSet := make(map[string]struct{})
 	for _, block := range blocks {
 		for _, transaction := range block.Verbose.RawTx {
@@ -28,14 +28,14 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ut
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find subnetworks: ", dbErrors)
 	}
 
-	subnetworkIDToID = make(map[string]uint64)
+	subnetworkIDsToIDs = make(map[string]uint64)
 	for _, dbSubnetwork := range dbSubnetworks {
-		subnetworkIDToID[dbSubnetwork.SubnetworkID] = dbSubnetwork.ID
+		subnetworkIDsToIDs[dbSubnetwork.SubnetworkID] = dbSubnetwork.ID
 	}
 
 	newSubnetworks := make([]string, 0)
-	for subnetworkID, id := range subnetworkIDToID {
-		if id != 0 {
+	for subnetworkID := range subnetworkSet {
+		if _, exists := subnetworkIDsToIDs[subnetworkID]; exists {
 			continue
 		}
 		newSubnetworks = append(newSubnetworks, subnetworkID)
@@ -72,7 +72,7 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ut
 	}
 
 	for _, dbSubnetwork := range dbNewSubnetworks {
-		subnetworkIDToID[dbSubnetwork.SubnetworkID] = dbSubnetwork.ID
+		subnetworkIDsToIDs[dbSubnetwork.SubnetworkID] = dbSubnetwork.ID
 	}
-	return subnetworkIDToID, nil
+	return subnetworkIDsToIDs, nil
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
 	"github.com/pkg/errors"
-	"github.com/prometheus/common/log"
 	"strconv"
 	"time"
 )
@@ -167,8 +166,8 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMeta
 	}
 
 	newAddresses := make([]string, 0)
-	for address, id := range addressesToAddressIDs {
-		if id != 0 {
+	for address := range addressSet {
+		if _, exists := addressesToAddressIDs[address]; exists {
 			continue
 		}
 		newAddresses = append(newAddresses, address)
