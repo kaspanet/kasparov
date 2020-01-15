@@ -407,10 +407,10 @@ type outpoint struct {
 	index         uint32
 }
 
-func outpointSetToSQLTuples(outpointToID map[outpoint]struct{}) [][]interface{} {
-	outpoints := make([][]interface{}, len(outpointToID))
+func outpointSetToSQLTuples(outpointsToIDs map[outpoint]struct{}) [][]interface{} {
+	outpoints := make([][]interface{}, len(outpointsToIDs))
 	i := 0
-	for o := range outpointToID {
+	for o := range outpointsToIDs {
 		outpoints[i] = []interface{}{o.transactionID, o.index}
 		i++
 	}
@@ -464,9 +464,9 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaDat
 		return errors.New("couldn't fetch all of the requested outpoints")
 	}
 
-	outpointToID := make(map[outpoint]uint64)
+	outpointsToIDs := make(map[outpoint]uint64)
 	for _, dbTransactionOutput := range dbPreviousTransactionsOutputs {
-		outpointToID[outpoint{
+		outpointsToIDs[outpoint{
 			transactionID: dbTransactionOutput.Transaction.TransactionID,
 			index:         dbTransactionOutput.Index,
 		}] = dbTransactionOutput.ID
@@ -480,7 +480,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaDat
 			if err != nil {
 				return nil
 			}
-			prevOutputID, ok := outpointToID[outpoint{
+			prevOutputID, ok := outpointsToIDs[outpoint{
 				transactionID: txIn.TxID,
 				index:         txIn.Vout,
 			}]
