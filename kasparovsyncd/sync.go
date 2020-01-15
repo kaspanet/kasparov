@@ -313,7 +313,7 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToT
 			return nil, err
 		}
 	}
-	err = bulkInsert(dbTx, blocksToAdd, insertChunkSize)
+	err = bulkInsert(dbTx, blocksToAdd)
 	if err != nil {
 		return nil, err
 	}
@@ -343,11 +343,11 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToT
 		}
 		rawBlocksToAdd[i] = dbRawBlock
 	}
-	err = bulkInsert(dbTx, parentsToAdd, insertChunkSize)
+	err = bulkInsert(dbTx, parentsToAdd)
 	if err != nil {
 		return nil, err
 	}
-	err = bulkInsert(dbTx, rawBlocksToAdd, insertChunkSize)
+	err = bulkInsert(dbTx, rawBlocksToAdd)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +399,7 @@ func insertTransactionBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockH
 			})
 		}
 	}
-	return bulkInsert(dbTx, transactionBlocksToAdd, insertChunkSize)
+	return bulkInsert(dbTx, transactionBlocksToAdd)
 }
 
 type outpoint struct {
@@ -497,7 +497,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxWithMetaData
 			inputIterator++
 		}
 	}
-	return bulkInsert(dbTx, inputsToAdd, insertChunkSize)
+	return bulkInsert(dbTx, inputsToAdd)
 }
 
 func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxWithMetaData map[string]*txWithMetaData) error {
@@ -531,7 +531,7 @@ func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxWithMetaDat
 		}
 	}
 
-	return bulkInsert(dbTx, outputsToAdd, insertChunkSize)
+	return bulkInsert(dbTx, outputsToAdd)
 }
 
 func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxWithMetaData map[string]*txWithMetaData) (map[string]uint64, error) {
@@ -578,7 +578,7 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxWithMetaD
 		}
 	}
 
-	err := bulkInsert(dbTx, addressesToAdd, insertChunkSize)
+	err := bulkInsert(dbTx, addressesToAdd)
 	if err != nil {
 		return nil, err
 	}
@@ -688,7 +688,7 @@ func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAnd
 		}
 	}
 
-	err = bulkInsert(dbTx, transactionsToAdd, insertChunkSize)
+	err = bulkInsert(dbTx, transactionsToAdd)
 	if err != nil {
 		return nil, err
 	}
@@ -767,7 +767,7 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ra
 		}
 	}
 
-	err := bulkInsert(dbTx, subnetworksToAdd, insertChunkSize)
+	err := bulkInsert(dbTx, subnetworksToAdd)
 	if err != nil {
 		return nil, err
 	}
@@ -1428,6 +1428,6 @@ func convertChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (
 	return removedHashes, addedBlocks
 }
 
-func bulkInsert(db *gorm.DB, objects []interface{}, chunkSize int, excludeColumns ...string) error {
-	return errors.WithStack(gormbulk.BulkInsert(db, objects, chunkSize, excludeColumns...))
+func bulkInsert(db *gorm.DB, objects []interface{}) error {
+	return errors.WithStack(gormbulk.BulkInsert(db, objects, insertChunkSize))
 }
