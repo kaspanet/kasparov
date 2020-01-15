@@ -270,27 +270,27 @@ func addBlocksAndTransactions(client *jsonrpc.Client, blocks []*rawAndVerboseBlo
 	dbTx := db.Begin()
 	defer dbTx.RollbackUnlessCommitted()
 
-	transactionIDsToTxWithMetaData, err := bulkInsertBlockData(dbTx, client, blocks)
+	transactionIDsToTxsWithMetaData, err := bulkInsertBlockData(dbTx, client, blocks)
 	if err != nil {
 		return err
 	}
 
-	err = insertBlocksTransactionOutputs(dbTx, transactionIDsToTxWithMetaData)
+	err = insertBlocksTransactionOutputs(dbTx, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
 	}
 
-	err = insertBlocksTransactionInputs(dbTx, transactionIDsToTxWithMetaData)
+	err = insertBlocksTransactionInputs(dbTx, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
 	}
 
-	blockHashesToIDs, err := insertBlocks(dbTx, blocks, transactionIDsToTxWithMetaData)
+	blockHashesToIDs, err := insertBlocks(dbTx, blocks, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
 	}
 
-	err = insertTransactionBlocks(dbTx, blocks, blockHashesToIDs, transactionIDsToTxWithMetaData)
+	err = insertTransactionBlocks(dbTx, blocks, blockHashesToIDs, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
 	}
@@ -300,12 +300,12 @@ func addBlocksAndTransactions(client *jsonrpc.Client, blocks []*rawAndVerboseBlo
 	return nil
 }
 
-func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToTxWithMetaData map[string]*txWithMetaData) (blockHashesToIDs map[string]uint64, err error) {
+func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) (blockHashesToIDs map[string]uint64, err error) {
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockMass := uint64(0)
 		for _, tx := range block.verboseBlock.RawTx {
-			blockMass += transactionIDsToTxWithMetaData[tx.TxID].mass
+			blockMass += transactionIDsToTxsWithMetaData[tx.TxID].mass
 		}
 		var err error
 		blocksToAdd[i], err = makeDBBlock(block.verboseBlock, blockMass)
@@ -384,7 +384,7 @@ func getBlocksAndParentIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[str
 	return blockHashesToIDs, nil
 }
 
-func insertTransactionBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64, transactionIDsToTxWithMetaData map[string]*txWithMetaData) error {
+func insertTransactionBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
 	transactionBlocksToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
 		blockID, ok := blockHashesToIDs[block.verboseBlock.Hash]
@@ -393,7 +393,7 @@ func insertTransactionBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockH
 		}
 		for i, tx := range block.verboseBlock.RawTx {
 			transactionBlocksToAdd = append(transactionBlocksToAdd, &dbmodels.TransactionBlock{
-				TransactionID: transactionIDsToTxWithMetaData[tx.TxID].id,
+				TransactionID: transactionIDsToTxsWithMetaData[tx.TxID].id,
 				BlockID:       blockID,
 				Index:         uint32(i),
 			})
@@ -417,11 +417,11 @@ func outpointSetToSQLTuples(outpointToID map[outpoint]struct{}) [][]interface{} 
 	return outpoints
 }
 
-func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxWithMetaData map[string]*txWithMetaData) error {
+func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
 	outpointsSet := make(map[outpoint]struct{})
 	newNonCoinbaseTransactions := make(map[string]*txWithMetaData)
 	inputsCount := 0
-	for transactionID, transaction := range transactionIDsToTxWithMetaData {
+	for transactionID, transaction := range transactionIDsToTxsWithMetaData {
 		if !transaction.isNew {
 			continue
 		}
@@ -500,14 +500,14 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxWithMetaData
 	return bulkInsert(dbTx, inputsToAdd)
 }
 
-func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxWithMetaData map[string]*txWithMetaData) error {
-	addressToAddressID, err := insertBlocksTransactionAddresses(dbTx, transactionIDsToTxWithMetaData)
+func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
+	addressToAddressID, err := insertBlocksTransactionAddresses(dbTx, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
 	}
 
 	outputsToAdd := make([]interface{}, 0)
-	for _, transaction := range transactionIDsToTxWithMetaData {
+	for _, transaction := range transactionIDsToTxsWithMetaData {
 		if !transaction.isNew {
 			continue
 		}
@@ -534,9 +534,9 @@ func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxWithMetaDat
 	return bulkInsert(dbTx, outputsToAdd)
 }
 
-func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxWithMetaData map[string]*txWithMetaData) (map[string]uint64, error) {
+func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) (map[string]uint64, error) {
 	addressSet := make(map[string]struct{})
-	for _, transaction := range transactionIDsToTxWithMetaData {
+	for _, transaction := range transactionIDsToTxsWithMetaData {
 		if !transaction.isNew {
 			continue
 		}
@@ -609,10 +609,10 @@ type txWithMetaData struct {
 	mass      uint64
 }
 
-func transactionIDsToTxWithMetaDataToTransactionIDs(transactionIDsToTxWithMetaData map[string]*txWithMetaData) []string {
-	transactionIDs := make([]string, len(transactionIDsToTxWithMetaData))
+func transactionIDsToTxsWithMetaDataToTransactionIDs(transactionIDsToTxsWithMetaData map[string]*txWithMetaData) []string {
+	transactionIDs := make([]string, len(transactionIDsToTxsWithMetaData))
 	i := 0
-	for txID := range transactionIDsToTxWithMetaData {
+	for txID := range transactionIDsToTxsWithMetaData {
 		transactionIDs[i] = txID
 		i++
 	}
@@ -625,16 +625,16 @@ func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAnd
 		return nil, err
 	}
 
-	transactionIDsToTxWithMetaData := make(map[string]*txWithMetaData)
+	transactionIDsToTxsWithMetaData := make(map[string]*txWithMetaData)
 	for _, block := range blocks {
 		for _, transaction := range block.verboseBlock.RawTx {
-			transactionIDsToTxWithMetaData[transaction.TxID] = &txWithMetaData{
+			transactionIDsToTxsWithMetaData[transaction.TxID] = &txWithMetaData{
 				verboseTx: &transaction,
 			}
 		}
 	}
 
-	transactionIDs := transactionIDsToTxWithMetaDataToTransactionIDs(transactionIDsToTxWithMetaData)
+	transactionIDs := transactionIDsToTxsWithMetaDataToTransactionIDs(transactionIDsToTxsWithMetaData)
 
 	var dbTransactions []*dbmodels.Transaction
 	dbResult := dbTx.
@@ -646,12 +646,12 @@ func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAnd
 	}
 
 	for _, dbTransaction := range dbTransactions {
-		transactionIDsToTxWithMetaData[dbTransaction.TransactionID].id = dbTransaction.ID
-		transactionIDsToTxWithMetaData[dbTransaction.TransactionID].mass = dbTransaction.Mass
+		transactionIDsToTxsWithMetaData[dbTransaction.TransactionID].id = dbTransaction.ID
+		transactionIDsToTxsWithMetaData[dbTransaction.TransactionID].mass = dbTransaction.Mass
 	}
 
 	newTransactions := make([]string, 0)
-	for txID, verboseTx := range transactionIDsToTxWithMetaData {
+	for txID, verboseTx := range transactionIDsToTxsWithMetaData {
 		if verboseTx.id != 0 {
 			continue
 		}
@@ -660,12 +660,12 @@ func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAnd
 
 	transactionsToAdd := make([]interface{}, len(newTransactions))
 	for i, id := range newTransactions {
-		verboseTx := transactionIDsToTxWithMetaData[id].verboseTx
+		verboseTx := transactionIDsToTxsWithMetaData[id].verboseTx
 		mass, err := calcTxMass(dbTx, verboseTx)
 		if err != nil {
 			return nil, err
 		}
-		transactionIDsToTxWithMetaData[id].mass = mass
+		transactionIDsToTxsWithMetaData[id].mass = mass
 
 		payload, err := hex.DecodeString(verboseTx.Payload)
 		if err != nil {
@@ -707,10 +707,10 @@ func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAnd
 	}
 
 	for _, dbTransaction := range dbNewTransactions {
-		transactionIDsToTxWithMetaData[dbTransaction.TransactionID].id = dbTransaction.ID
-		transactionIDsToTxWithMetaData[dbTransaction.TransactionID].isNew = true
+		transactionIDsToTxsWithMetaData[dbTransaction.TransactionID].id = dbTransaction.ID
+		transactionIDsToTxsWithMetaData[dbTransaction.TransactionID].isNew = true
 	}
-	return transactionIDsToTxWithMetaData, nil
+	return transactionIDsToTxsWithMetaData, nil
 }
 
 func stringsSetToSlice(set map[string]struct{}) []string {
