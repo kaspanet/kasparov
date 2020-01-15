@@ -227,7 +227,11 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			continue
 		}
 
-		blockAndMissingAncestors, err := fetchBlockAndMissingAncestors(client, &rawAndVerboseBlock{
+		block := &rawAndVerboseBlock{
+			rawBlock:     rawBlock,
+			verboseBlock: &verboseBlocks[i],
+		}
+		missingAncestors, err := fetchMissingAncestors(client, &rawAndVerboseBlock{
 			rawBlock:     rawBlock,
 			verboseBlock: &verboseBlocks[i],
 		}, blockHashesToRawAndVerboseBlock)
@@ -235,8 +239,11 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			return err
 		}
 
-		blocks = append(blocks, blockAndMissingAncestors...)
-		for _, block := range blockAndMissingAncestors {
+		blocks = append(blocks, block)
+		blockHashesToRawAndVerboseBlock[block.verboseBlock.Hash] = block
+
+		blocks = append(blocks, missingAncestors...)
+		for _, block := range missingAncestors {
 			blockHashesToRawAndVerboseBlock[block.verboseBlock.Hash] = block
 		}
 	}
@@ -1181,11 +1188,12 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 		return err
 	}
 
-	blocks, err := fetchBlockAndMissingAncestors(client, block, nil)
+	missingAncestors, err := fetchMissingAncestors(client, block, nil)
 	if err != nil {
 		return err
 	}
 
+	blocks := append([]*rawAndVerboseBlock{block}, missingAncestors...)
 	err = addBlocksAndTransactions(client, blocks)
 	if err != nil {
 		return err
@@ -1200,10 +1208,10 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	return nil
 }
 
-func fetchBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
+func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
 	pendingBlocks := []*rawAndVerboseBlock{block}
-	blocksToAdd := make([]*rawAndVerboseBlock, 0)
-	blocksToAddSet := make(map[string]struct{})
+	missingAncestors := make([]*rawAndVerboseBlock, 0)
+	missingAncestorsSet := make(map[string]struct{})
 	for len(pendingBlocks) > 0 {
 		var currentBlock *rawAndVerboseBlock
 		currentBlock, pendingBlocks = pendingBlocks[0], pendingBlocks[1:]
@@ -1213,7 +1221,7 @@ func fetchBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseB
 		}
 		blocksToPrependToPending := make([]*rawAndVerboseBlock, 0, len(missingHashes))
 		for _, missingHash := range missingHashes {
-			if _, ok := blocksToAddSet[missingHash]; ok {
+			if _, ok := missingAncestorsSet[missingHash]; ok {
 				continue
 			}
 			hash, err := daghash.NewHashFromStr(missingHash)
@@ -1226,16 +1234,16 @@ func fetchBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseB
 			}
 			blocksToPrependToPending = append(blocksToPrependToPending, block)
 		}
-		if len(blocksToPrependToPending) == 0 {
-			blocksToAddSet[currentBlock.verboseBlock.Hash] = struct{}{}
-			blocksToAdd = append(blocksToAdd, currentBlock)
+		if len(blocksToPrependToPending) == 0 && currentBlock != block {
+			missingAncestorsSet[currentBlock.verboseBlock.Hash] = struct{}{}
+			missingAncestors = append(missingAncestors, currentBlock)
 			continue
 		}
 		log.Debugf("Found %s missing parents for block %s and fetched them", blocksToPrependToPending, currentBlock)
 		blocksToPrependToPending = append(blocksToPrependToPending, currentBlock)
 		pendingBlocks = append(blocksToPrependToPending, pendingBlocks...)
 	}
-	return blocksToAdd, nil
+	return missingAncestors, nil
 }
 
 func missingParentHashes(parentHashes []string, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
