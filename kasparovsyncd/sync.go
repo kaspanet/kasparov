@@ -458,7 +458,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	}
 
 	blocks := append([]*utils.RawAndVerboseBlock{block}, missingAncestors...)
-	err = dataaccess.AddBlocksAndTransactions(client, blocks)
+	err = dataaccess.BulkInsertBlocksData(client, blocks)
 	if err != nil {
 		return err
 	}
@@ -733,5 +733,5 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			blockHashesToRawAndVerboseBlock[block.Verbose.Hash] = block
 		}
 	}
-	return dataaccess.AddBlocksAndTransactions(client, blocks)
+	return dataaccess.BulkInsertBlocksData(client, blocks)
 }

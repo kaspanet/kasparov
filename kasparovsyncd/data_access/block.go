@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func AddBlocksAndTransactions(client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) error {
+func BulkInsertBlocksData(client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) error {
 	db, err := database.DB()
 	if err != nil {
 		return err
