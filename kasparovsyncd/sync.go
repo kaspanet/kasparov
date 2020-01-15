@@ -217,7 +217,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 	}
 
 	blocks := make([]*rawAndVerboseBlock, 0)
-	blocksMap := make(map[string]*rawAndVerboseBlock)
+	blockHashesToRawAndVerboseBlock := make(map[string]*rawAndVerboseBlock)
 	for i, rawBlock := range rawBlocks {
 		blockExists, err := doesBlockExist(db, verboseBlocks[i].Hash)
 		if err != nil {
@@ -230,14 +230,14 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 		blockAndMissingAncestors, err := fetchBlockAndMissingAncestors(client, &rawAndVerboseBlock{
 			rawBlock:     rawBlock,
 			verboseBlock: &verboseBlocks[i],
-		}, blocksMap)
+		}, blockHashesToRawAndVerboseBlock)
 		if err != nil {
 			return err
 		}
 
 		blocks = append(blocks, blockAndMissingAncestors...)
 		for _, block := range blockAndMissingAncestors {
-			blocksMap[block.verboseBlock.Hash] = block
+			blockHashesToRawAndVerboseBlock[block.verboseBlock.Hash] = block
 		}
 	}
 	return addBlocksAndTransactions(client, blocks)
