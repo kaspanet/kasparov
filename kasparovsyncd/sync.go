@@ -589,7 +589,7 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMeta
 		Find(&dbNewAddresses)
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("failed to find addresses: ", dbErrors)
 	}
 
 	if len(dbNewAddresses) != len(newAddresses) {
@@ -699,7 +699,7 @@ func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAnd
 		Find(&dbNewTransactions)
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
 	}
 
 	if len(dbNewTransactions) != len(newTransactions) {
@@ -778,7 +778,7 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ra
 		Find(&dbNewSubnetworks)
 	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("failed to find subnetworks: ", dbErrors)
 	}
 
 	if len(dbNewSubnetworks) != len(newSubnetworks) {
