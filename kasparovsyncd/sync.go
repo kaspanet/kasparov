@@ -400,7 +400,7 @@ type outpoint struct {
 	index         uint32
 }
 
-func outpointSetToSqlTuples(outpointToID map[outpoint]struct{}) [][]interface{} {
+func outpointSetToSQLTuples(outpointToID map[outpoint]struct{}) [][]interface{} {
 	outpoints := make([][]interface{}, len(outpointToID))
 	i := 0
 	for o := range outpointToID {
@@ -440,7 +440,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData 
 		return nil
 	}
 
-	outpoints := outpointSetToSqlTuples(outpointsSet)
+	outpoints := outpointSetToSQLTuples(outpointsSet)
 
 	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
 	dbResult := dbTx.
