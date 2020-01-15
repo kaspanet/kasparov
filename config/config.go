@@ -33,7 +33,7 @@ type KasparovFlags struct {
 
 // ResolveKasparovFlags parses command line arguments and sets KasparovFlags accordingly.
 func (kasparovFlags *KasparovFlags) ResolveKasparovFlags(parser *flags.Parser,
-	defaultLogDir, logFilename, errLogFilename string) error {
+	defaultLogDir, logFilename, errLogFilename string, isMigrate bool) error {
 	if kasparovFlags.LogDir == "" {
 		kasparovFlags.LogDir = defaultLogDir
 	}
@@ -51,21 +51,25 @@ func (kasparovFlags *KasparovFlags) ResolveKasparovFlags(parser *flags.Parser,
 	if kasparovFlags.DBAddress == "" {
 		kasparovFlags.DBAddress = defaultDBAddress
 	}
-	if kasparovFlags.RPCUser == "" {
+	if kasparovFlags.RPCUser == "" && !isMigrate {
 		return errors.New("--rpcuser is required")
 	}
-	if kasparovFlags.RPCPassword == "" {
+	if kasparovFlags.RPCPassword == "" && !isMigrate {
 		return errors.New("--rpcpass is required")
 	}
-	if kasparovFlags.RPCServer == "" {
+	if kasparovFlags.RPCServer == "" && !isMigrate {
 		return errors.New("--rpcserver is required")
 	}
 
-	if kasparovFlags.RPCCert == "" && !kasparovFlags.DisableTLS {
+	if kasparovFlags.RPCCert == "" && !kasparovFlags.DisableTLS && !isMigrate {
 		return errors.New("--notls has to be disabled if --cert is used")
 	}
-	if kasparovFlags.RPCCert != "" && kasparovFlags.DisableTLS {
+	if kasparovFlags.RPCCert != "" && kasparovFlags.DisableTLS && !isMigrate {
 		return errors.New("--cert should be omitted if --notls is used")
+	}
+
+	if isMigrate {
+		return nil
 	}
 	return kasparovFlags.ResolveNetwork(parser)
 }
