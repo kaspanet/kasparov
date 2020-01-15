@@ -723,7 +723,7 @@ func stringsSetToSlice(set map[string]struct{}) []string {
 	return ids
 }
 
-func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
+func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAndVerboseBlock) (subnetworkIDToID map[string]uint64, err error) {
 	subnetworkSet := make(map[string]struct{})
 	for _, block := range blocks {
 		for _, transaction := range block.verboseBlock.RawTx {
@@ -742,7 +742,7 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ra
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find subnetworks: ", dbErrors)
 	}
 
-	subnetworkIDToID := make(map[string]uint64)
+	subnetworkIDToID = make(map[string]uint64)
 	for _, dbSubnetwork := range dbSubnetworks {
 		subnetworkIDToID[dbSubnetwork.SubnetworkID] = dbSubnetwork.ID
 	}
@@ -767,7 +767,7 @@ func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*ra
 		}
 	}
 
-	err := bulkInsert(dbTx, subnetworksToAdd)
+	err = bulkInsert(dbTx, subnetworksToAdd)
 	if err != nil {
 		return nil, err
 	}
