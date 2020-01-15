@@ -318,7 +318,7 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToT
 		return nil, err
 	}
 
-	blockHashesToID, err = getBlocksAndParentsIDs(dbTx, blocks)
+	blockHashesToID, err = getBlocksAndParentIDs(dbTx, blocks)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToT
 	return blockHashesToID, nil
 }
 
-func getBlocksAndParentsIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
+func getBlocksAndParentIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
 	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
 		blockSet[block.verboseBlock.Hash] = struct{}{}
