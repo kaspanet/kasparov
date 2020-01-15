@@ -1215,12 +1215,12 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, bl
 	for len(pendingBlocks) > 0 {
 		var currentBlock *rawAndVerboseBlock
 		currentBlock, pendingBlocks = pendingBlocks[0], pendingBlocks[1:]
-		missingHashes, err := missingParentHashes(currentBlock.verboseBlock.ParentHashes, blockExistingInMemory)
+		missingParentHashes, err := missingBlockHashes(currentBlock.verboseBlock.ParentHashes, blockExistingInMemory)
 		if err != nil {
 			return nil, err
 		}
-		blocksToPrependToPending := make([]*rawAndVerboseBlock, 0, len(missingHashes))
-		for _, missingHash := range missingHashes {
+		blocksToPrependToPending := make([]*rawAndVerboseBlock, 0, len(missingParentHashes))
+		for _, missingHash := range missingParentHashes {
 			if _, ok := missingAncestorsSet[missingHash]; ok {
 				continue
 			}
@@ -1246,36 +1246,41 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, bl
 	return missingAncestors, nil
 }
 
-func missingParentHashes(parentHashes []string, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
+// missingBlockHashes takes a slice of block hashes and returns
+// a slice that contains all the block hashes that do not exist
+// in the database or in the given blocksExistingInMemory map.
+func missingBlockHashes(blockHashes []string, blocksExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	parentsNotInMemory := make([]string, 0)
-	for _, hash := range parentHashes {
-		if _, ok := blockExistingInMemory[hash]; !ok {
-			parentsNotInMemory = append(parentsNotInMemory, hash)
+	// filter out all the hashes that exist in blocksExistingInMemory
+	hashesNotInMemory := make([]string, 0)
+	for _, hash := range blockHashes {
+		if _, ok := blocksExistingInMemory[hash]; !ok {
+			hashesNotInMemory = append(hashesNotInMemory, hash)
 		}
 	}
 
-	// Make sure that all the parent hashes exist in the database
-	var dbParentBlocks []dbmodels.Block
+	// Check which of the hashes in hashesNotInMemory do
+	// not exist in the database.
+	var dbBlocks []dbmodels.Block
 	dbResult := db.
 		Model(&dbmodels.Block{}).
-		Where("block_hash in (?)", parentsNotInMemory).
-		Find(&dbParentBlocks)
+		Where("block_hash in (?)", hashesNotInMemory).
+		Find(&dbBlocks)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find parent blocks: ", dbErrors)
 	}
-	if len(parentsNotInMemory) != len(dbParentBlocks) {
-		// Some parent hashes are missing. Collect and return them
+	if len(hashesNotInMemory) != len(dbBlocks) {
+		// Some hashes are missing. Collect and return them
 		var missingHashes []string
 	outerLoop:
-		for _, hash := range parentsNotInMemory {
-			for _, dbParentBlock := range dbParentBlocks {
-				if dbParentBlock.BlockHash == hash {
+		for _, hash := range hashesNotInMemory {
+			for _, dbBlock := range dbBlocks {
+				if dbBlock.BlockHash == hash {
 					continue outerLoop
 				}
 			}
