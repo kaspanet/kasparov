@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+// BulkInsertBlocksData inserts the given blocks and their data (transactions
+// and new subnetworks data) to the database in chunks.
 func BulkInsertBlocksData(client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) error {
 	db, err := database.DB()
 	if err != nil {
