@@ -498,9 +498,11 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *utils.RawAndVerboseBlo
 			}
 			blocksToPrependToPending = append(blocksToPrependToPending, block)
 		}
-		if len(blocksToPrependToPending) == 0 && currentBlock != block {
-			missingAncestorsSet[currentBlock.Verbose.Hash] = struct{}{}
-			missingAncestors = append(missingAncestors, currentBlock)
+		if len(blocksToPrependToPending) == 0 {
+			if currentBlock != block {
+				missingAncestorsSet[currentBlock.Verbose.Hash] = struct{}{}
+				missingAncestors = append(missingAncestors, currentBlock)
+			}
 			continue
 		}
 		log.Debugf("Found %s missing parents for block %s and fetched them", blocksToPrependToPending, currentBlock)
