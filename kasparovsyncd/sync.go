@@ -263,7 +263,7 @@ func addBlocksAndTransactions(client *jsonrpc.Client, blocks []*rawAndVerboseBlo
 	dbTx := db.Begin()
 	defer dbTx.RollbackUnlessCommitted()
 
-	transactionIDtoTxWithMetaData, err := insertBlocksTransactions(dbTx, client, blocks)
+	transactionIDtoTxWithMetaData, err := bulkInsertBlockData(dbTx, client, blocks)
 	if err != nil {
 		return err
 	}
@@ -612,7 +612,7 @@ func transactionIDtoTxWithMetaDataToTransactionIDs(transactionIDtoTxWithMetaData
 	return transactionIDs
 }
 
-func insertBlocksTransactions(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAndVerboseBlock) (map[string]*txWithMetaData, error) {
+func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*rawAndVerboseBlock) (map[string]*txWithMetaData, error) {
 	subnetworkIDToID, err := insertBlocksSubnetworks(dbTx, client, blocks)
 	if err != nil {
 		return nil, err
