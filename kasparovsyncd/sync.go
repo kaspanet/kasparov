@@ -285,12 +285,12 @@ func addBlocksAndTransactions(client *jsonrpc.Client, blocks []*rawAndVerboseBlo
 		return err
 	}
 
-	blockHashToID, err := insertBlocks(dbTx, blocks, transactionIDsToTxWithMetaData)
+	blockHashesToID, err := insertBlocks(dbTx, blocks, transactionIDsToTxWithMetaData)
 	if err != nil {
 		return err
 	}
 
-	err = insertTransactionBlocks(dbTx, blocks, blockHashToID, transactionIDsToTxWithMetaData)
+	err = insertTransactionBlocks(dbTx, blocks, blockHashesToID, transactionIDsToTxWithMetaData)
 	if err != nil {
 		return err
 	}
@@ -377,17 +377,17 @@ func getBlocksAndParentsIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[st
 		return nil, errors.Errorf("couldn't retrieve all block IDs")
 	}
 
-	blockHashToID := make(map[string]uint64)
+	blockHashesToID := make(map[string]uint64)
 	for _, dbBlock := range dbBlocks {
-		blockHashToID[dbBlock.BlockHash] = dbBlock.ID
+		blockHashesToID[dbBlock.BlockHash] = dbBlock.ID
 	}
-	return blockHashToID, nil
+	return blockHashesToID, nil
 }
 
-func insertTransactionBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashToID map[string]uint64, transactionIDsToTxWithMetaData map[string]*txWithMetaData) error {
+func insertTransactionBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToID map[string]uint64, transactionIDsToTxWithMetaData map[string]*txWithMetaData) error {
 	transactionBlocksToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
-		blockID, ok := blockHashToID[block.verboseBlock.Hash]
+		blockID, ok := blockHashesToID[block.verboseBlock.Hash]
 		if !ok {
 			return errors.Errorf("couldn't find block ID for block %s", block.verboseBlock.Hash)
 		}
@@ -817,19 +817,19 @@ func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*db
 	return &dbBlock, nil
 }
 
-func makeBlockParents(blockHashToID map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.ParentBlock, error) {
+func makeBlockParents(blockHashesToID map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.ParentBlock, error) {
 	// Exit early if this is the genesis block
 	if len(verboseBlock.ParentHashes) == 0 {
 		return nil, nil
 	}
 
-	blockID, ok := blockHashToID[verboseBlock.Hash]
+	blockID, ok := blockHashesToID[verboseBlock.Hash]
 	if !ok {
 		return nil, errors.Errorf("couldn't find block ID for block %s", verboseBlock.Hash)
 	}
 	dbParentBlocks := make([]*dbmodels.ParentBlock, len(verboseBlock.ParentHashes))
 	for i, parentHash := range verboseBlock.ParentHashes {
-		parentID, ok := blockHashToID[parentHash]
+		parentID, ok := blockHashesToID[parentHash]
 		if !ok {
 			return nil, errors.Errorf("missing parent %s for block %s", parentHash, verboseBlock.Hash)
 		}
