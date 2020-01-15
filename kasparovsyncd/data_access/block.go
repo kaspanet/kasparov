@@ -22,7 +22,12 @@ func AddBlocksAndTransactions(client *jsonrpc.Client, blocks []*utils.RawAndVerb
 	dbTx := db.Begin()
 	defer dbTx.RollbackUnlessCommitted()
 
-	transactionIDsToTxsWithMetaData, err := bulkInsertBlockData(dbTx, client, blocks)
+	subnetworkIDToID, err := insertBlocksSubnetworks(dbTx, client, blocks)
+	if err != nil {
+		return err
+	}
+
+	transactionIDsToTxsWithMetaData, err := insertBlockTransactions(dbTx, blocks, subnetworkIDToID)
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/kaspanet/kaspad/wire"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
-	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
 	"github.com/pkg/errors"
 )
@@ -33,12 +32,7 @@ func transactionIDsToTxsWithMetaDataToTransactionIDs(transactionIDsToTxsWithMeta
 	return transactionIDs
 }
 
-func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) (map[string]*txWithMetaData, error) {
-	subnetworkIDToID, err := insertBlocksSubnetworks(dbTx, client, blocks)
-	if err != nil {
-		return nil, err
-	}
-
+func insertBlockTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetaData, error) {
 	transactionIDsToTxsWithMetaData := make(map[string]*txWithMetaData)
 	for _, block := range blocks {
 		for _, transaction := range block.Verbose.RawTx {
@@ -86,7 +80,7 @@ func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*utils.
 			return nil, err
 		}
 
-		subnetworkID, ok := subnetworkIDToID[verboseTx.Subnetwork]
+		subnetworkID, ok := subnetworkIDsToIDs[verboseTx.Subnetwork]
 		if !ok {
 			return nil, errors.Errorf("couldn't find ID for subnetwork %s", verboseTx.Subnetwork)
 		}
@@ -102,7 +96,7 @@ func bulkInsertBlockData(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*utils.
 		}
 	}
 
-	err = bulkInsert(dbTx, transactionsToAdd)
+	err := bulkInsert(dbTx, transactionsToAdd)
 	if err != nil {
 		return nil, err
 	}
