@@ -478,7 +478,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDtoTxWithMetaData 
 				index:         txIn.Vout,
 			}]
 			if !ok || prevOutputID == 0 {
-				return errors.Errorf("couldn't find ID for outpoint (%s:%s)", txIn.TxID, txIn.Vout)
+				return errors.Errorf("couldn't find ID for outpoint (%s:%d)", txIn.TxID, txIn.Vout)
 			}
 			inputsToAdd[inputIterator] = &dbmodels.TransactionInput{
 				TransactionID:               transaction.id,
