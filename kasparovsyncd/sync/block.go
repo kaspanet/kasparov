@@ -43,7 +43,22 @@ func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*utils.RawAndVerboseB
 		return err
 	}
 
-	blockHashesToIDs, err := insertBlocks(dbTx, blocks, transactionIDsToTxsWithMetadata)
+	err = insertBlocks(dbTx, blocks, transactionIDsToTxsWithMetadata)
+	if err != nil {
+		return err
+	}
+
+	blockHashesToIDs, err := getBlocksAndParentIDs(dbTx, blocks)
+	if err != nil {
+		return err
+	}
+
+	err = insertBlockParents(dbTx, blocks, blockHashesToIDs)
+	if err != nil {
+		return err
+	}
+
+	err = insertRawBlocks(dbTx, blocks, blockHashesToIDs)
 	if err != nil {
 		return err
 	}
@@ -58,7 +73,7 @@ func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*utils.RawAndVerboseB
 	return nil
 }
 
-func insertBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) (blockHashesToIDs map[string]uint64, err error) {
+func insertBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockMass := uint64(0)
@@ -68,48 +83,10 @@ func insertBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, transaction
 		var err error
 		blocksToAdd[i], err = makeDBBlock(block.Verbose, blockMass)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	err = bulkInsert(dbTx, blocksToAdd)
-	if err != nil {
-		return nil, err
-	}
-
-	blockHashesToIDs, err = getBlocksAndParentIDs(dbTx, blocks)
-	if err != nil {
-		return nil, err
-	}
-
-	parentsToAdd := make([]interface{}, 0)
-	rawBlocksToAdd := make([]interface{}, len(blocks))
-	for i, block := range blocks {
-		blockID, ok := blockHashesToIDs[block.Hash()]
-		if !ok {
-			return nil, errors.Errorf("couldn't find block ID for block %s", block)
-		}
-		dbBlockParents, err := makeBlockParents(blockHashesToIDs, block.Verbose)
-		if err != nil {
-			return nil, err
-		}
-		dbRawBlock, err := makeDBRawBlock(block.Raw, blockID)
-		if err != nil {
-			return nil, err
-		}
-		for _, dbBlockParent := range dbBlockParents {
-			parentsToAdd = append(parentsToAdd, dbBlockParent)
-		}
-		rawBlocksToAdd[i] = dbRawBlock
-	}
-	err = bulkInsert(dbTx, parentsToAdd)
-	if err != nil {
-		return nil, err
-	}
-	err = bulkInsert(dbTx, rawBlocksToAdd)
-	if err != nil {
-		return nil, err
-	}
-	return blockHashesToIDs, nil
+	return bulkInsert(dbTx, blocksToAdd)
 }
 
 func getBlocksAndParentIDs(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock) (map[string]uint64, error) {

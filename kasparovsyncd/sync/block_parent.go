@@ -1,10 +1,30 @@
 package sync
 
 import (
+	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kasparov/dbmodels"
+	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
 	"github.com/pkg/errors"
 )
+
+func insertBlockParents(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
+	parentsToAdd := make([]interface{}, 0)
+	for _, block := range blocks {
+		dbBlockParents, err := makeBlockParents(blockHashesToIDs, block.Verbose)
+		if err != nil {
+			return err
+		}
+		for _, dbBlockParent := range dbBlockParents {
+			parentsToAdd = append(parentsToAdd, dbBlockParent)
+		}
+	}
+	err := bulkInsert(dbTx, parentsToAdd)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func makeBlockParents(blockHashesToIDs map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.ParentBlock, error) {
 	// Exit early if this is the genesis block
