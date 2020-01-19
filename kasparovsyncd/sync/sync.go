@@ -1,37 +1,27 @@
-package main
+package sync
 
 import (
 	"bytes"
 	"encoding/hex"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/jsonrpc"
-	"github.com/kaspanet/kasparov/kasparovsyncd/config"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
 
 	"github.com/jinzhu/gorm"
-	"github.com/kaspanet/kaspad/blockdag"
 	"github.com/kaspanet/kaspad/rpcmodel"
-	"github.com/kaspanet/kaspad/txscript"
-	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
-	"github.com/kaspanet/kaspad/util/subnetworkid"
-	"github.com/kaspanet/kaspad/wire"
 	"github.com/pkg/errors"
 )
 
 // pendingChainChangedMsgs holds chainChangedMsgs in order of arrival
 var pendingChainChangedMsgs []*jsonrpc.ChainChangedMsg
 
-// startSync keeps the node and the database in sync. On start, it downloads
+// StartSync keeps the node and the database in sync. On start, it downloads
 // all data that's missing from the dabase, and once it's done it keeps
 // sync with the node via notifications.
-func startSync(doneChan chan struct{}) error {
+func StartSync(doneChan chan struct{}) error {
 	client, err := jsonrpc.GetClient()
 	if err != nil {
 		return err
@@ -81,7 +71,7 @@ func sync(client *jsonrpc.Client, doneChan chan struct{}) error {
 				return err
 			}
 		case <-doneChan:
-			log.Infof("startSync stopped")
+			log.Infof("StartSync stopped")
 			return nil
 		}
 	}
@@ -203,524 +193,9 @@ func fetchBlock(client *jsonrpc.Client, blockHash *daghash.Hash) (
 		return nil, err
 	}
 	return &rawAndVerboseBlock{
-		rawBlock:     rawBlock,
-		verboseBlock: verboseBlock,
+		Raw:     rawBlock,
+		Verbose: verboseBlock,
 	}, nil
-}
-
-// addBlocks inserts data in the given rawBlocks and verboseBlocks pairwise
-// into the database. See addBlock for further details.
-func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmodel.GetBlockVerboseResult) error {
-	for i, rawBlock := range rawBlocks {
-		err := addBlockAndMissingAncestors(client, &rawAndVerboseBlock{
-			rawBlock:     rawBlock,
-			verboseBlock: &verboseBlocks[i],
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func doesBlockExist(dbTx *gorm.DB, blockHash string) (bool, error) {
-	var dbBlock dbmodels.Block
-	dbResult := dbTx.
-		Where(&dbmodels.Block{BlockHash: blockHash}).
-		First(&dbBlock)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return false, httpserverutils.NewErrorFromDBErrors("failed to find block: ", dbErrors)
-	}
-	return !httpserverutils.IsDBRecordNotFoundError(dbErrors), nil
-}
-
-// addBlocks inserts all the data that could be gleaned out of the verbose
-// block and raw block data into the database. This includes transactions,
-// subnetworks, and addresses.
-// Note that if this function may take a nil dbTx, in which case it would start
-// a database transaction by itself and commit it before returning.
-func addBlock(client *jsonrpc.Client, rawBlock string, verboseBlock rpcmodel.GetBlockVerboseResult) error {
-	db, err := database.DB()
-	if err != nil {
-		return err
-	}
-	dbTx := db.Begin()
-	defer dbTx.RollbackUnlessCommitted()
-
-	// Skip this block if it already exists.
-	blockExists, err := doesBlockExist(dbTx, verboseBlock.Hash)
-	if err != nil {
-		return err
-	}
-	if blockExists {
-		dbTx.Commit()
-		return nil
-	}
-
-	dbBlock, err := insertBlock(dbTx, verboseBlock)
-	if err != nil {
-		return err
-	}
-	err = insertBlockParents(dbTx, verboseBlock, dbBlock)
-	if err != nil {
-		return err
-	}
-	err = insertRawBlockData(dbTx, rawBlock, dbBlock)
-	if err != nil {
-		return err
-	}
-
-	blockMass := uint64(0)
-	for i, transaction := range verboseBlock.RawTx {
-		dbSubnetwork, err := insertSubnetwork(dbTx, &transaction, client)
-		if err != nil {
-			return err
-		}
-		dbTransaction, err := insertTransaction(dbTx, &transaction, dbSubnetwork)
-		if err != nil {
-			return err
-		}
-		blockMass += dbTransaction.Mass
-		err = insertTransactionBlock(dbTx, dbBlock, dbTransaction, uint32(i))
-		if err != nil {
-			return err
-		}
-		err = insertTransactionInputs(dbTx, &transaction, dbTransaction)
-		if err != nil {
-			return err
-		}
-		err = insertTransactionOutputs(dbTx, &transaction, dbTransaction)
-		if err != nil {
-			return err
-		}
-	}
-
-	dbBlock.Mass = blockMass
-	dbResult := dbTx.Save(dbBlock)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
-	}
-
-	err = mqtt.PublishTransactionsNotifications(verboseBlock.RawTx)
-	if err != nil {
-		return err
-	}
-
-	dbTx.Commit()
-	return nil
-}
-
-func insertBlock(dbTx *gorm.DB, verboseBlock rpcmodel.GetBlockVerboseResult) (*dbmodels.Block, error) {
-	bits, err := strconv.ParseUint(verboseBlock.Bits, 16, 32)
-	if err != nil {
-		return nil, err
-	}
-	dbBlock := dbmodels.Block{
-		BlockHash:            verboseBlock.Hash,
-		Version:              verboseBlock.Version,
-		HashMerkleRoot:       verboseBlock.HashMerkleRoot,
-		AcceptedIDMerkleRoot: verboseBlock.AcceptedIDMerkleRoot,
-		UTXOCommitment:       verboseBlock.UTXOCommitment,
-		Timestamp:            time.Unix(verboseBlock.Time, 0),
-		Bits:                 uint32(bits),
-		Nonce:                verboseBlock.Nonce,
-		BlueScore:            verboseBlock.BlueScore,
-		IsChainBlock:         false, // This must be false for updateSelectedParentChain to work properly
-	}
-
-	// Set genesis block as the initial chain block
-	if len(verboseBlock.ParentHashes) == 0 {
-		dbBlock.IsChainBlock = true
-	}
-	dbResult := dbTx.Create(&dbBlock)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to insert block: ", dbErrors)
-	}
-	return &dbBlock, nil
-}
-
-func insertBlockParents(dbTx *gorm.DB, verboseBlock rpcmodel.GetBlockVerboseResult, dbBlock *dbmodels.Block) error {
-	// Exit early if this is the genesis block
-	if len(verboseBlock.ParentHashes) == 0 {
-		return nil
-	}
-
-	hashesIn := make([]string, len(verboseBlock.ParentHashes))
-	for i, parentHash := range verboseBlock.ParentHashes {
-		hashesIn[i] = parentHash
-	}
-	var dbParents []dbmodels.Block
-	dbResult := dbTx.
-		Where("block_hash in (?)", hashesIn).
-		Find(&dbParents)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
-	}
-	if len(dbParents) != len(verboseBlock.ParentHashes) {
-		missingParents := make([]string, 0, len(verboseBlock.ParentHashes)-len(dbParents))
-	outerLoop:
-		for _, parentHash := range verboseBlock.ParentHashes {
-			for _, dbParent := range dbParents {
-				if dbParent.BlockHash == parentHash {
-					continue outerLoop
-				}
-			}
-			missingParents = append(missingParents, parentHash)
-		}
-		return errors.Errorf("some parents are missing for block %s: %s", verboseBlock.Hash, strings.Join(missingParents, ", "))
-	}
-
-	for _, dbParent := range dbParents {
-		dbParentBlock := dbmodels.ParentBlock{
-			BlockID:       dbBlock.ID,
-			ParentBlockID: dbParent.ID,
-		}
-		dbResult := dbTx.Create(&dbParentBlock)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return httpserverutils.NewErrorFromDBErrors("failed to insert parentBlock: ", dbErrors)
-		}
-	}
-	return nil
-}
-
-func insertRawBlockData(dbTx *gorm.DB, rawBlock string, dbBlock *dbmodels.Block) error {
-	blockData, err := hex.DecodeString(rawBlock)
-	if err != nil {
-		return err
-	}
-	dbRawBlock := dbmodels.RawBlock{
-		BlockID:   dbBlock.ID,
-		BlockData: blockData,
-	}
-	dbResult := dbTx.Create(&dbRawBlock)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to insert rawBlock: ", dbErrors)
-	}
-	return nil
-}
-
-func insertSubnetwork(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult, client *jsonrpc.Client) (*dbmodels.Subnetwork, error) {
-	var dbSubnetwork dbmodels.Subnetwork
-	dbResult := dbTx.
-		Where(&dbmodels.Subnetwork{SubnetworkID: transaction.Subnetwork}).
-		First(&dbSubnetwork)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find subnetwork: ", dbErrors)
-	}
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
-		subnetwork, err := client.GetSubnetwork(transaction.Subnetwork)
-		if err != nil {
-			return nil, err
-		}
-		dbSubnetwork = dbmodels.Subnetwork{
-			SubnetworkID: transaction.Subnetwork,
-			GasLimit:     subnetwork.GasLimit,
-		}
-		dbResult := dbTx.Create(&dbSubnetwork)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return nil, httpserverutils.NewErrorFromDBErrors("failed to insert subnetwork: ", dbErrors)
-		}
-	}
-	return &dbSubnetwork, nil
-}
-
-func insertTransaction(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult, dbSubnetwork *dbmodels.Subnetwork) (*dbmodels.Transaction, error) {
-	var dbTransaction dbmodels.Transaction
-	dbResult := dbTx.
-		Where(&dbmodels.Transaction{TransactionID: transaction.TxID}).
-		First(&dbTransaction)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transaction: ", dbErrors)
-	}
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
-		mass, err := calcTxMass(dbTx, transaction)
-		if err != nil {
-			return nil, err
-		}
-		payload, err := hex.DecodeString(transaction.Payload)
-		if err != nil {
-			return nil, err
-		}
-		dbTransaction = dbmodels.Transaction{
-			TransactionHash: transaction.Hash,
-			TransactionID:   transaction.TxID,
-			LockTime:        transaction.LockTime,
-			SubnetworkID:    dbSubnetwork.ID,
-			Gas:             transaction.Gas,
-			PayloadHash:     transaction.PayloadHash,
-			Payload:         payload,
-			Mass:            mass,
-		}
-		dbResult := dbTx.Create(&dbTransaction)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return nil, httpserverutils.NewErrorFromDBErrors("failed to insert transaction: ", dbErrors)
-		}
-	}
-	return &dbTransaction, nil
-}
-
-func calcTxMass(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult) (uint64, error) {
-	msgTx, err := convertTxRawResultToMsgTx(transaction)
-	if err != nil {
-		return 0, err
-	}
-	prevTxIDs := make([]string, len(transaction.Vin))
-	for i, txIn := range transaction.Vin {
-		prevTxIDs[i] = txIn.TxID
-	}
-	var prevDBTransactionsOutputs []dbmodels.TransactionOutput
-	dbResult := dbTx.
-		Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-		Where("transactions.transaction_id in (?)", prevTxIDs).
-		Preload("Transaction").
-		Find(&prevDBTransactionsOutputs)
-	dbErrors := dbResult.GetErrors()
-	if len(dbErrors) > 0 {
-		return 0, httpserverutils.NewErrorFromDBErrors("error fetching previous transactions: ", dbErrors)
-	}
-	prevScriptPubKeysMap := make(map[string]map[uint32][]byte)
-	for _, prevDBTransactionsOutput := range prevDBTransactionsOutputs {
-		txID := prevDBTransactionsOutput.Transaction.TransactionID
-		if prevScriptPubKeysMap[txID] == nil {
-			prevScriptPubKeysMap[txID] = make(map[uint32][]byte)
-		}
-		prevScriptPubKeysMap[txID][prevDBTransactionsOutput.Index] = prevDBTransactionsOutput.ScriptPubKey
-	}
-	orderedPrevScriptPubKeys := make([][]byte, len(transaction.Vin))
-	for i, txIn := range transaction.Vin {
-		orderedPrevScriptPubKeys[i] = prevScriptPubKeysMap[txIn.TxID][uint32(i)]
-	}
-	return blockdag.CalcTxMass(util.NewTx(msgTx), orderedPrevScriptPubKeys), nil
-}
-
-func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*wire.MsgTx, error) {
-	txIns := make([]*wire.TxIn, len(tx.Vin))
-	for i, txIn := range tx.Vin {
-		prevTxID, err := daghash.NewTxIDFromStr(txIn.TxID)
-		if err != nil {
-			return nil, err
-		}
-		signatureScript, err := hex.DecodeString(txIn.ScriptSig.Hex)
-		if err != nil {
-			return nil, err
-		}
-		txIns[i] = &wire.TxIn{
-			PreviousOutpoint: wire.Outpoint{
-				TxID:  *prevTxID,
-				Index: txIn.Vout,
-			},
-			SignatureScript: signatureScript,
-			Sequence:        txIn.Sequence,
-		}
-	}
-	txOuts := make([]*wire.TxOut, len(tx.Vout))
-	for i, txOut := range tx.Vout {
-		scriptPubKey, err := hex.DecodeString(txOut.ScriptPubKey.Hex)
-		if err != nil {
-			return nil, err
-		}
-		txOuts[i] = &wire.TxOut{
-			Value:        txOut.Value,
-			ScriptPubKey: scriptPubKey,
-		}
-	}
-	subnetworkID, err := subnetworkid.NewFromStr(tx.Subnetwork)
-	if err != nil {
-		return nil, err
-	}
-	if subnetworkID.IsEqual(subnetworkid.SubnetworkIDNative) {
-		return wire.NewNativeMsgTx(tx.Version, txIns, txOuts), nil
-	}
-	payload, err := hex.DecodeString(tx.Payload)
-	if err != nil {
-		return nil, err
-	}
-	return wire.NewSubnetworkMsgTx(tx.Version, txIns, txOuts, subnetworkID, tx.Gas, payload), nil
-}
-
-func insertTransactionBlock(dbTx *gorm.DB, dbBlock *dbmodels.Block, dbTransaction *dbmodels.Transaction, index uint32) error {
-	var dbTransactionBlock dbmodels.TransactionBlock
-	dbResult := dbTx.
-		Where(&dbmodels.TransactionBlock{TransactionID: dbTransaction.ID, BlockID: dbBlock.ID}).
-		First(&dbTransactionBlock)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find transactionBlock: ", dbErrors)
-	}
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
-		dbTransactionBlock = dbmodels.TransactionBlock{
-			TransactionID: dbTransaction.ID,
-			BlockID:       dbBlock.ID,
-			Index:         index,
-		}
-		dbResult := dbTx.Create(&dbTransactionBlock)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return httpserverutils.NewErrorFromDBErrors("failed to insert transactionBlock: ", dbErrors)
-		}
-	}
-	return nil
-}
-
-func insertTransactionInputs(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult, dbTransaction *dbmodels.Transaction) error {
-	isCoinbase, err := isTransactionCoinbase(transaction)
-	if err != nil {
-		return err
-	}
-
-	if !isCoinbase {
-		for _, input := range transaction.Vin {
-			err := insertTransactionInput(dbTx, dbTransaction, &input)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func isTransactionCoinbase(transaction *rpcmodel.TxRawResult) (bool, error) {
-	subnetwork, err := subnetworkid.NewFromStr(transaction.Subnetwork)
-	if err != nil {
-		return false, err
-	}
-	return subnetwork.IsEqual(subnetworkid.SubnetworkIDCoinbase), nil
-}
-
-func insertTransactionInput(dbTx *gorm.DB, dbTransaction *dbmodels.Transaction, input *rpcmodel.Vin) error {
-	var dbPreviousTransactionOutput dbmodels.TransactionOutput
-	dbResult := dbTx.
-		Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-		Where("`transactions`.`transaction_id` = ? AND `transaction_outputs`.`index` = ?", input.TxID, input.Vout).
-		First(&dbPreviousTransactionOutput)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find previous transactionOutput: ", dbErrors)
-	}
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
-		return errors.Errorf("missing output transaction output for txID: %s and index: %d", input.TxID, input.Vout)
-	}
-
-	var dbTransactionInputCount int
-	dbResult = dbTx.
-		Model(&dbmodels.TransactionInput{}).
-		Where(&dbmodels.TransactionInput{TransactionID: dbTransaction.ID, PreviousTransactionOutputID: dbPreviousTransactionOutput.ID}).
-		Count(&dbTransactionInputCount)
-	dbErrors = dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find transactionInput: ", dbErrors)
-	}
-	if dbTransactionInputCount == 0 {
-		scriptSig, err := hex.DecodeString(input.ScriptSig.Hex)
-		if err != nil {
-			return nil
-		}
-		dbTransactionInput := dbmodels.TransactionInput{
-			TransactionID:               dbTransaction.ID,
-			PreviousTransactionOutputID: dbPreviousTransactionOutput.ID,
-			Index:                       input.Vout,
-			SignatureScript:             scriptSig,
-			Sequence:                    input.Sequence,
-		}
-		dbResult := dbTx.Create(&dbTransactionInput)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return httpserverutils.NewErrorFromDBErrors("failed to insert transactionInput: ", dbErrors)
-		}
-	}
-
-	return nil
-}
-
-func insertTransactionOutputs(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult, dbTransaction *dbmodels.Transaction) error {
-	for _, output := range transaction.Vout {
-		scriptPubKey, err := hex.DecodeString(output.ScriptPubKey.Hex)
-		if err != nil {
-			return err
-		}
-		dbAddress, err := insertAddress(dbTx, scriptPubKey)
-		if err != nil {
-			return err
-		}
-		err = insertTransactionOutput(dbTx, dbTransaction, &output, scriptPubKey, dbAddress)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func insertAddress(dbTx *gorm.DB, scriptPubKey []byte) (*dbmodels.Address, error) {
-	_, addr, err := txscript.ExtractScriptPubKeyAddress(scriptPubKey, config.ActiveConfig().NetParams())
-	if err != nil {
-		return nil, err
-	}
-	if addr == nil {
-		return nil, nil
-	}
-	hexAddress := addr.EncodeAddress()
-
-	var dbAddress dbmodels.Address
-	dbResult := dbTx.
-		Where(&dbmodels.Address{Address: hexAddress}).
-		First(&dbAddress)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find address: ", dbErrors)
-	}
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
-		dbAddress = dbmodels.Address{
-			Address: hexAddress,
-		}
-		dbResult := dbTx.Create(&dbAddress)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return nil, httpserverutils.NewErrorFromDBErrors("failed to insert address: ", dbErrors)
-		}
-	}
-	return &dbAddress, nil
-}
-
-func insertTransactionOutput(dbTx *gorm.DB, dbTransaction *dbmodels.Transaction,
-	output *rpcmodel.Vout, scriptPubKey []byte, dbAddress *dbmodels.Address) error {
-	var dbTransactionOutputCount int
-	dbResult := dbTx.
-		Model(&dbmodels.TransactionOutput{}).
-		Where(&dbmodels.TransactionOutput{TransactionID: dbTransaction.ID, Index: output.N}).
-		Count(&dbTransactionOutputCount)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find transactionOutput: ", dbErrors)
-	}
-	if dbTransactionOutputCount == 0 {
-		dbTransactionOutput := dbmodels.TransactionOutput{
-			TransactionID: dbTransaction.ID,
-			Index:         output.N,
-			Value:         output.Value,
-			IsSpent:       false, // This must be false for updateSelectedParentChain to work properly
-			ScriptPubKey:  scriptPubKey,
-		}
-		if dbAddress != nil {
-			dbTransactionOutput.AddressID = &dbAddress.ID
-		}
-		dbResult := dbTx.Create(&dbTransactionOutput)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return httpserverutils.NewErrorFromDBErrors("failed to insert transactionOutput: ", dbErrors)
-		}
-	}
-	return nil
 }
 
 // updateSelectedParentChain updates the database to reflect the current selected
@@ -945,52 +420,70 @@ func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) erro
 	return nil
 }
 
-type rawAndVerboseBlock struct {
-	rawBlock     string
-	verboseBlock *rpcmodel.GetBlockVerboseResult
-}
-
-func (r *rawAndVerboseBlock) String() string {
-	return r.verboseBlock.Hash
+func doesBlockExist(dbTx *gorm.DB, blockHash string) (bool, error) {
+	var dbBlock dbmodels.Block
+	dbResult := dbTx.
+		Where(&dbmodels.Block{BlockHash: blockHash}).
+		First(&dbBlock)
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return false, httpserverutils.NewErrorFromDBErrors("failed to find block: ", dbErrors)
+	}
+	return !httpserverutils.IsDBRecordNotFoundError(dbErrors), nil
 }
 
 func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedMsg) error {
+	db, err := database.DB()
+	if err != nil {
+		return err
+	}
+	blockExists, err := doesBlockExist(db, blockAdded.Header.BlockHash().String())
+	if err != nil {
+		return err
+	}
+	if blockExists {
+		return nil
+	}
+
 	block, err := fetchBlock(client, blockAdded.Header.BlockHash())
 	if err != nil {
 		return err
 	}
-	return addBlockAndMissingAncestors(client, block)
-}
 
-func addBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock) error {
-	blocks, err := fetchBlockAndMissingAncestors(client, block)
+	missingAncestors, err := fetchMissingAncestors(client, block, nil)
 	if err != nil {
 		return err
 	}
+
+	blocks := append([]*rawAndVerboseBlock{block}, missingAncestors...)
+	err = bulkInsertBlocksData(client, blocks)
+	if err != nil {
+		return err
+	}
+
 	for _, block := range blocks {
-		err = addBlock(client, block.rawBlock, *block.verboseBlock)
+		err := mqtt.PublishTransactionsNotifications(block.Verbose.RawTx)
 		if err != nil {
 			return err
 		}
-		log.Infof("Added block %s", block.verboseBlock.Hash)
 	}
 	return nil
 }
 
-func fetchBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
+func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
 	pendingBlocks := []*rawAndVerboseBlock{block}
-	blocksToAdd := make([]*rawAndVerboseBlock, 0)
-	blocksToAddSet := make(map[string]struct{})
+	missingAncestors := make([]*rawAndVerboseBlock, 0)
+	missingAncestorsSet := make(map[string]struct{})
 	for len(pendingBlocks) > 0 {
 		var currentBlock *rawAndVerboseBlock
 		currentBlock, pendingBlocks = pendingBlocks[0], pendingBlocks[1:]
-		missingHashes, err := missingParentHashes(currentBlock.verboseBlock.ParentHashes)
+		missingParentHashes, err := missingBlockHashes(currentBlock.Verbose.ParentHashes, blockExistingInMemory)
 		if err != nil {
 			return nil, err
 		}
-		blocksToPrependToPending := make([]*rawAndVerboseBlock, 0, len(missingHashes))
-		for _, missingHash := range missingHashes {
-			if _, ok := blocksToAddSet[missingHash]; ok {
+		blocksToPrependToPending := make([]*rawAndVerboseBlock, 0, len(missingParentHashes))
+		for _, missingHash := range missingParentHashes {
+			if _, ok := missingAncestorsSet[missingHash]; ok {
 				continue
 			}
 			hash, err := daghash.NewHashFromStr(missingHash)
@@ -1004,40 +497,54 @@ func fetchBlockAndMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseB
 			blocksToPrependToPending = append(blocksToPrependToPending, block)
 		}
 		if len(blocksToPrependToPending) == 0 {
-			blocksToAddSet[currentBlock.verboseBlock.Hash] = struct{}{}
-			blocksToAdd = append(blocksToAdd, currentBlock)
+			if currentBlock != block {
+				missingAncestorsSet[currentBlock.hash()] = struct{}{}
+				missingAncestors = append(missingAncestors, currentBlock)
+			}
 			continue
 		}
 		log.Debugf("Found %s missing parents for block %s and fetched them", blocksToPrependToPending, currentBlock)
 		blocksToPrependToPending = append(blocksToPrependToPending, currentBlock)
 		pendingBlocks = append(blocksToPrependToPending, pendingBlocks...)
 	}
-	return blocksToAdd, nil
+	return missingAncestors, nil
 }
 
-func missingParentHashes(parentHashes []string) ([]string, error) {
+// missingBlockHashes takes a slice of block hashes and returns
+// a slice that contains all the block hashes that do not exist
+// in the database or in the given blocksExistingInMemory map.
+func missingBlockHashes(blockHashes []string, blocksExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	// Make sure that all the parent hashes exist in the database
-	var dbParentBlocks []dbmodels.Block
+	// filter out all the hashes that exist in blocksExistingInMemory
+	hashesNotInMemory := make([]string, 0)
+	for _, hash := range blockHashes {
+		if _, ok := blocksExistingInMemory[hash]; !ok {
+			hashesNotInMemory = append(hashesNotInMemory, hash)
+		}
+	}
+
+	// Check which of the hashes in hashesNotInMemory do
+	// not exist in the database.
+	var dbBlocks []dbmodels.Block
 	dbResult := db.
 		Model(&dbmodels.Block{}).
-		Where("block_hash in (?)", parentHashes).
-		Find(&dbParentBlocks)
+		Where("block_hash in (?)", hashesNotInMemory).
+		Find(&dbBlocks)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find parent blocks: ", dbErrors)
 	}
-	if len(parentHashes) != len(dbParentBlocks) {
-		// Some parent hashes are missing. Collect and return them
+	if len(hashesNotInMemory) != len(dbBlocks) {
+		// Some hashes are missing. Collect and return them
 		var missingHashes []string
 	outerLoop:
-		for _, hash := range parentHashes {
-			for _, dbParentBlock := range dbParentBlocks {
-				if dbParentBlock.BlockHash == hash {
+		for _, hash := range hashesNotInMemory {
+			for _, dbBlock := range dbBlocks {
+				if dbBlock.BlockHash == hash {
 					continue outerLoop
 				}
 			}
@@ -1183,4 +690,106 @@ func convertChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (
 	}
 
 	return removedHashes, addedBlocks
+}
+
+// addBlocks inserts data in the given rawBlocks and verboseBlocks pairwise
+// into the database.
+func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmodel.GetBlockVerboseResult) error {
+	db, err := database.DB()
+	if err != nil {
+		return err
+	}
+
+	blocks := make([]*rawAndVerboseBlock, 0)
+	blockHashesToRawAndVerboseBlock := make(map[string]*rawAndVerboseBlock)
+	for i, rawBlock := range rawBlocks {
+		blockExists, err := doesBlockExist(db, verboseBlocks[i].Hash)
+		if err != nil {
+			return err
+		}
+		if blockExists {
+			continue
+		}
+
+		block := &rawAndVerboseBlock{
+			Raw:     rawBlock,
+			Verbose: &verboseBlocks[i],
+		}
+		missingAncestors, err := fetchMissingAncestors(client, &rawAndVerboseBlock{
+			Raw:     rawBlock,
+			Verbose: &verboseBlocks[i],
+		}, blockHashesToRawAndVerboseBlock)
+		if err != nil {
+			return err
+		}
+
+		blocks = append(blocks, block)
+		blockHashesToRawAndVerboseBlock[block.hash()] = block
+
+		blocks = append(blocks, missingAncestors...)
+		for _, block := range missingAncestors {
+			blockHashesToRawAndVerboseBlock[block.hash()] = block
+		}
+	}
+	return bulkInsertBlocksData(client, blocks)
+}
+
+// bulkInsertBlocksData inserts the given blocks and their data (transactions
+// and new subnetworks data) to the database in chunks.
+func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*rawAndVerboseBlock) error {
+	db, err := database.DB()
+	if err != nil {
+		return err
+	}
+	dbTx := db.Begin()
+	defer dbTx.RollbackUnlessCommitted()
+
+	subnetworkIDToID, err := insertSubnetworks(dbTx, client, blocks)
+	if err != nil {
+		return err
+	}
+
+	transactionIDsToTxsWithMetadata, err := insertTransactions(dbTx, blocks, subnetworkIDToID)
+	if err != nil {
+		return err
+	}
+
+	err = insertTransactionOutputs(dbTx, transactionIDsToTxsWithMetadata)
+	if err != nil {
+		return err
+	}
+
+	err = insertTransactionInputs(dbTx, transactionIDsToTxsWithMetadata)
+	if err != nil {
+		return err
+	}
+
+	err = insertBlocks(dbTx, blocks, transactionIDsToTxsWithMetadata)
+	if err != nil {
+		return err
+	}
+
+	blockHashesToIDs, err := getBlocksAndParentIDs(dbTx, blocks)
+	if err != nil {
+		return err
+	}
+
+	err = insertBlockParents(dbTx, blocks, blockHashesToIDs)
+	if err != nil {
+		return err
+	}
+
+	err = insertRawBlocks(dbTx, blocks, blockHashesToIDs)
+	if err != nil {
+		return err
+	}
+
+	err = insertTransactionBlocks(dbTx, blocks, blockHashesToIDs, transactionIDsToTxsWithMetadata)
+	if err != nil {
+		return err
+	}
+
+	dbTx.Commit()
+	log.Infof("Added %d blocks", len(blocks))
+	return nil
 }

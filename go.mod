@@ -11,6 +11,7 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/kaspanet/kaspad v0.1.1-dev
 	github.com/pkg/errors v0.8.1
+	github.com/t-tiger/gorm-bulk-insert v1.2.0
 )
 
 replace github.com/kaspanet/kaspad => ../kaspad
