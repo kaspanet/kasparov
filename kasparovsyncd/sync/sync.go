@@ -694,7 +694,7 @@ func convertChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (
 }
 
 // addBlocks inserts data in the given rawBlocks and verboseBlocks pairwise
-// into the database. See addBlock for further details.
+// into the database.
 func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmodel.GetBlockVerboseResult) error {
 	db, err := database.DB()
 	if err != nil {
