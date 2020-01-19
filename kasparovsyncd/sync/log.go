@@ -5,5 +5,5 @@ import (
 )
 
 var (
-	log = logger.Logger("DAAC")
+	log = logger.Logger("SYNC")
 )
