@@ -15,34 +15,34 @@ import (
 	"github.com/pkg/errors"
 )
 
-type txWithMetaData struct {
+type txWithMetadata struct {
 	verboseTx *rpcmodel.TxRawResult
 	id        uint64
 	isNew     bool
 	mass      uint64
 }
 
-func transactionIDsToTxsWithMetaDataToTransactionIDs(transactionIDsToTxsWithMetaData map[string]*txWithMetaData) []string {
-	transactionIDs := make([]string, len(transactionIDsToTxsWithMetaData))
+func transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMetadata map[string]*txWithMetadata) []string {
+	transactionIDs := make([]string, len(transactionIDsToTxsWithMetadata))
 	i := 0
-	for txID := range transactionIDsToTxsWithMetaData {
+	for txID := range transactionIDsToTxsWithMetadata {
 		transactionIDs[i] = txID
 		i++
 	}
 	return transactionIDs
 }
 
-func insertTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetaData, error) {
-	transactionIDsToTxsWithMetaData := make(map[string]*txWithMetaData)
+func insertTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetadata, error) {
+	transactionIDsToTxsWithMetadata := make(map[string]*txWithMetadata)
 	for _, block := range blocks {
 		for _, transaction := range block.Verbose.RawTx {
-			transactionIDsToTxsWithMetaData[transaction.TxID] = &txWithMetaData{
+			transactionIDsToTxsWithMetadata[transaction.TxID] = &txWithMetadata{
 				verboseTx: &transaction,
 			}
 		}
 	}
 
-	transactionIDs := transactionIDsToTxsWithMetaDataToTransactionIDs(transactionIDsToTxsWithMetaData)
+	transactionIDs := transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMetadata)
 
 	var dbTransactions []*dbmodels.Transaction
 	dbResult := dbTx.
@@ -54,12 +54,12 @@ func insertTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subne
 	}
 
 	for _, dbTransaction := range dbTransactions {
-		transactionIDsToTxsWithMetaData[dbTransaction.TransactionID].id = dbTransaction.ID
-		transactionIDsToTxsWithMetaData[dbTransaction.TransactionID].mass = dbTransaction.Mass
+		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].id = dbTransaction.ID
+		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].mass = dbTransaction.Mass
 	}
 
 	newTransactions := make([]string, 0)
-	for txID, verboseTx := range transactionIDsToTxsWithMetaData {
+	for txID, verboseTx := range transactionIDsToTxsWithMetadata {
 		if verboseTx.id != 0 {
 			continue
 		}
@@ -68,12 +68,12 @@ func insertTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subne
 
 	transactionsToAdd := make([]interface{}, len(newTransactions))
 	for i, id := range newTransactions {
-		verboseTx := transactionIDsToTxsWithMetaData[id].verboseTx
+		verboseTx := transactionIDsToTxsWithMetadata[id].verboseTx
 		mass, err := calcTxMass(dbTx, verboseTx)
 		if err != nil {
 			return nil, err
 		}
-		transactionIDsToTxsWithMetaData[id].mass = mass
+		transactionIDsToTxsWithMetadata[id].mass = mass
 
 		payload, err := hex.DecodeString(verboseTx.Payload)
 		if err != nil {
@@ -115,13 +115,13 @@ func insertTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subne
 	}
 
 	for _, dbTransaction := range dbNewTransactions {
-		transactionIDsToTxsWithMetaData[dbTransaction.TransactionID].id = dbTransaction.ID
-		transactionIDsToTxsWithMetaData[dbTransaction.TransactionID].isNew = true
+		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].id = dbTransaction.ID
+		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].isNew = true
 	}
-	return transactionIDsToTxsWithMetaData, nil
+	return transactionIDsToTxsWithMetadata, nil
 }
 
-func insertTransactionBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, blockHashesToIDs map[string]uint64, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
+func insertTransactionBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, blockHashesToIDs map[string]uint64, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	transactionBlocksToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
 		blockID, ok := blockHashesToIDs[block.Hash()]
@@ -130,7 +130,7 @@ func insertTransactionBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, 
 		}
 		for i, tx := range block.Verbose.RawTx {
 			transactionBlocksToAdd = append(transactionBlocksToAdd, &dbmodels.TransactionBlock{
-				TransactionID: transactionIDsToTxsWithMetaData[tx.TxID].id,
+				TransactionID: transactionIDsToTxsWithMetadata[tx.TxID].id,
 				BlockID:       blockID,
 				Index:         uint32(i),
 			})
@@ -154,11 +154,11 @@ func outpointSetToSQLTuples(outpointsToIDs map[outpoint]struct{}) [][]interface{
 	return outpoints
 }
 
-func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
+func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	outpointsSet := make(map[outpoint]struct{})
-	newNonCoinbaseTransactions := make(map[string]*txWithMetaData)
+	newNonCoinbaseTransactions := make(map[string]*txWithMetadata)
 	inputsCount := 0
-	for transactionID, transaction := range transactionIDsToTxsWithMetaData {
+	for transactionID, transaction := range transactionIDsToTxsWithMetadata {
 		if !transaction.isNew {
 			continue
 		}
@@ -237,14 +237,14 @@ func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[
 	return bulkInsert(dbTx, inputsToAdd)
 }
 
-func insertTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
-	addressesToAddressIDs, err := insertBlocksTransactionAddresses(dbTx, transactionIDsToTxsWithMetaData)
+func insertTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+	addressesToAddressIDs, err := insertBlocksTransactionAddresses(dbTx, transactionIDsToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
 
 	outputsToAdd := make([]interface{}, 0)
-	for _, transaction := range transactionIDsToTxsWithMetaData {
+	for _, transaction := range transactionIDsToTxsWithMetadata {
 		if !transaction.isNew {
 			continue
 		}
