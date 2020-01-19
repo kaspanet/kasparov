@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertBlocksSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) (subnetworkIDsToIDs map[string]uint64, err error) {
+func insertSubnetworks(dbTx *gorm.DB, client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) (subnetworkIDsToIDs map[string]uint64, err error) {
 	subnetworkSet := make(map[string]struct{})
 	for _, block := range blocks {
 		for _, transaction := range block.Verbose.RawTx {

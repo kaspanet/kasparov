@@ -24,7 +24,7 @@ func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*utils.RawAndVerboseB
 	dbTx := db.Begin()
 	defer dbTx.RollbackUnlessCommitted()
 
-	subnetworkIDToID, err := insertBlocksSubnetworks(dbTx, client, blocks)
+	subnetworkIDToID, err := insertSubnetworks(dbTx, client, blocks)
 	if err != nil {
 		return err
 	}
