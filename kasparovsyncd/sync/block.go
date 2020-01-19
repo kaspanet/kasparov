@@ -3,10 +3,8 @@ package sync
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
-	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
-	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
 	"github.com/pkg/errors"
 	"strconv"
