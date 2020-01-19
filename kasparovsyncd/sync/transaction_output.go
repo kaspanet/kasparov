@@ -9,7 +9,7 @@ import (
 )
 
 func insertTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
-	addressesToAddressIDs, err := insertBlocksTransactionAddresses(dbTx, transactionIDsToTxsWithMetadata)
+	addressesToAddressIDs, err := insertAddresses(dbTx, transactionIDsToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
