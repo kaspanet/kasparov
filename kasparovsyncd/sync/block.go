@@ -29,17 +29,17 @@ func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*utils.RawAndVerboseB
 		return err
 	}
 
-	transactionIDsToTxsWithMetaData, err := insertBlockTransactions(dbTx, blocks, subnetworkIDToID)
+	transactionIDsToTxsWithMetaData, err := insertTransactions(dbTx, blocks, subnetworkIDToID)
 	if err != nil {
 		return err
 	}
 
-	err = insertBlocksTransactionOutputs(dbTx, transactionIDsToTxsWithMetaData)
+	err = insertTransactionOutputs(dbTx, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
 	}
 
-	err = insertBlocksTransactionInputs(dbTx, transactionIDsToTxsWithMetaData)
+	err = insertTransactionInputs(dbTx, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
 	}

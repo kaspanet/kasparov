@@ -32,7 +32,7 @@ func transactionIDsToTxsWithMetaDataToTransactionIDs(transactionIDsToTxsWithMeta
 	return transactionIDs
 }
 
-func insertBlockTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetaData, error) {
+func insertTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetaData, error) {
 	transactionIDsToTxsWithMetaData := make(map[string]*txWithMetaData)
 	for _, block := range blocks {
 		for _, transaction := range block.Verbose.RawTx {
@@ -154,7 +154,7 @@ func outpointSetToSQLTuples(outpointsToIDs map[outpoint]struct{}) [][]interface{
 	return outpoints
 }
 
-func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
+func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
 	outpointsSet := make(map[outpoint]struct{})
 	newNonCoinbaseTransactions := make(map[string]*txWithMetaData)
 	inputsCount := 0
@@ -237,7 +237,7 @@ func insertBlocksTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaDat
 	return bulkInsert(dbTx, inputsToAdd)
 }
 
-func insertBlocksTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
+func insertTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetaData map[string]*txWithMetaData) error {
 	addressesToAddressIDs, err := insertBlocksTransactionAddresses(dbTx, transactionIDsToTxsWithMetaData)
 	if err != nil {
 		return err
