@@ -210,7 +210,7 @@ func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[
 	}
 
 	inputsToAdd := make([]interface{}, inputsCount)
-	inputIterator := 0
+	inputIndex := 0
 	for _, transaction := range newNonCoinbaseTransactions {
 		for i, txIn := range transaction.verboseTx.Vin {
 			scriptSig, err := hex.DecodeString(txIn.ScriptSig.Hex)
@@ -224,14 +224,14 @@ func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[
 			if !ok || prevOutputID == 0 {
 				return errors.Errorf("couldn't find ID for outpoint (%s:%d)", txIn.TxID, txIn.Vout)
 			}
-			inputsToAdd[inputIterator] = &dbmodels.TransactionInput{
+			inputsToAdd[inputIndex] = &dbmodels.TransactionInput{
 				TransactionID:               transaction.id,
 				PreviousTransactionOutputID: prevOutputID,
 				Index:                       uint32(i),
 				SignatureScript:             scriptSig,
 				Sequence:                    txIn.Sequence,
 			}
-			inputIterator++
+			inputIndex++
 		}
 	}
 	return bulkInsert(dbTx, inputsToAdd)
