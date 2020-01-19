@@ -13,66 +13,6 @@ import (
 	"time"
 )
 
-// bulkInsertBlocksData inserts the given blocks and their data (transactions
-// and new subnetworks data) to the database in chunks.
-func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) error {
-	db, err := database.DB()
-	if err != nil {
-		return err
-	}
-	dbTx := db.Begin()
-	defer dbTx.RollbackUnlessCommitted()
-
-	subnetworkIDToID, err := insertSubnetworks(dbTx, client, blocks)
-	if err != nil {
-		return err
-	}
-
-	transactionIDsToTxsWithMetadata, err := insertTransactions(dbTx, blocks, subnetworkIDToID)
-	if err != nil {
-		return err
-	}
-
-	err = insertTransactionOutputs(dbTx, transactionIDsToTxsWithMetadata)
-	if err != nil {
-		return err
-	}
-
-	err = insertTransactionInputs(dbTx, transactionIDsToTxsWithMetadata)
-	if err != nil {
-		return err
-	}
-
-	err = insertBlocks(dbTx, blocks, transactionIDsToTxsWithMetadata)
-	if err != nil {
-		return err
-	}
-
-	blockHashesToIDs, err := getBlocksAndParentIDs(dbTx, blocks)
-	if err != nil {
-		return err
-	}
-
-	err = insertBlockParents(dbTx, blocks, blockHashesToIDs)
-	if err != nil {
-		return err
-	}
-
-	err = insertRawBlocks(dbTx, blocks, blockHashesToIDs)
-	if err != nil {
-		return err
-	}
-
-	err = insertTransactionBlocks(dbTx, blocks, blockHashesToIDs, transactionIDsToTxsWithMetadata)
-	if err != nil {
-		return err
-	}
-
-	dbTx.Commit()
-	log.Infof("Added %d blocks", len(blocks))
-	return nil
-}
-
 func insertBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
