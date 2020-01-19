@@ -1,4 +1,4 @@
-package main
+package sync
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/jsonrpc"
-	dataaccess "github.com/kaspanet/kasparov/kasparovsyncd/data_access"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
 	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
 
@@ -20,10 +19,10 @@ import (
 // pendingChainChangedMsgs holds chainChangedMsgs in order of arrival
 var pendingChainChangedMsgs []*jsonrpc.ChainChangedMsg
 
-// startSync keeps the node and the database in sync. On start, it downloads
+// StartSync keeps the node and the database in sync. On start, it downloads
 // all data that's missing from the dabase, and once it's done it keeps
 // sync with the node via notifications.
-func startSync(doneChan chan struct{}) error {
+func StartSync(doneChan chan struct{}) error {
 	client, err := jsonrpc.GetClient()
 	if err != nil {
 		return err
@@ -73,7 +72,7 @@ func sync(client *jsonrpc.Client, doneChan chan struct{}) error {
 				return err
 			}
 		case <-doneChan:
-			log.Infof("startSync stopped")
+			log.Infof("StartSync stopped")
 			return nil
 		}
 	}
@@ -458,7 +457,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	}
 
 	blocks := append([]*utils.RawAndVerboseBlock{block}, missingAncestors...)
-	err = dataaccess.BulkInsertBlocksData(client, blocks)
+	err = bulkInsertBlocksData(client, blocks)
 	if err != nil {
 		return err
 	}
@@ -733,5 +732,5 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			blockHashesToRawAndVerboseBlock[block.Hash()] = block
 		}
 	}
-	return dataaccess.BulkInsertBlocksData(client, blocks)
+	return bulkInsertBlocksData(client, blocks)
 }

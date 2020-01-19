@@ -1,4 +1,4 @@
-package dataaccess
+package sync
 
 import (
 	"github.com/kaspanet/kasparov/logger"
