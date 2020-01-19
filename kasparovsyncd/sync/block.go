@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"encoding/hex"
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kasparov/database"
@@ -211,16 +210,6 @@ func insertBlocksTransactionAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMeta
 	return addressesToAddressIDs, nil
 }
 
-func stringsSetToSlice(set map[string]struct{}) []string {
-	ids := make([]string, len(set))
-	i := 0
-	for id := range set {
-		ids[i] = id
-		i++
-	}
-	return ids
-}
-
 func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*dbmodels.Block, error) {
 	bits, err := strconv.ParseUint(verboseBlock.Bits, 16, 32)
 	if err != nil {
@@ -245,39 +234,4 @@ func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*db
 		dbBlock.IsChainBlock = true
 	}
 	return &dbBlock, nil
-}
-
-func makeBlockParents(blockHashesToIDs map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.ParentBlock, error) {
-	// Exit early if this is the genesis block
-	if len(verboseBlock.ParentHashes) == 0 {
-		return nil, nil
-	}
-
-	blockID, ok := blockHashesToIDs[verboseBlock.Hash]
-	if !ok {
-		return nil, errors.Errorf("couldn't find block ID for block %s", verboseBlock.Hash)
-	}
-	dbParentBlocks := make([]*dbmodels.ParentBlock, len(verboseBlock.ParentHashes))
-	for i, parentHash := range verboseBlock.ParentHashes {
-		parentID, ok := blockHashesToIDs[parentHash]
-		if !ok {
-			return nil, errors.Errorf("missing parent %s for block %s", parentHash, verboseBlock.Hash)
-		}
-		dbParentBlocks[i] = &dbmodels.ParentBlock{
-			BlockID:       blockID,
-			ParentBlockID: parentID,
-		}
-	}
-	return dbParentBlocks, nil
-}
-
-func makeDBRawBlock(rawBlock string, blockID uint64) (*dbmodels.RawBlock, error) {
-	blockData, err := hex.DecodeString(rawBlock)
-	if err != nil {
-		return nil, err
-	}
-	return &dbmodels.RawBlock{
-		BlockID:   blockID,
-		BlockData: blockData,
-	}, nil
 }
