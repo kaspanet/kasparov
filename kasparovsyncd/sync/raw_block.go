@@ -4,14 +4,14 @@ import (
 	"encoding/hex"
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
+
 	"github.com/pkg/errors"
 )
 
-func insertRawBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
+func insertRawBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
 	rawBlocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
-		blockID, ok := blockHashesToIDs[block.Hash()]
+		blockID, ok := blockHashesToIDs[block.hash()]
 		if !ok {
 			return errors.Errorf("couldn't find block ID for block %s", block)
 		}

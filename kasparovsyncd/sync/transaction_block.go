@@ -3,14 +3,14 @@ package sync
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
+
 	"github.com/pkg/errors"
 )
 
-func insertTransactionBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, blockHashesToIDs map[string]uint64, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertTransactionBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	transactionBlocksToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
-		blockID, ok := blockHashesToIDs[block.Hash()]
+		blockID, ok := blockHashesToIDs[block.hash()]
 		if !ok {
 			return errors.Errorf("couldn't find block ID for block %s", block)
 		}

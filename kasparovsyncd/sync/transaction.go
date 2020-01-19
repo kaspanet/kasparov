@@ -11,7 +11,7 @@ import (
 	"github.com/kaspanet/kaspad/wire"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
-	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
+
 	"github.com/pkg/errors"
 )
 
@@ -32,7 +32,7 @@ func transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMeta
 	return transactionIDs
 }
 
-func insertTransactions(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetadata, error) {
+func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetadata, error) {
 	transactionIDsToTxsWithMetadata := make(map[string]*txWithMetadata)
 	for _, block := range blocks {
 		for _, transaction := range block.Verbose.RawTx {

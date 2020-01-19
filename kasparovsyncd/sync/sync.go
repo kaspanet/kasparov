@@ -8,7 +8,6 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
-	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
 
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
@@ -176,7 +175,7 @@ func findHashOfBluestBlock(mustBeChainBlock bool) (*string, error) {
 // fetchBlock downloads the serialized block and raw block data of
 // the block with hash blockHash.
 func fetchBlock(client *jsonrpc.Client, blockHash *daghash.Hash) (
-	*utils.RawAndVerboseBlock, error) {
+	*rawAndVerboseBlock, error) {
 	log.Debugf("Getting block %s from the RPC server", blockHash)
 	msgBlock, err := client.GetBlock(blockHash, nil)
 	if err != nil {
@@ -193,7 +192,7 @@ func fetchBlock(client *jsonrpc.Client, blockHash *daghash.Hash) (
 	if err != nil {
 		return nil, err
 	}
-	return &utils.RawAndVerboseBlock{
+	return &rawAndVerboseBlock{
 		Raw:     rawBlock,
 		Verbose: verboseBlock,
 	}, nil
@@ -456,7 +455,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 		return err
 	}
 
-	blocks := append([]*utils.RawAndVerboseBlock{block}, missingAncestors...)
+	blocks := append([]*rawAndVerboseBlock{block}, missingAncestors...)
 	err = bulkInsertBlocksData(client, blocks)
 	if err != nil {
 		return err
@@ -471,18 +470,18 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	return nil
 }
 
-func fetchMissingAncestors(client *jsonrpc.Client, block *utils.RawAndVerboseBlock, blockExistingInMemory map[string]*utils.RawAndVerboseBlock) ([]*utils.RawAndVerboseBlock, error) {
-	pendingBlocks := []*utils.RawAndVerboseBlock{block}
-	missingAncestors := make([]*utils.RawAndVerboseBlock, 0)
+func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
+	pendingBlocks := []*rawAndVerboseBlock{block}
+	missingAncestors := make([]*rawAndVerboseBlock, 0)
 	missingAncestorsSet := make(map[string]struct{})
 	for len(pendingBlocks) > 0 {
-		var currentBlock *utils.RawAndVerboseBlock
+		var currentBlock *rawAndVerboseBlock
 		currentBlock, pendingBlocks = pendingBlocks[0], pendingBlocks[1:]
 		missingParentHashes, err := missingBlockHashes(currentBlock.Verbose.ParentHashes, blockExistingInMemory)
 		if err != nil {
 			return nil, err
 		}
-		blocksToPrependToPending := make([]*utils.RawAndVerboseBlock, 0, len(missingParentHashes))
+		blocksToPrependToPending := make([]*rawAndVerboseBlock, 0, len(missingParentHashes))
 		for _, missingHash := range missingParentHashes {
 			if _, ok := missingAncestorsSet[missingHash]; ok {
 				continue
@@ -499,7 +498,7 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *utils.RawAndVerboseBlo
 		}
 		if len(blocksToPrependToPending) == 0 {
 			if currentBlock != block {
-				missingAncestorsSet[currentBlock.Hash()] = struct{}{}
+				missingAncestorsSet[currentBlock.hash()] = struct{}{}
 				missingAncestors = append(missingAncestors, currentBlock)
 			}
 			continue
@@ -514,7 +513,7 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *utils.RawAndVerboseBlo
 // missingBlockHashes takes a slice of block hashes and returns
 // a slice that contains all the block hashes that do not exist
 // in the database or in the given blocksExistingInMemory map.
-func missingBlockHashes(blockHashes []string, blocksExistingInMemory map[string]*utils.RawAndVerboseBlock) ([]string, error) {
+func missingBlockHashes(blockHashes []string, blocksExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
@@ -701,8 +700,8 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 		return err
 	}
 
-	blocks := make([]*utils.RawAndVerboseBlock, 0)
-	blockHashesToRawAndVerboseBlock := make(map[string]*utils.RawAndVerboseBlock)
+	blocks := make([]*rawAndVerboseBlock, 0)
+	blockHashesToRawAndVerboseBlock := make(map[string]*rawAndVerboseBlock)
 	for i, rawBlock := range rawBlocks {
 		blockExists, err := doesBlockExist(db, verboseBlocks[i].Hash)
 		if err != nil {
@@ -712,11 +711,11 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			continue
 		}
 
-		block := &utils.RawAndVerboseBlock{
+		block := &rawAndVerboseBlock{
 			Raw:     rawBlock,
 			Verbose: &verboseBlocks[i],
 		}
-		missingAncestors, err := fetchMissingAncestors(client, &utils.RawAndVerboseBlock{
+		missingAncestors, err := fetchMissingAncestors(client, &rawAndVerboseBlock{
 			Raw:     rawBlock,
 			Verbose: &verboseBlocks[i],
 		}, blockHashesToRawAndVerboseBlock)
@@ -725,11 +724,11 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 		}
 
 		blocks = append(blocks, block)
-		blockHashesToRawAndVerboseBlock[block.Hash()] = block
+		blockHashesToRawAndVerboseBlock[block.hash()] = block
 
 		blocks = append(blocks, missingAncestors...)
 		for _, block := range missingAncestors {
-			blockHashesToRawAndVerboseBlock[block.Hash()] = block
+			blockHashesToRawAndVerboseBlock[block.hash()] = block
 		}
 	}
 	return bulkInsertBlocksData(client, blocks)
@@ -737,7 +736,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 
 // bulkInsertBlocksData inserts the given blocks and their data (transactions
 // and new subnetworks data) to the database in chunks.
-func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*utils.RawAndVerboseBlock) error {
+func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*rawAndVerboseBlock) error {
 	db, err := database.DB()
 	if err != nil {
 		return err

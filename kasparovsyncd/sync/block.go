@@ -5,13 +5,12 @@ import (
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
-	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
 	"github.com/pkg/errors"
 	"strconv"
 	"time"
 )
 
-func insertBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockMass := uint64(0)
@@ -27,10 +26,10 @@ func insertBlocks(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, transaction
 	return bulkInsert(dbTx, blocksToAdd)
 }
 
-func getBlocksAndParentIDs(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock) (map[string]uint64, error) {
+func getBlocksAndParentIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
 	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
-		blockSet[block.Hash()] = struct{}{}
+		blockSet[block.hash()] = struct{}{}
 		for _, parentHash := range block.Verbose.ParentHashes {
 			blockSet[parentHash] = struct{}{}
 		}

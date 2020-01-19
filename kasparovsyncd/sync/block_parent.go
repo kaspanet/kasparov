@@ -4,11 +4,11 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/kasparovsyncd/utils"
+
 	"github.com/pkg/errors"
 )
 
-func insertBlockParents(dbTx *gorm.DB, blocks []*utils.RawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
+func insertBlockParents(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
 	parentsToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
 		dbBlockParents, err := makeBlockParents(blockHashesToIDs, block.Verbose)
