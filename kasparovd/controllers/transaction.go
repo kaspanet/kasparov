@@ -164,7 +164,9 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 	var transactionOutputs []*dbmodels.TransactionOutput
 	dbErrors := db.
 		Joins("LEFT JOIN `addresses` ON `addresses`.`id` = `transaction_outputs`.`address_id`").
+		Joins("INNER JOIN `transactions` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
 		Where("`addresses`.`address` = ? AND `transaction_outputs`.`is_spent` = 0", address).
+		Where("`transactions`.`accepting_block_id` IS NOT NULL").
 		Preload("Transaction.AcceptingBlock").
 		Preload("Transaction.Subnetwork").
 		Find(&transactionOutputs).GetErrors()
