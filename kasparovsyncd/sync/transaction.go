@@ -2,6 +2,7 @@ package sync
 
 import (
 	"encoding/hex"
+
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/blockdag"
 	"github.com/kaspanet/kaspad/rpcmodel"
@@ -35,9 +36,12 @@ func transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMeta
 func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetadata, error) {
 	transactionIDsToTxsWithMetadata := make(map[string]*txWithMetadata)
 	for _, block := range blocks {
-		for _, transaction := range block.Verbose.RawTx {
+		// We do not directly iterate over block.Verbose.RawTx because it is a slice of values, and iterating
+		// over such will re-use the same address, making all pointers pointing into it point to the same address
+		for i := range block.Verbose.RawTx {
+			transaction := &block.Verbose.RawTx[i]
 			transactionIDsToTxsWithMetadata[transaction.TxID] = &txWithMetadata{
-				verboseTx: &transaction,
+				verboseTx: transaction,
 			}
 		}
 	}
@@ -118,6 +122,7 @@ func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkI
 		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].id = dbTransaction.ID
 		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].isNew = true
 	}
+
 	return transactionIDsToTxsWithMetadata, nil
 }
 
