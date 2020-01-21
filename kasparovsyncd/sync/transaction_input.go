@@ -2,6 +2,7 @@ package sync
 
 import (
 	"encoding/hex"
+
 	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
@@ -43,14 +44,27 @@ func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[
 	outpoints := outpointSetToSQLTuples(outpointsSet)
 
 	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
-	dbResult := dbTx.
-		Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-		Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", outpoints).
-		Preload("Transaction").
-		Find(&dbPreviousTransactionsOutputs)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find previous transaction outputs: ", dbErrors)
+	// fetch previous transaction outputs in chunks to prevent too-large SQL queries
+	for i := 0; i < len(outpoints)/chunkSize+1; i++ {
+		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
+
+		chunkStart := i * chunkSize
+		chunkEnd := (i + 1) * chunkSize
+		if chunkEnd > len(outpoints) {
+			chunkEnd = len(outpoints)
+		}
+		outpointsChunk := outpoints[chunkStart:chunkEnd]
+		dbResult := dbTx.
+			Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
+			Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", outpointsChunk).
+			Preload("Transaction").
+			Find(&dbPreviousTransactionsOutputsChunk)
+		dbErrors := dbResult.GetErrors()
+		if httpserverutils.HasDBError(dbErrors) {
+			return httpserverutils.NewErrorFromDBErrors("failed to find previous transaction outputs: ", dbErrors)
+		}
+
+		dbPreviousTransactionsOutputs = append(dbPreviousTransactionsOutputs, dbPreviousTransactionsOutputsChunk...)
 	}
 
 	if len(dbPreviousTransactionsOutputs) != len(outpoints) {

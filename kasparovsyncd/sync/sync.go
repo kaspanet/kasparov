@@ -3,6 +3,8 @@ package sync
 import (
 	"bytes"
 	"encoding/hex"
+	"runtime"
+
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
@@ -104,12 +106,17 @@ func syncBlocks(client *jsonrpc.Client) error {
 		if len(blocksResult.Hashes) == 0 {
 			break
 		}
+		log.Debugf("Got %d blocks", len(blocksResult.Hashes))
 
 		startHash = &blocksResult.Hashes[len(blocksResult.Hashes)-1]
 		err = addBlocks(client, blocksResult.RawBlocks, blocksResult.VerboseBlocks)
 		if err != nil {
 			return err
 		}
+
+		// Call the garbage collector after every iteration, as we create a ton of garbage, and risk running
+		// out of memory if we don't clean it
+		runtime.GC()
 	}
 
 	return nil
