@@ -1,12 +1,14 @@
 package mqtt
 
 import (
+	"path"
+
 	"github.com/kaspanet/kaspad/rpcclient"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util/daghash"
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 	"github.com/kaspanet/kasparov/kasparovd/controllers"
-	"path"
 )
 
 // PublishTransactionsNotifications publishes notification for each transaction of the given block
@@ -101,7 +103,7 @@ func PublishUnacceptedTransactionsNotifications(removedChainHashes []*daghash.Ha
 		return nil
 	}
 	for _, removedHash := range removedChainHashes {
-		transactionIDs, err := controllers.GetAcceptedTransactionIDsByBlockHashHandler(removedHash.String())
+		transactionIDs, err := dbaccess.GetAcceptedTransactionIDsByBlockHash(removedHash.String())
 		if err != nil {
 			return err
 		}
