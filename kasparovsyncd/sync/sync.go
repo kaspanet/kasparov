@@ -3,7 +3,6 @@ package sync
 import (
 	"bytes"
 	"encoding/hex"
-	"runtime"
 
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
@@ -113,10 +112,6 @@ func syncBlocks(client *jsonrpc.Client) error {
 		if err != nil {
 			return err
 		}
-
-		// Call the garbage collector after every iteration, as we create a ton of garbage, and risk running
-		// out of memory if we don't clean it
-		runtime.GC()
 	}
 
 	return nil
