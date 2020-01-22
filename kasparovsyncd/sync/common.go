@@ -7,10 +7,10 @@ import (
 	gormbulk "github.com/t-tiger/gorm-bulk-insert"
 )
 
-const insertChunkSize = 3000
+const chunkSize = 3000
 
 func bulkInsert(db *gorm.DB, objects []interface{}) error {
-	return errors.WithStack(gormbulk.BulkInsert(db, objects, insertChunkSize))
+	return errors.WithStack(gormbulk.BulkInsert(db, objects, chunkSize))
 }
 
 func stringsSetToSlice(set map[string]struct{}) []string {
