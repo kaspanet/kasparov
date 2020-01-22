@@ -11,6 +11,15 @@ import (
 	"github.com/pkg/errors"
 )
 
+func outpointsChunk(outpoints [][]interface{}, i int) [][]interface{} {
+	chunkStart := i * chunkSize
+	chunkEnd := chunkStart + chunkSize
+	if chunkEnd > len(outpoints) {
+		chunkEnd = len(outpoints)
+	}
+	return outpoints[chunkStart:chunkEnd]
+}
+
 func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	outpointsSet := make(map[outpoint]struct{})
 	newNonCoinbaseTransactions := make(map[string]*txWithMetadata)
@@ -48,15 +57,9 @@ func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[
 	for i := 0; i < len(outpoints)/chunkSize+1; i++ {
 		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
 
-		chunkStart := i * chunkSize
-		chunkEnd := (i + 1) * chunkSize
-		if chunkEnd > len(outpoints) {
-			chunkEnd = len(outpoints)
-		}
-		outpointsChunk := outpoints[chunkStart:chunkEnd]
 		dbResult := dbTx.
 			Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-			Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", outpointsChunk).
+			Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", outpointsChunk(outpoints, i)).
 			Preload("Transaction").
 			Find(&dbPreviousTransactionsOutputsChunk)
 		dbErrors := dbResult.GetErrors()
