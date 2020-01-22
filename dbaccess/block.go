@@ -63,3 +63,23 @@ func GetBlocks(order Order, skip uint64, limit uint64, preloadedColumns ...strin
 
 	return blocks, nil
 }
+
+// GetSelectedTip fetches the selected tip from the database
+func GetSelectedTip() (*dbmodels.Block, error) {
+	db, err := database.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	block := &dbmodels.Block{}
+	dbResult := db.Order("blue_score DESC").
+		Where(&dbmodels.Block{IsChainBlock: true}).
+		First(block)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip from the database:", dbErrors)
+	}
+
+	return block, nil
+}
