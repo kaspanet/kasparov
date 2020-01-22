@@ -35,7 +35,7 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 	var selectedTip *dbmodels.Block
 	var isTxInSelectedTip map[uint64]bool
 	if len(nonAcceptedTxIds) != 0 {
-		selectedTip, err = dbaccess.GetSelectedTip()
+		selectedTip, err = dbaccess.SelectedTip()
 		if err != nil {
 			return nil, err
 		}

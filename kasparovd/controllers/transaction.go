@@ -36,7 +36,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 			errors.Errorf("The given txid is not a hex-encoded %d-byte hash.", daghash.TxIDSize))
 	}
 
-	tx, err := dbaccess.GetTransactionByID(txID, txPreloadedColumns...)
+	tx, err := dbaccess.TransactionByID(txID, txPreloadedColumns...)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 			errors.Errorf("The given txhash is not a hex-encoded %d-byte hash.", daghash.HashSize))
 	}
 
-	tx, err := dbaccess.GetTransactionByHash(txHash, txPreloadedColumns...)
+	tx, err := dbaccess.TransactionByHash(txHash, txPreloadedColumns...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 		return nil, err
 	}
 
-	txs, err := dbaccess.GetTransactionsByAddress(address, dbaccess.OrderAscending, skip, limit, txPreloadedColumns...)
+	txs, err := dbaccess.TransactionsByAddress(address, dbaccess.OrderAscending, skip, limit, txPreloadedColumns...)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 
 // GetTransactionsByIDsHandler finds transactions by the given transactionIds.
 func GetTransactionsByIDsHandler(transactionIds []string) ([]*apimodels.TransactionResponse, error) {
-	txs, err := dbaccess.GetTransactionsByIDs(transactionIds, txPreloadedColumns...)
+	txs, err := dbaccess.TransactionsByIDs(transactionIds, txPreloadedColumns...)
 	if err != nil {
 		return nil, err
 	}

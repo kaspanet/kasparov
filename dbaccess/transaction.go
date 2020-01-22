@@ -9,9 +9,9 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
-// GetTransactionByID retrieves a transaction from the database that has the provided ID
+// TransactionByID retrieves a transaction from the database that has the provided ID
 // If preloadedColumns was provided - preloads the requested columns
-func GetTransactionByID(transactionID string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
+func TransactionByID(transactionID string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
@@ -34,9 +34,9 @@ func GetTransactionByID(transactionID string, preloadedColumns ...string) (*dbmo
 	return tx, nil
 }
 
-// GetTransactionByHash retrieves a transaction from the database that has the provided hash
+// TransactionByHash retrieves a transaction from the database that has the provided hash
 // If preloadedColumns was provided - preloads the requested columns
-func GetTransactionByHash(transactionHash string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
+func TransactionByHash(transactionHash string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
@@ -59,10 +59,10 @@ func GetTransactionByHash(transactionHash string, preloadedColumns ...string) (*
 	return tx, nil
 }
 
-// GetTransactionsByAddress retrieves up to `limit` transactions sent to or from `address`,
+// TransactionsByAddress retrieves up to `limit` transactions sent to or from `address`,
 // in the requested `order`, skipping the first `skip` blocks
 // If preloadedColumns was provided - preloads the requested columns
-func GetTransactionsByAddress(address string, order Order, skip uint64, limit uint64, preloadedColumns ...string) (
+func TransactionsByAddress(address string, order Order, skip uint64, limit uint64, preloadedColumns ...string) (
 	[]*dbmodels.Transaction, error) {
 
 	db, err := database.DB()
@@ -92,9 +92,9 @@ func GetTransactionsByAddress(address string, order Order, skip uint64, limit ui
 	return txs, nil
 }
 
-// GetAcceptedTransactionIDsByBlockHash retrieves a list of transaction IDs that were accepted
+// AcceptedTransactionIDsByBlockHash retrieves a list of transaction IDs that were accepted
 // by block with provided hash
-func GetAcceptedTransactionIDsByBlockHash(blockHash string) ([]string, error) {
+func AcceptedTransactionIDsByBlockHash(blockHash string) ([]string, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
@@ -114,9 +114,9 @@ func GetAcceptedTransactionIDsByBlockHash(blockHash string) ([]string, error) {
 	return transactionIDs, nil
 }
 
-// GetTransactionsByIDs retrieves all transactions by their `transactionIDs`.
+// TransactionsByIDs retrieves all transactions by their `transactionIDs`.
 // If preloadedColumns was provided - preloads the requested columns
-func GetTransactionsByIDs(transactionIDs []string, preloadedColumns ...string) ([]*dbmodels.Transaction, error) {
+func TransactionsByIDs(transactionIDs []string, preloadedColumns ...string) ([]*dbmodels.Transaction, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err

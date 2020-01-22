@@ -8,9 +8,9 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
-// GetBlockByHash retrieves a block from the database according to it's hash
+// BlockByHash retrieves a block from the database according to it's hash
 // If preloadedColumns was provided - preloads the requested columns
-func GetBlockByHash(blockHash string, preloadedColumns ...string) (*dbmodels.Block, error) {
+func BlockByHash(blockHash string, preloadedColumns ...string) (*dbmodels.Block, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
@@ -34,9 +34,9 @@ func GetBlockByHash(blockHash string, preloadedColumns ...string) (*dbmodels.Blo
 	return block, nil
 }
 
-// GetBlocks retrieves from the database up to `limit` blocks in the requested `order`, skipping the first `skip` blocks
+// Blocks retrieves from the database up to `limit` blocks in the requested `order`, skipping the first `skip` blocks
 // If preloadedColumns was provided - preloads the requested columns
-func GetBlocks(order Order, skip uint64, limit uint64, preloadedColumns ...string) ([]*dbmodels.Block, error) {
+func Blocks(order Order, skip uint64, limit uint64, preloadedColumns ...string) ([]*dbmodels.Block, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
@@ -64,8 +64,8 @@ func GetBlocks(order Order, skip uint64, limit uint64, preloadedColumns ...strin
 	return blocks, nil
 }
 
-// GetSelectedTip fetches the selected tip from the database
-func GetSelectedTip() (*dbmodels.Block, error) {
+// SelectedTip fetches the selected tip from the database
+func SelectedTip() (*dbmodels.Block, error) {
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
