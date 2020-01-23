@@ -103,7 +103,7 @@ func PublishUnacceptedTransactionsNotifications(removedChainHashes []*daghash.Ha
 		return nil
 	}
 	for _, removedHash := range removedChainHashes {
-		transactionIDs, err := dbaccess.GetAcceptedTransactionIDsByBlockHash(removedHash.String())
+		transactionIDs, err := dbaccess.AcceptedTransactionIDsByBlockHash(removedHash.String())
 		if err != nil {
 			return err
 		}

@@ -3,7 +3,9 @@ package sync
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/kaspanet/kasparov/database"
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/jsonrpc"
@@ -77,27 +79,21 @@ func sync(client *jsonrpc.Client, doneChan chan struct{}) error {
 	}
 }
 
-func stringPointerToString(str *string) string {
-	if str == nil {
-		return "<nil>"
-	}
-	return *str
-}
-
 // syncBlocks attempts to download all DAG blocks starting with
 // the bluest block, and then inserts them into the database.
 func syncBlocks(client *jsonrpc.Client) error {
 	// Start syncing from the bluest block hash. We use blue score to
 	// simulate the "last" block we have because blue-block order is
 	// the order that the node uses in the various JSONRPC calls.
-	startHash, err := findHashOfBluestBlock(false)
+	startBlock, err := dbaccess.BluestBlock()
 	if err != nil {
 		return err
 	}
+	startHash := startBlock.BlockHash
 
 	for {
-		log.Debugf("Calling getBlocks with start hash %v", stringPointerToString(startHash))
-		blocksResult, err := client.GetBlocks(true, true, startHash)
+		log.Debugf("Calling getBlocks with start hash %v", startHash)
+		blocksResult, err := client.GetBlocks(true, true, &startHash)
 		if err != nil {
 			return err
 		}
@@ -105,7 +101,7 @@ func syncBlocks(client *jsonrpc.Client) error {
 			break
 		}
 
-		startHash = &blocksResult.Hashes[len(blocksResult.Hashes)-1]
+		startHash = blocksResult.Hashes[len(blocksResult.Hashes)-1]
 		err = addBlocks(client, blocksResult.RawBlocks, blocksResult.VerboseBlocks)
 		if err != nil {
 			return err
@@ -120,14 +116,15 @@ func syncBlocks(client *jsonrpc.Client) error {
 // database accordingly.
 func syncSelectedParentChain(client *jsonrpc.Client) error {
 	// Start syncing from the selected tip hash
-	startHash, err := findHashOfBluestBlock(true)
+	startBlock, err := dbaccess.SelectedTip()
 	if err != nil {
 		return err
 	}
+	startHash := startBlock.BlockHash
 
 	for {
-		log.Debugf("Calling getChainFromBlock with start hash %s", stringPointerToString(startHash))
-		chainFromBlockResult, err := client.GetChainFromBlock(false, startHash)
+		log.Debugf("Calling getChainFromBlock with start hash %s", startHash)
+		chainFromBlockResult, err := client.GetChainFromBlock(false, &startHash)
 		if err != nil {
 			return err
 		}
@@ -135,7 +132,7 @@ func syncSelectedParentChain(client *jsonrpc.Client) error {
 			break
 		}
 
-		startHash = &chainFromBlockResult.AddedChainBlocks[len(chainFromBlockResult.AddedChainBlocks)-1].Hash
+		startHash = chainFromBlockResult.AddedChainBlocks[len(chainFromBlockResult.AddedChainBlocks)-1].Hash
 		err = updateSelectedParentChain(chainFromBlockResult.RemovedChainBlockHashes,
 			chainFromBlockResult.AddedChainBlocks)
 		if err != nil {
@@ -143,33 +140,6 @@ func syncSelectedParentChain(client *jsonrpc.Client) error {
 		}
 	}
 	return nil
-}
-
-// findHashOfBluestBlock finds the block with the highest
-// blue score in the database. If the database is empty,
-// return nil.
-func findHashOfBluestBlock(mustBeChainBlock bool) (*string, error) {
-	db, err := database.DB()
-	if err != nil {
-		return nil, err
-	}
-
-	var blockHashes []string
-	dbQuery := db.Model(&dbmodels.Block{}).
-		Order("blue_score DESC").
-		Limit(1)
-	if mustBeChainBlock {
-		dbQuery = dbQuery.Where(&dbmodels.Block{IsChainBlock: true})
-	}
-	dbResult := dbQuery.Pluck("block_hash", &blockHashes)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find hash of bluest block: ", dbErrors)
-	}
-	if len(blockHashes) == 0 {
-		return nil, nil
-	}
-	return &blockHashes[0], nil
 }
 
 // fetchBlock downloads the serialized block and raw block data of

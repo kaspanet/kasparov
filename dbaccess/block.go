@@ -83,3 +83,24 @@ func SelectedTip() (*dbmodels.Block, error) {
 
 	return block, nil
 }
+
+// BluestBlock fetches the block with the highest blue score from the database
+// Note this is not necessarily the same as SelectedTip(), since SelectedTip requires
+// the selected-parent-chain to be fully synced
+func BluestBlock() (*dbmodels.Block, error) {
+	db, err := database.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	block := &dbmodels.Block{}
+	dbResult := db.Order("blue_score DESC").
+		First(block)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip from the database:", dbErrors)
+	}
+
+	return block, nil
+}
