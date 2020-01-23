@@ -20,7 +20,8 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		return nil, err
 	}
 
-	transactionOutputs, err := dbaccess.TransactionOutputsByAddress(address, "Transaction.AcceptingBlock", "Transaction.Subnetwork")
+	transactionOutputs, err := dbaccess.TransactionOutputsByAddress(dbaccess.NoTx(), address,
+		"Transaction.AcceptingBlock", "Transaction.Subnetwork")
 	if err != nil {
 		return nil, err
 	}
@@ -35,12 +36,12 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 	var selectedTip *dbmodels.Block
 	var isTxInSelectedTip map[uint64]bool
 	if len(nonAcceptedTxIds) != 0 {
-		selectedTip, err = dbaccess.SelectedTip()
+		selectedTip, err = dbaccess.SelectedTip(dbaccess.NoTx())
 		if err != nil {
 			return nil, err
 		}
 
-		txIDsInSelectedTip, err := dbaccess.TransactionsInBlock(nonAcceptedTxIds, selectedTip.ID)
+		txIDsInSelectedTip, err := dbaccess.TransactionsInBlock(dbaccess.NoTx(), nonAcceptedTxIds, selectedTip.ID)
 		if err != nil {
 			return nil, err
 		}

@@ -3,15 +3,14 @@ package dbaccess
 import (
 	"fmt"
 
-	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // BlockByHash retrieves a block from the database according to it's hash
 // If preloadedColumns was provided - preloads the requested columns
-func BlockByHash(blockHash string, preloadedColumns ...string) (*dbmodels.Block, error) {
-	db, err := database.DB()
+func BlockByHash(ctx Context, blockHash string, preloadedColumns ...string) (*dbmodels.Block, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +35,8 @@ func BlockByHash(blockHash string, preloadedColumns ...string) (*dbmodels.Block,
 
 // Blocks retrieves from the database up to `limit` blocks in the requested `order`, skipping the first `skip` blocks
 // If preloadedColumns was provided - preloads the requested columns
-func Blocks(order Order, skip uint64, limit uint64, preloadedColumns ...string) ([]*dbmodels.Block, error) {
-	db, err := database.DB()
+func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedColumns ...string) ([]*dbmodels.Block, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +64,8 @@ func Blocks(order Order, skip uint64, limit uint64, preloadedColumns ...string) 
 }
 
 // SelectedTip fetches the selected tip from the database
-func SelectedTip() (*dbmodels.Block, error) {
-	db, err := database.DB()
+func SelectedTip(ctx Context) (*dbmodels.Block, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +86,8 @@ func SelectedTip() (*dbmodels.Block, error) {
 // BluestBlock fetches the block with the highest blue score from the database
 // Note this is not necessarily the same as SelectedTip(), since SelectedTip requires
 // the selected-parent-chain to be fully synced
-func BluestBlock() (*dbmodels.Block, error) {
-	db, err := database.DB()
+func BluestBlock(ctx Context) (*dbmodels.Block, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}

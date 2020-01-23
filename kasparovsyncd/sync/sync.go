@@ -85,7 +85,7 @@ func syncBlocks(client *jsonrpc.Client) error {
 	// Start syncing from the bluest block hash. We use blue score to
 	// simulate the "last" block we have because blue-block order is
 	// the order that the node uses in the various JSONRPC calls.
-	startBlock, err := dbaccess.BluestBlock()
+	startBlock, err := dbaccess.BluestBlock(dbaccess.NoTx())
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func syncBlocks(client *jsonrpc.Client) error {
 // database accordingly.
 func syncSelectedParentChain(client *jsonrpc.Client) error {
 	// Start syncing from the selected tip hash
-	startBlock, err := dbaccess.SelectedTip()
+	startBlock, err := dbaccess.SelectedTip(dbaccess.NoTx())
 	if err != nil {
 		return err
 	}

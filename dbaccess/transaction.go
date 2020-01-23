@@ -4,15 +4,14 @@ import (
 	"fmt"
 
 	"github.com/jinzhu/gorm"
-	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // TransactionByID retrieves a transaction from the database that has the provided ID
 // If preloadedColumns was provided - preloads the requested columns
-func TransactionByID(transactionID string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
-	db, err := database.DB()
+func TransactionByID(ctx Context, transactionID string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +35,8 @@ func TransactionByID(transactionID string, preloadedColumns ...string) (*dbmodel
 
 // TransactionByHash retrieves a transaction from the database that has the provided hash
 // If preloadedColumns was provided - preloads the requested columns
-func TransactionByHash(transactionHash string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
-	db, err := database.DB()
+func TransactionByHash(ctx Context, transactionHash string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +61,10 @@ func TransactionByHash(transactionHash string, preloadedColumns ...string) (*dbm
 // TransactionsByAddress retrieves up to `limit` transactions sent to or from `address`,
 // in the requested `order`, skipping the first `skip` blocks
 // If preloadedColumns was provided - preloads the requested columns
-func TransactionsByAddress(address string, order Order, skip uint64, limit uint64, preloadedColumns ...string) (
+func TransactionsByAddress(ctx Context, address string, order Order, skip uint64, limit uint64, preloadedColumns ...string) (
 	[]*dbmodels.Transaction, error) {
 
-	db, err := database.DB()
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +93,8 @@ func TransactionsByAddress(address string, order Order, skip uint64, limit uint6
 
 // AcceptedTransactionIDsByBlockHash retrieves a list of transaction IDs that were accepted
 // by block with provided hash
-func AcceptedTransactionIDsByBlockHash(blockHash string) ([]string, error) {
-	db, err := database.DB()
+func AcceptedTransactionIDsByBlockHash(ctx Context, blockHash string) ([]string, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +115,8 @@ func AcceptedTransactionIDsByBlockHash(blockHash string) ([]string, error) {
 
 // TransactionsByIDs retrieves all transactions by their `transactionIDs`.
 // If preloadedColumns was provided - preloads the requested columns
-func TransactionsByIDs(transactionIDs []string, preloadedColumns ...string) ([]*dbmodels.Transaction, error) {
-	db, err := database.DB()
+func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedColumns ...string) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +139,8 @@ func TransactionsByIDs(transactionIDs []string, preloadedColumns ...string) ([]*
 // TransactionsInBlock checks for every transactionID in transactionIDs if it's in given block.
 // Returns a slice of all transactionIDs that are in this block.
 // Note: this function works with database-ids, not the actual transactionIDs.
-func TransactionsInBlock(transactionIDs []uint64, blockID uint64) ([]uint64, error) {
-	db, err := database.DB()
+func TransactionsInBlock(ctx Context, transactionIDs []uint64, blockID uint64) ([]uint64, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}

@@ -1,15 +1,14 @@
 package dbaccess
 
 import (
-	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // TransactionOutputsByAddress retrieves all transaction outputs incoming to `address`.
 // If preloadedColumns was provided - preloads the requested columns
-func TransactionOutputsByAddress(address string, preloadedColumns ...string) ([]*dbmodels.TransactionOutput, error) {
-	db, err := database.DB()
+func TransactionOutputsByAddress(ctx Context, address string, preloadedColumns ...string) ([]*dbmodels.TransactionOutput, error) {
+	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}

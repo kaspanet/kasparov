@@ -22,7 +22,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 			errors.Errorf("The given block hash is not a hex-encoded %d-byte hash.", daghash.HashSize))
 	}
 
-	block, err := dbaccess.BlockByHash(blockHash, "AcceptingBlock")
+	block, err := dbaccess.BlockByHash(dbaccess.NoTx(), blockHash, "AcceptingBlock")
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{
 		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, err)
 	}
 
-	blocks, err := dbaccess.Blocks(order, skip, limit, "AcceptingBlock")
+	blocks, err := dbaccess.Blocks(dbaccess.NoTx(), order, skip, limit, "AcceptingBlock")
 	if err != nil {
 		return nil, err
 	}
