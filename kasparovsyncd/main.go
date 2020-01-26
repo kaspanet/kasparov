@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kaspanet/kasparov/kasparovsyncd/sync"
 	"os"
 
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
@@ -67,7 +68,7 @@ func main() {
 
 	doneChan := make(chan struct{}, 1)
 	spawn(func() {
-		err := startSync(doneChan)
+		err := sync.StartSync(doneChan)
 		if err != nil {
 			panic(err)
 		}
