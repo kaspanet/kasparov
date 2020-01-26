@@ -97,6 +97,7 @@ func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkI
 			PayloadHash:     verboseTx.PayloadHash,
 			Payload:         payload,
 			Mass:            mass,
+			Version:         verboseTx.Version,
 		}
 	}
 

@@ -59,6 +59,7 @@ type Transaction struct {
 	PayloadHash        string
 	Payload            []byte
 	Mass               uint64
+	Version            int32
 	Blocks             []Block `gorm:"many2many:transactions_to_blocks;"`
 	TransactionOutputs []TransactionOutput
 	TransactionInputs  []TransactionInput

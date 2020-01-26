@@ -100,6 +100,7 @@ func syncBlocks(client *jsonrpc.Client) error {
 		if len(blocksResult.Hashes) == 0 {
 			break
 		}
+		log.Debugf("Got %d blocks", len(blocksResult.Hashes))
 
 		startHash = blocksResult.Hashes[len(blocksResult.Hashes)-1]
 		err = addBlocks(client, blocksResult.RawBlocks, blocksResult.VerboseBlocks)

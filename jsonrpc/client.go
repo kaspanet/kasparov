@@ -1,10 +1,11 @@
 package jsonrpc
 
 import (
-	"github.com/kaspanet/kasparov/config"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"time"
+
+	"github.com/kaspanet/kasparov/config"
+	"github.com/pkg/errors"
 
 	"github.com/kaspanet/kaspad/util/daghash"
 
@@ -70,7 +71,7 @@ func Connect(cfg *config.KasparovFlags) error {
 		User:           cfg.RPCUser,
 		Pass:           cfg.RPCPassword,
 		DisableTLS:     cfg.DisableTLS,
-		RequestTimeout: time.Second * 60,
+		RequestTimeout: time.Minute * 2,
 	}
 
 	if !cfg.DisableTLS {

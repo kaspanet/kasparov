@@ -14,6 +14,7 @@ type TransactionResponse struct {
 	Inputs                  []*TransactionInputResponse  `json:"inputs"`
 	Outputs                 []*TransactionOutputResponse `json:"outputs"`
 	Mass                    uint64                       `json:"mass"`
+	Version                 int32                        `json:"version"`
 }
 
 // TransactionOutputResponse is a json representation of a transaction output
@@ -23,7 +24,7 @@ type TransactionOutputResponse struct {
 	ScriptPubKey            string  `json:"scriptPubKey"`
 	Address                 string  `json:"address,omitempty"`
 	AcceptingBlockHash      *string `json:"acceptingBlockHash,omitempty"`
-	AcceptingBlockBlueScore uint64  `json:"acceptingBlockBlueScore,omitempty"`
+	AcceptingBlockBlueScore *uint64 `json:"acceptingBlockBlueScore,omitempty"`
 	Index                   uint32  `json:"index"`
 	IsCoinbase              *bool   `json:"isCoinbase,omitempty"`
 	IsSpendable             *bool   `json:"isSpendable,omitempty"`

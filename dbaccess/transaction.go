@@ -160,29 +160,6 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedColumns ..
 	return txs, nil
 }
 
-// TransactionsInBlock checks for every transactionID in transactionIDs if it's in given block.
-// Returns a slice of all transactionIDs that are in this block.
-// Note: this function works with database-ids, not the actual transactionIDs.
-func TransactionsInBlock(ctx Context, transactionIDs []uint64, blockID uint64) ([]uint64, error) {
-	db, err := ctx.db()
-	if err != nil {
-		return nil, err
-	}
-
-	transactionIDsInBlock := []uint64{}
-	dbResult := db.Model(&dbmodels.TransactionBlock{}).
-		Where(&dbmodels.TransactionBlock{BlockID: blockID}).
-		Where("`transaction_id` in (?)", transactionIDs).
-		Pluck("`transaction_id`", &transactionIDsInBlock)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading UTXOs from the database:", dbErrors)
-	}
-
-	return transactionIDsInBlock, nil
-}
-
 // UpdateTransactionAcceptingBlockID updates the transaction with given `transactionID` to have given `acceptingBlockID`
 func UpdateTransactionAcceptingBlockID(ctx Context, transactionID uint64, acceptingBlockID *uint64) error {
 	db, err := ctx.db()
