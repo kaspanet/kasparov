@@ -174,11 +174,10 @@ func fetchBlock(client *jsonrpc.Client, blockHash *daghash.Hash) (
 // Note that if this function may take a nil dbTx, in which case it would start
 // a database transaction by itself and commit it before returning.
 func updateSelectedParentChain(removedChainHashes []string, addedChainBlocks []rpcmodel.ChainBlock) error {
-	db, err := database.DB()
+	dbTx, err := dbaccess.NewTx()
 	if err != nil {
 		return err
 	}
-	dbTx := db.Begin()
 	defer dbTx.RollbackUnlessCommitted()
 
 	for _, removedHash := range removedChainHashes {
@@ -205,31 +204,23 @@ func updateSelectedParentChain(removedChainHashes []string, addedChainBlocks []r
 // * All its Transactions are set AcceptingBlockID = nil
 // * The block is set IsChainBlock = false
 // This function will return an error if any of the above are in an unexpected state
-func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
-	var dbBlock dbmodels.Block
-	dbResult := dbTx.
-		Where(&dbmodels.Block{BlockHash: removedHash}).
-		First(&dbBlock)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find block: ", dbErrors)
+func updateRemovedChainHashes(dbTx *dbaccess.TxContext, removedHash string) error {
+	dbBlock, err := dbaccess.BlockByHash(dbTx, removedHash)
+	if err != nil {
+		return err
 	}
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
+	if dbBlock == nil {
 		return errors.Errorf("missing block for hash: %s", removedHash)
 	}
 	if !dbBlock.IsChainBlock {
 		return errors.Errorf("block erroneously marked as not a chain block: %s", removedHash)
 	}
 
-	var dbTransactions []dbmodels.Transaction
-	dbResult = dbTx.
-		Where(&dbmodels.Transaction{AcceptingBlockID: &dbBlock.ID}).
-		Preload("TransactionInputs.PreviousTransactionOutput").
-		Find(&dbTransactions)
-	dbErrors = dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
+	dbTransactions, err := dbaccess.AcceptedTransactionsByBlockID(dbTx, dbBlock.ID, "TransactionInputs.PreviousTransactionOutput")
+	if err != nil {
+		return err
 	}
+
 	for _, dbTransaction := range dbTransactions {
 		for _, dbTransactionInput := range dbTransaction.TransactionInputs {
 			dbPreviousTransactionOutput := dbTransactionInput.PreviousTransactionOutput
@@ -239,22 +230,18 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 					dbTransaction.TransactionID, dbTransactionInput.Index)
 			}
 			dbPreviousTransactionOutput.IsSpent = false
-			dbResult = dbTx.Save(&dbPreviousTransactionOutput)
-			dbErrors = dbResult.GetErrors()
-			if httpserverutils.HasDBError(dbErrors) {
-				return httpserverutils.NewErrorFromDBErrors("failed to update transactionOutput: ", dbErrors)
+
+			err := dbaccess.Save(dbTx, &dbPreviousTransactionOutput)
+			if err != nil {
+				return err
 			}
 		}
 
 		// Don't use Save() here--it updates all fields in dbTransaction
 		dbTransaction.AcceptingBlockID = nil
-		dbResult = dbTx.
-			Model(&dbmodels.Transaction{}).
-			Where("id = ?", dbTransaction.ID).
-			Update("accepting_block_id", nil)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return httpserverutils.NewErrorFromDBErrors("failed to update transaction: ", dbErrors)
+		err := dbaccess.UpdateTransactionAcceptingBlockID(dbTx, dbTransaction.ID, nil)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -287,7 +274,7 @@ func updateRemovedChainHashes(dbTx *gorm.DB, removedHash string) error {
 // * All its Transactions are set AcceptingBlockID = addedBlock
 // * The block is set IsChainBlock = true
 // This function will return an error if any of the above are in an unexpected state
-func updateAddedChainBlocks(dbTx *gorm.DB, addedBlock *rpcmodel.ChainBlock) error {
+func updateAddedChainBlocks(dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) error {
 	var dbAddedBlock dbmodels.Block
 	dbResult := dbTx.
 		Where(&dbmodels.Block{BlockHash: addedBlock.Hash}).

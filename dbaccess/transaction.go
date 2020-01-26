@@ -92,7 +92,7 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 }
 
 // AcceptedTransactionIDsByBlockHash retrieves a list of transaction IDs that were accepted
-// by block with provided hash
+// by block with hash equal to `blockHash`
 func AcceptedTransactionIDsByBlockHash(ctx Context, blockHash string) ([]string, error) {
 	db, err := ctx.db()
 	if err != nil {
@@ -111,6 +111,30 @@ func AcceptedTransactionIDsByBlockHash(ctx Context, blockHash string) ([]string,
 	}
 
 	return transactionIDs, nil
+}
+
+// AcceptedTransactionsByBlockID retrieves a list of transactions that were accepted
+// by block with ID equal to `blockID`
+// If preloadedColumns was provided - preloads the requested columns
+func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedColumns ...string) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return nil, err
+	}
+
+	query := db.Model(&dbmodels.Transaction{}).
+		Where("`transactions`.`accepting_block_id` = ?", blockID)
+	query = preloadColumns(query, preloadedColumns)
+
+	var transactions []*dbmodels.Transaction
+	dbResult := query.Find(&transactions)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("Failed to find transactions: ", dbErrors)
+	}
+
+	return transactions, nil
 }
 
 // TransactionsByIDs retrieves all transactions by their `transactionIDs`.
@@ -157,6 +181,26 @@ func TransactionsInBlock(ctx Context, transactionIDs []uint64, blockID uint64) (
 	}
 
 	return transactionIDsInBlock, nil
+}
+
+// UpdateTransactionAcceptingBlockID updates the transaction with given `transactionID` to have given `acceptingBlockID`
+func UpdateTransactionAcceptingBlockID(ctx Context, transactionID uint64, acceptingBlockID *uint64) error {
+	db, err := ctx.db()
+	if err != nil {
+		return err
+	}
+
+	dbResult := db.
+		Model(&dbmodels.Transaction{}).
+		Where("id = ?", transactionID).
+		Update("accepting_block_id", acceptingBlockID)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return httpserverutils.NewErrorFromDBErrors("Failed to update transaction acceptingBlockID: ", dbErrors)
+	}
+
+	return nil
 }
 
 func joinTxInputsTxOutputsAndAddresses(query *gorm.DB) *gorm.DB {
