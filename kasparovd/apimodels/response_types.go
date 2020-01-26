@@ -23,7 +23,7 @@ type TransactionOutputResponse struct {
 	ScriptPubKey            string  `json:"scriptPubKey"`
 	Address                 string  `json:"address,omitempty"`
 	AcceptingBlockHash      *string `json:"acceptingBlockHash,omitempty"`
-	AcceptingBlockBlueScore uint64  `json:"acceptingBlockBlueScore,omitempty"`
+	AcceptingBlockBlueScore *uint64 `json:"acceptingBlockBlueScore,omitempty"`
 	Index                   uint32  `json:"index"`
 	IsCoinbase              *bool   `json:"isCoinbase,omitempty"`
 	IsSpendable             *bool   `json:"isSpendable,omitempty"`

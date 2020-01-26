@@ -13,7 +13,6 @@ import (
 	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 	"github.com/kaspanet/kasparov/kasparovd/config"
 
-	"github.com/kaspanet/kaspad/blockdag"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
@@ -128,28 +127,6 @@ func fetchSelectedTip() (*dbmodels.Block, error) {
 	return block, nil
 }
 
-func areTxsInBlock(blockID uint64, txIDs []uint64) (map[uint64]bool, error) {
-	db, err := database.DB()
-	if err != nil {
-		return nil, err
-	}
-	transactionBlocks := []*dbmodels.TransactionBlock{}
-	dbErrors := db.
-		Where(&dbmodels.TransactionBlock{BlockID: blockID}).
-		Where("transaction_id in (?)", txIDs).
-		Find(&transactionBlocks).GetErrors()
-
-	if len(dbErrors) > 0 {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading UTXOs from the database:", dbErrors)
-	}
-
-	isInBlock := make(map[uint64]bool)
-	for _, transactionBlock := range transactionBlocks {
-		isInBlock[transactionBlock.TransactionID] = true
-	}
-	return isInBlock, nil
-}
-
 // GetUTXOsByAddressHandler searches for all UTXOs that belong to a certain address.
 func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 	if err := validateAddress(address); err != nil {
@@ -181,18 +158,9 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		}
 	}
 
-	var selectedTip *dbmodels.Block
-	var isTxInSelectedTip map[uint64]bool
-	if len(nonAcceptedTxIds) != 0 {
-		selectedTip, err = fetchSelectedTip()
-		if err != nil {
-			return nil, err
-		}
-
-		isTxInSelectedTip, err = areTxsInBlock(selectedTip.ID, nonAcceptedTxIds)
-		if err != nil {
-			return nil, err
-		}
+	selectedTip, err := fetchSelectedTip()
+	if err != nil {
+		return nil, err
 	}
 
 	activeNetParams := config.ActiveConfig().NetParams()
@@ -206,13 +174,11 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		}
 		var acceptingBlockHash *string
 		var confirmations uint64
-		acceptingBlockBlueScore := blockdag.UnacceptedBlueScore
-		if isTxInSelectedTip[transactionOutput.ID] {
-			confirmations = 1
-		} else if transactionOutput.Transaction.AcceptingBlock != nil {
-			acceptingBlockHash = rpcmodel.String(transactionOutput.Transaction.AcceptingBlock.BlockHash)
-			acceptingBlockBlueScore = transactionOutput.Transaction.AcceptingBlock.BlueScore
-			confirmations = selectedTip.BlueScore - acceptingBlockBlueScore + 2
+		var acceptingBlockBlueScore *uint64
+		if transactionOutput.Transaction.AcceptingBlock != nil {
+			acceptingBlockHash = &transactionOutput.Transaction.AcceptingBlock.BlockHash
+			acceptingBlockBlueScore = &transactionOutput.Transaction.AcceptingBlock.BlueScore
+			confirmations = selectedTip.BlueScore - *acceptingBlockBlueScore + 1
 		}
 		isCoinbase := subnetworkID.IsEqual(subnetworkid.SubnetworkIDCoinbase)
 		UTXOsResponses[i] = &apimodels.TransactionOutputResponse{
@@ -222,8 +188,8 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 			AcceptingBlockHash:      acceptingBlockHash,
 			AcceptingBlockBlueScore: acceptingBlockBlueScore,
 			Index:                   transactionOutput.Index,
-			IsCoinbase:              rpcmodel.Bool(isCoinbase),
-			Confirmations:           rpcmodel.Uint64(confirmations),
+			IsCoinbase:              &isCoinbase,
+			Confirmations:           &confirmations,
 			IsSpendable:             rpcmodel.Bool(!isCoinbase || confirmations >= activeNetParams.BlockCoinbaseMaturity),
 		}
 	}
