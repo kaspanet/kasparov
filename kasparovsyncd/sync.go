@@ -459,6 +459,7 @@ func insertTransaction(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult, dbSubne
 			PayloadHash:     transaction.PayloadHash,
 			Payload:         payload,
 			Mass:            mass,
+			Version:         transaction.Version,
 		}
 		dbResult := dbTx.Create(&dbTransaction)
 		dbErrors := dbResult.GetErrors()
