@@ -6,8 +6,6 @@ import (
 
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
-	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
 
@@ -418,11 +416,6 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, bl
 // a slice that contains all the block hashes that do not exist
 // in the database or in the given blocksExistingInMemory map.
 func missingBlockHashes(blockHashes []string, blocksExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
-	db, err := database.DB()
-	if err != nil {
-		return nil, err
-	}
-
 	// filter out all the hashes that exist in blocksExistingInMemory
 	hashesNotInMemory := make([]string, 0)
 	for _, hash := range blockHashes {
@@ -433,14 +426,9 @@ func missingBlockHashes(blockHashes []string, blocksExistingInMemory map[string]
 
 	// Check which of the hashes in hashesNotInMemory do
 	// not exist in the database.
-	var dbBlocks []dbmodels.Block
-	dbResult := db.
-		Model(&dbmodels.Block{}).
-		Where("block_hash in (?)", hashesNotInMemory).
-		Find(&dbBlocks)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find parent blocks: ", dbErrors)
+	dbBlocks, err := dbaccess.BlocksByHashes(dbaccess.NoTx(), hashesNotInMemory)
+	if err != nil {
+		return nil, err
 	}
 	if len(hashesNotInMemory) != len(dbBlocks) {
 		// Some hashes are missing. Collect and return them
@@ -515,11 +503,6 @@ func handleChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) error {
 // canHandleChainChangedMsg checks whether we have all the necessary data
 // to successfully handle a ChainChangedMsg.
 func canHandleChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (bool, error) {
-	db, err := database.DB()
-	if err != nil {
-		return false, err
-	}
-
 	// Collect all referenced block hashes
 	hashesIn := make([]string, 0, len(chainChanged.AddedChainBlocks)+len(chainChanged.RemovedChainBlockHashes))
 	for _, hash := range chainChanged.RemovedChainBlockHashes {
@@ -529,15 +512,9 @@ func canHandleChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (bool, erro
 		hashesIn = append(hashesIn, block.Hash.String())
 	}
 
-	// Make sure that all the hashes exist in the database
-	var dbBlocks []dbmodels.Block
-	dbResult := db.
-		Model(&dbmodels.Block{}).
-		Where("block_hash in (?)", hashesIn).
-		Find(&dbBlocks)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return false, httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
+	dbBlocks, err := dbaccess.BlocksByHashes(dbaccess.NoTx(), hashesIn)
+	if err != nil {
+		return false, err
 	}
 	if len(hashesIn) != len(dbBlocks) {
 		return false, nil
