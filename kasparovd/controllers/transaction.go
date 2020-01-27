@@ -47,7 +47,22 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transaction from the database:", dbErrors)
 	}
-	return convertTxDBModelToTxResponse(tx), nil
+
+	selectedTipBlueScore, err := fetchSelectedTipBlueScore()
+	if err != nil {
+		return nil, err
+	}
+
+	txResponse := convertTxDBModelToTxResponse(tx)
+	txResponse.Confirmations = rpcmodel.Uint64(txConfirmations(txResponse, selectedTipBlueScore))
+	return txResponse, nil
+}
+
+func txConfirmations(txResponse *apimodels.TransactionResponse, selectedTipBlueScore uint64) uint64 {
+	if txResponse.AcceptingBlockBlueScore == nil {
+		return 0
+	}
+	return selectedTipBlueScore - *txResponse.AcceptingBlockBlueScore + 1
 }
 
 // GetTransactionByHashHandler returns a transaction by a given transaction hash.
@@ -72,7 +87,15 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transaction from the database:", dbErrors)
 	}
-	return convertTxDBModelToTxResponse(tx), nil
+
+	selectedTipBlueScore, err := fetchSelectedTipBlueScore()
+	if err != nil {
+		return nil, err
+	}
+
+	txResponse := convertTxDBModelToTxResponse(tx)
+	txResponse.Confirmations = rpcmodel.Uint64(txConfirmations(txResponse, selectedTipBlueScore))
+	return txResponse, nil
 }
 
 // GetTransactionsByAddressHandler searches for all transactions
@@ -104,27 +127,34 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
 	}
+
+	selectedTipBlueScore, err := fetchSelectedTipBlueScore()
+	if err != nil {
+		return nil, err
+	}
 	txResponses := make([]*apimodels.TransactionResponse, len(txs))
 	for i, tx := range txs {
 		txResponses[i] = convertTxDBModelToTxResponse(tx)
+		txResponses[i].Confirmations = rpcmodel.Uint64(txConfirmations(txResponses[i], selectedTipBlueScore))
 	}
 	return txResponses, nil
 }
 
-func fetchSelectedTip() (*dbmodels.Block, error) {
+func fetchSelectedTipBlueScore() (uint64, error) {
 	db, err := database.DB()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	block := &dbmodels.Block{}
 	dbResult := db.Order("blue_score DESC").
 		Where(&dbmodels.Block{IsChainBlock: true}).
+		Select("blue_score").
 		First(block)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
 	}
-	return block, nil
+	return block.BlueScore, nil
 }
 
 // GetUTXOsByAddressHandler searches for all UTXOs that belong to a certain address.
@@ -158,7 +188,7 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		}
 	}
 
-	selectedTip, err := fetchSelectedTip()
+	selectedTipBlueScore, err := fetchSelectedTipBlueScore()
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +208,7 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		if transactionOutput.Transaction.AcceptingBlock != nil {
 			acceptingBlockHash = &transactionOutput.Transaction.AcceptingBlock.BlockHash
 			acceptingBlockBlueScore = &transactionOutput.Transaction.AcceptingBlock.BlueScore
-			confirmations = selectedTip.BlueScore - *acceptingBlockBlueScore + 1
+			confirmations = selectedTipBlueScore - *acceptingBlockBlueScore + 1
 		}
 		isCoinbase := subnetworkID.IsEqual(subnetworkid.SubnetworkIDCoinbase)
 		UTXOsResponses[i] = &apimodels.TransactionOutputResponse{

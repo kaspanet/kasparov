@@ -15,6 +15,8 @@ type TransactionResponse struct {
 	Outputs                 []*TransactionOutputResponse `json:"outputs"`
 	Mass                    uint64                       `json:"mass"`
 	Version                 int32                        `json:"version"`
+	Raw                     string                       `json:"raw"`
+	Confirmations           *uint64                      `json:"confirmations,omitempty"`
 }
 
 // TransactionOutputResponse is a json representation of a transaction output
