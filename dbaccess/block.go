@@ -3,6 +3,7 @@ package dbaccess
 import (
 	"fmt"
 
+	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
@@ -102,4 +103,85 @@ func BluestBlock(ctx Context) (*dbmodels.Block, error) {
 	}
 
 	return block, nil
+}
+
+// UpdateBlocksAcceptedByAcceptingBlock updates all blocks which are currently accepted by `currentAcceptingBlockID`
+// to be accepted by `newAcceptingBlockID`.
+// `newAcceptingBlockID` can be set nil.
+func UpdateBlocksAcceptedByAcceptingBlock(ctx Context, currentAcceptingBlockID uint64, newAcceptingBlockID *uint64) error {
+	db, err := ctx.db()
+	if err != nil {
+		return err
+	}
+
+	dbResult := db.
+		Model(&dbmodels.Block{}).
+		Where(&dbmodels.Block{AcceptingBlockID: rpcmodel.Uint64(currentAcceptingBlockID)}).
+		Update("accepting_block_id", newAcceptingBlockID)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return httpserverutils.NewErrorFromDBErrors("failed to update blocks: ", dbErrors)
+	}
+
+	return nil
+}
+
+// UpdateBlockAcceptingBlockID updates blocks with `blockID to be accepted by `acceptingBlockID `.
+// `acceptingBlockID` can be set nil.
+func UpdateBlockAcceptingBlockID(ctx Context, blockID uint64, acceptingBlockID *uint64) error {
+	db, err := ctx.db()
+	if err != nil {
+		return err
+	}
+
+	dbResult := db.
+		Model(&dbmodels.Block{}).
+		Where(&dbmodels.Block{ID: blockID}).
+		Update("accepting_block_id", acceptingBlockID)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return httpserverutils.NewErrorFromDBErrors("failed to update blocks: ", dbErrors)
+	}
+
+	return nil
+}
+
+// UpdateBlockIsChainBlock updates the block `blockID` by setting it's is_chain_block column to `isChainBlock`
+func UpdateBlockIsChainBlock(ctx Context, blockID uint64, isChainBlock bool) error {
+	db, err := ctx.db()
+	if err != nil {
+		return err
+	}
+
+	dbResult := db.
+		Model(&dbmodels.Block{}).
+		Where("id = ?", blockID).
+		Update("is_chain_block", isChainBlock)
+	dbErrors := dbResult.GetErrors()
+
+	if httpserverutils.HasDBError(dbErrors) {
+		return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
+	}
+
+	return nil
+}
+
+// DoesBlockExist checks in the database whether a block with `blockHash` exists.
+func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return false, err
+	}
+
+	var blocksCount uint64
+	dbResult := db.
+		Where(&dbmodels.Block{BlockHash: blockHash}).
+		Count(&blocksCount)
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return false, httpserverutils.NewErrorFromDBErrors("failed to find block: ", dbErrors)
+	}
+	return blocksCount > 0, nil
 }

@@ -12,7 +12,7 @@ func Save(ctx Context, value interface{}) error {
 	dbResult := db.Save(value)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to update transactionOutput: ", dbErrors)
+		return httpserverutils.NewErrorFromDBErrors("failed to save object: ", dbErrors)
 	}
 
 	return nil
