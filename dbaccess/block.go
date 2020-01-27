@@ -48,9 +48,6 @@ func BlocksByHashes(ctx Context, hashes []string, preloadedColumns ...string) ([
 	dbResult := query.Find(&blocks)
 
 	dbErrors := dbResult.GetErrors()
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
-		return nil, nil
-	}
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading block from database:",
 			dbResult.GetErrors())
@@ -102,6 +99,9 @@ func SelectedTip(ctx Context) (*dbmodels.Block, error) {
 		First(block)
 
 	dbErrors := dbResult.GetErrors()
+	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
+		return nil, nil
+	}
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip from the database:", dbErrors)
 	}
@@ -123,6 +123,9 @@ func BluestBlock(ctx Context) (*dbmodels.Block, error) {
 		First(block)
 
 	dbErrors := dbResult.GetErrors()
+	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
+		return nil, nil
+	}
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip from the database:", dbErrors)
 	}

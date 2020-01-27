@@ -86,11 +86,14 @@ func syncBlocks(client *jsonrpc.Client) error {
 	if err != nil {
 		return err
 	}
-	startHash := startBlock.BlockHash
+	var startHash *string
+	if startBlock != nil {
+		startHash = &startBlock.BlockHash
+	}
 
 	for {
 		log.Debugf("Calling getBlocks with start hash %v", startHash)
-		blocksResult, err := client.GetBlocks(true, true, &startHash)
+		blocksResult, err := client.GetBlocks(true, true, startHash)
 		if err != nil {
 			return err
 		}
@@ -99,7 +102,7 @@ func syncBlocks(client *jsonrpc.Client) error {
 		}
 		log.Debugf("Got %d blocks", len(blocksResult.Hashes))
 
-		startHash = blocksResult.Hashes[len(blocksResult.Hashes)-1]
+		startHash = &blocksResult.Hashes[len(blocksResult.Hashes)-1]
 		err = addBlocks(client, blocksResult.RawBlocks, blocksResult.VerboseBlocks)
 		if err != nil {
 			return err
