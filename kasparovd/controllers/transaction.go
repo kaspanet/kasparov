@@ -54,15 +54,15 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 	}
 
 	txResponse := convertTxDBModelToTxResponse(tx)
-	txResponse.Confirmations = rpcmodel.Uint64(txConfirmations(txResponse, selectedTipBlueScore))
+	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
 	return txResponse, nil
 }
 
-func txConfirmations(txResponse *apimodels.TransactionResponse, selectedTipBlueScore uint64) uint64 {
-	if txResponse.AcceptingBlockBlueScore == nil {
+func confirmations(acceptingBlueScore *uint64, selectedTipBlueScore uint64) uint64 {
+	if acceptingBlueScore == nil {
 		return 0
 	}
-	return selectedTipBlueScore - *txResponse.AcceptingBlockBlueScore + 1
+	return selectedTipBlueScore - *acceptingBlueScore + 1
 }
 
 // GetTransactionByHashHandler returns a transaction by a given transaction hash.
@@ -94,7 +94,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 	}
 
 	txResponse := convertTxDBModelToTxResponse(tx)
-	txResponse.Confirmations = rpcmodel.Uint64(txConfirmations(txResponse, selectedTipBlueScore))
+	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
 	return txResponse, nil
 }
 
@@ -135,7 +135,7 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 	txResponses := make([]*apimodels.TransactionResponse, len(txs))
 	for i, tx := range txs {
 		txResponses[i] = convertTxDBModelToTxResponse(tx)
-		txResponses[i].Confirmations = rpcmodel.Uint64(txConfirmations(txResponses[i], selectedTipBlueScore))
+		txResponses[i].Confirmations = rpcmodel.Uint64(confirmations(txResponses[i].AcceptingBlockBlueScore, selectedTipBlueScore))
 	}
 	return txResponses, nil
 }
@@ -203,14 +203,13 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 			return nil, errors.Wrap(err, fmt.Sprintf("Couldn't decode subnetwork id %s", transactionOutput.Transaction.Subnetwork.SubnetworkID))
 		}
 		var acceptingBlockHash *string
-		var confirmations uint64
 		var acceptingBlockBlueScore *uint64
 		if transactionOutput.Transaction.AcceptingBlock != nil {
 			acceptingBlockHash = &transactionOutput.Transaction.AcceptingBlock.BlockHash
 			acceptingBlockBlueScore = &transactionOutput.Transaction.AcceptingBlock.BlueScore
-			confirmations = selectedTipBlueScore - *acceptingBlockBlueScore + 1
 		}
 		isCoinbase := subnetworkID.IsEqual(subnetworkid.SubnetworkIDCoinbase)
+		utxoConfirmations := confirmations(acceptingBlockBlueScore, selectedTipBlueScore)
 		UTXOsResponses[i] = &apimodels.TransactionOutputResponse{
 			TransactionID:           transactionOutput.Transaction.TransactionID,
 			Value:                   transactionOutput.Value,
@@ -219,8 +218,8 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 			AcceptingBlockBlueScore: acceptingBlockBlueScore,
 			Index:                   transactionOutput.Index,
 			IsCoinbase:              &isCoinbase,
-			Confirmations:           &confirmations,
-			IsSpendable:             rpcmodel.Bool(!isCoinbase || confirmations >= activeNetParams.BlockCoinbaseMaturity),
+			Confirmations:           &utxoConfirmations,
+			IsSpendable:             rpcmodel.Bool(!isCoinbase || utxoConfirmations >= activeNetParams.BlockCoinbaseMaturity),
 		}
 	}
 	return UTXOsResponses, nil
