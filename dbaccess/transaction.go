@@ -146,7 +146,8 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedColumns ..
 	}
 
 	query := joinTxInputsTxOutputsAndAddresses(db).
-		Where("`transactions`.`transaction_id` IN (?)", transactionIDs)
+		Where("`transactions`.`transaction_id` IN (?)", transactionIDs).
+		Select("DISTINCT `transactions`.*")
 	query = preloadColumns(query, preloadedColumns)
 
 	var txs []*dbmodels.Transaction
