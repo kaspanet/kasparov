@@ -238,6 +238,7 @@ func joinTxInputsTxOutputsAndAddresses(query *gorm.DB) *gorm.DB {
 func addTxPreloadedFields(query *gorm.DB) *gorm.DB {
 	return query.Preload("AcceptingBlock").
 		Preload("Subnetwork").
+		Preload("RawTransaction").
 		Preload("TransactionOutputs").
 		Preload("TransactionOutputs.Address").
 		Preload("TransactionInputs.PreviousTransactionOutput.Transaction").

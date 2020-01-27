@@ -60,7 +60,7 @@ type Transaction struct {
 	Payload            []byte
 	Mass               uint64
 	Version            int32
-	Raw                string
+	RawTransaction     *RawTransaction
 	Blocks             []Block `gorm:"many2many:transactions_to_blocks;"`
 	TransactionOutputs []TransactionOutput
 	TransactionInputs  []TransactionInput
@@ -110,4 +110,11 @@ type TransactionInput struct {
 type Address struct {
 	ID      uint64 `gorm:"primary_key"`
 	Address string
+}
+
+// RawTransaction is the gorm model for the 'raw_transactions' table
+type RawTransaction struct {
+	TransactionID   uint64
+	Transaction     Transaction
+	TransactionData []byte
 }

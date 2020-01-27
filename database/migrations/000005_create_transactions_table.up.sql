@@ -11,7 +11,6 @@ CREATE TABLE `transactions`
     `payload`            BLOB            NOT NULL,
     `mass`               BIGINT          NOT NULL,
     `version`            INT             NOT NULL,
-    `raw`                BLOB            NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE INDEX `idx_transactions_transaction_hash` (`transaction_hash`),
     INDEX `idx_transactions_transaction_id` (`transaction_id`),

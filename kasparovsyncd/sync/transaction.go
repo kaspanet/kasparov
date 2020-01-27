@@ -33,6 +33,26 @@ func transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMeta
 	return transactionIDs
 }
 
+func insertRawTransactions(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+	rawTransactionsToAdd := make([]interface{}, 0)
+	for _, transaction := range transactionIDsToTxsWithMetadata {
+		if !transaction.isNew {
+			continue
+		}
+		verboseTx := transaction.verboseTx
+		txData, err := hex.DecodeString(verboseTx.Hex)
+		if err != nil {
+			return err
+		}
+		rawTransactionsToAdd = append(rawTransactionsToAdd, dbmodels.RawTransaction{
+			TransactionID:   transaction.id,
+			Transaction:     dbmodels.Transaction{},
+			TransactionData: txData,
+		})
+	}
+	return bulkInsert(dbTx, rawTransactionsToAdd)
+}
+
 func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetadata, error) {
 	transactionIDsToTxsWithMetadata := make(map[string]*txWithMetadata)
 	for _, block := range blocks {
@@ -63,8 +83,8 @@ func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkI
 	}
 
 	newTransactions := make([]string, 0)
-	for txID, verboseTx := range transactionIDsToTxsWithMetadata {
-		if verboseTx.id != 0 {
+	for txID, transaction := range transactionIDsToTxsWithMetadata {
+		if transaction.id != 0 {
 			continue
 		}
 		newTransactions = append(newTransactions, txID)
@@ -98,7 +118,6 @@ func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkI
 			Payload:         payload,
 			Mass:            mass,
 			Version:         verboseTx.Version,
-			Raw:             verboseTx.Hex,
 		}
 	}
 

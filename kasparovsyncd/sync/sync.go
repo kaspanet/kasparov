@@ -766,6 +766,11 @@ func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*rawAndVerboseBlock) 
 		return err
 	}
 
+	err = insertRawTransactions(dbTx, transactionIDsToTxsWithMetadata)
+	if err != nil {
+		return err
+	}
+
 	err = insertBlocks(dbTx, blocks, transactionIDsToTxsWithMetadata)
 	if err != nil {
 		return err

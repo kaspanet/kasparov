@@ -37,7 +37,9 @@ func convertTxDBModelToTxResponse(tx *dbmodels.Transaction) *apimodels.Transacti
 		Outputs:         make([]*apimodels.TransactionOutputResponse, len(tx.TransactionOutputs)),
 		Mass:            tx.Mass,
 		Version:         tx.Version,
-		Raw:             tx.Raw,
+	}
+	if tx.RawTransaction != nil {
+		txRes.Raw = hex.EncodeToString(tx.RawTransaction.TransactionData)
 	}
 	if tx.AcceptingBlock != nil {
 		txRes.AcceptingBlockHash = &tx.AcceptingBlock.BlockHash
