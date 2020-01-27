@@ -205,6 +205,7 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 
 	var blocksCount uint64
 	dbResult := db.
+		Model(&dbmodels.Block{}).
 		Where(&dbmodels.Block{BlockHash: blockHash}).
 		Count(&blocksCount)
 	dbErrors := dbResult.GetErrors()
