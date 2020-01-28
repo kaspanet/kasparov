@@ -163,7 +163,7 @@ func getBlocksHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[s
 		return nil, err
 	}
 	order := defaultGetBlocksOrder
-	if orderParamValue, ok := queryParams[queryParamOrder]; ok && orderParamValue != "" {
+	if orderParamValue, ok := queryParams[queryParamOrder]; ok {
 		order = orderParamValue
 	}
 	return controllers.GetBlocksHandler(order, uint64(skip), uint64(limit))
