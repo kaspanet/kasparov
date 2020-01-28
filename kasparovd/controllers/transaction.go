@@ -120,8 +120,8 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 		Or("`in_addresses`.`address` = ?", address).
 		Model(dbmodels.Transaction{})
 
-	var count uint64
-	dbResult := queryForCount.Count(&count)
+	var total uint64
+	dbResult := queryForCount.Count(&total)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting transactions:", dbErrors)
@@ -155,7 +155,7 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 	}
 	return apimodels.PaginatedTransactionsResponse{
 		Transactions: txResponses,
-		Total:        count,
+		Total:        total,
 	}, nil
 }
 
