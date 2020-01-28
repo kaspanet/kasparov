@@ -101,9 +101,9 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 // GetTransactionsByAddressHandler searches for all transactions
 // where the given address is either an input or an output.
 func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) (interface{}, error) {
-	if limit < 1 || limit > maxGetTransactionsLimit {
+	if limit > maxGetTransactionsLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("Limit higher than %d or lower than 1 was requested.", maxGetTransactionsLimit))
+			errors.Errorf("Limit higher than %d was requested.", maxGetTransactionsLimit))
 	}
 
 	if err := validateAddress(address); err != nil {
@@ -116,14 +116,24 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 	}
 
 	txs := []*dbmodels.Transaction{}
-	query := joinTxInputsTxOutputsAndAddresses(db).
+	queryForCount := joinTxInputsTxOutputsAndAddresses(db).
 		Where("`out_addresses`.`address` = ?", address).
 		Or("`in_addresses`.`address` = ?", address).
+		Model(dbmodels.Transaction{})
+
+	var count uint64
+	dbResult := queryForCount.Count(&count)
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting transactions:", dbErrors)
+	}
+
+	query := queryForCount.
 		Limit(limit).
 		Offset(skip).
 		Order("`transactions`.`id` ASC")
-	dbResult := addTxPreloadedFields(query).Find(&txs)
-	dbErrors := dbResult.GetErrors()
+	dbResult = addTxPreloadedFields(query).Find(&txs)
+	dbErrors = dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
 	}
@@ -137,7 +147,10 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 		txResponses[i] = convertTxDBModelToTxResponse(tx)
 		txResponses[i].Confirmations = rpcmodel.Uint64(confirmations(txResponses[i].AcceptingBlockBlueScore, selectedTipBlueScore))
 	}
-	return txResponses, nil
+	return apimodels.PaginatedTransactionsResponse{
+		Transactions: txResponses,
+		Total:        count,
+	}, nil
 }
 
 func fetchSelectedTipBlueScore() (uint64, error) {

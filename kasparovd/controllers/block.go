@@ -55,15 +55,22 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 
 // GetBlocksHandler searches for all blocks
 func GetBlocksHandler(order string, skip uint64, limit uint64) (interface{}, error) {
-	if limit < 1 || limit > maxGetBlocksLimit {
+	if limit > maxGetBlocksLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("Limit higher than %d or lower than 1 was requested.", maxGetBlocksLimit))
+			errors.Errorf("Limit higher than %d was requested.", maxGetBlocksLimit))
 	}
 	blocks := []*dbmodels.Block{}
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
 	}
+	var count uint64
+	dbResult := db.Model(dbmodels.Block{}).Count(&count)
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting blocks:", dbErrors)
+	}
+
 	query := db.
 		Limit(limit).
 		Offset(skip).
@@ -75,12 +82,20 @@ func GetBlocksHandler(order string, skip uint64, limit uint64) (interface{}, err
 	} else {
 		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, errors.Errorf("'%s' is not a valid order", order))
 	}
-	query.Find(&blocks)
+	dbResult = query.Find(&blocks)
+	dbErrors = dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading blocks from the database:", dbErrors)
+	}
+
 	blockResponses := make([]*apimodels.BlockResponse, len(blocks))
 	for i, block := range blocks {
 		blockResponses[i] = convertBlockModelToBlockResponse(block)
 	}
-	return blockResponses, nil
+	return apimodels.PaginatedBlocksResponse{
+		Blocks: blockResponses,
+		Total:  count,
+	}, nil
 }
 
 // GetAcceptedTransactionIDsByBlockHashHandler returns an array of transaction IDs for a given block hash
