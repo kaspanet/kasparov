@@ -41,7 +41,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 		return nil, err
 	}
 	if tx == nil {
-		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given id was found"))
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given txid was found"))
 	}
 
 	return convertTxDBModelToTxResponse(tx), nil
@@ -59,7 +59,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 		return nil, err
 	}
 	if tx == nil {
-		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given hash was found"))
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given txhash was found"))
 	}
 
 	return convertTxDBModelToTxResponse(tx), nil
