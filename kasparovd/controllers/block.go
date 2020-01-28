@@ -59,42 +59,48 @@ func GetBlocksHandler(order string, skip uint64, limit uint64) (interface{}, err
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
 			errors.Errorf("Limit higher than %d was requested.", maxGetBlocksLimit))
 	}
-	blocks := []*dbmodels.Block{}
 	db, err := database.DB()
 	if err != nil {
 		return nil, err
 	}
-	var count uint64
-	dbResult := db.Model(dbmodels.Block{}).Count(&count)
+	var total uint64
+	dbResult := db.Model(dbmodels.Block{}).Count(&total)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting blocks:", dbErrors)
 	}
 
-	query := db.
-		Limit(limit).
-		Offset(skip).
-		Preload("AcceptingBlock")
-	if order == OrderAscending {
-		query = query.Order("`id` ASC")
-	} else if order == OrderDescending {
-		query = query.Order("`id` DESC")
-	} else {
-		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, errors.Errorf("'%s' is not a valid order", order))
-	}
-	dbResult = query.Find(&blocks)
-	dbErrors = dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading blocks from the database:", dbErrors)
+	var blockResponses []*apimodels.BlockResponse
+	// limit can be set to 0, if the user is interested
+	// only on the `total` field.
+	if limit > 0 {
+		blocks := []*dbmodels.Block{}
+		query := db.
+			Limit(limit).
+			Offset(skip).
+			Preload("AcceptingBlock")
+		if order == OrderAscending {
+			query = query.Order("`id` ASC")
+		} else if order == OrderDescending {
+			query = query.Order("`id` DESC")
+		} else {
+			return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, errors.Errorf("'%s' is not a valid order", order))
+		}
+		dbResult = query.Find(&blocks)
+		dbErrors = dbResult.GetErrors()
+		if httpserverutils.HasDBError(dbErrors) {
+			return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading blocks from the database:", dbErrors)
+		}
+
+		blockResponses = make([]*apimodels.BlockResponse, len(blocks))
+		for i, block := range blocks {
+			blockResponses[i] = convertBlockModelToBlockResponse(block)
+		}
 	}
 
-	blockResponses := make([]*apimodels.BlockResponse, len(blocks))
-	for i, block := range blocks {
-		blockResponses[i] = convertBlockModelToBlockResponse(block)
-	}
 	return apimodels.PaginatedBlocksResponse{
 		Blocks: blockResponses,
-		Total:  count,
+		Total:  total,
 	}, nil
 }
 
