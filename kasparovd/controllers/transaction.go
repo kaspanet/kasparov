@@ -101,9 +101,9 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 // GetTransactionsByAddressHandler searches for all transactions
 // where the given address is either an input or an output.
 func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) (interface{}, error) {
-	if limit < 1 || limit > maxGetTransactionsLimit {
+	if limit > maxGetTransactionsLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("Limit higher than %d or lower than 1 was requested.", maxGetTransactionsLimit))
+			errors.Errorf("Limit higher than %d was requested.", maxGetTransactionsLimit))
 	}
 
 	if err := validateAddress(address); err != nil {
@@ -115,29 +115,48 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 		return nil, err
 	}
 
-	txs := []*dbmodels.Transaction{}
-	query := joinTxInputsTxOutputsAndAddresses(db).
+	queryForCount := joinTxInputsTxOutputsAndAddresses(db).
 		Where("`out_addresses`.`address` = ?", address).
 		Or("`in_addresses`.`address` = ?", address).
-		Limit(limit).
-		Offset(skip).
-		Order("`transactions`.`id` ASC")
-	dbResult := addTxPreloadedFields(query).Find(&txs)
+		Model(dbmodels.Transaction{})
+
+	var total uint64
+	dbResult := queryForCount.Count(&total)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting transactions:", dbErrors)
 	}
 
-	selectedTipBlueScore, err := fetchSelectedTipBlueScore()
-	if err != nil {
-		return nil, err
+	var txResponses []*apimodels.TransactionResponse
+	// limit can be set to 0, if the user is interested
+	// only on the `total` field.
+	if limit > 0 {
+		txs := []*dbmodels.Transaction{}
+		query := queryForCount.
+			Limit(limit).
+			Offset(skip).
+			Order("`transactions`.`id` ASC")
+		dbResult = addTxPreloadedFields(query).Find(&txs)
+		dbErrors = dbResult.GetErrors()
+		if httpserverutils.HasDBError(dbErrors) {
+			return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+		}
+
+		selectedTipBlueScore, err := fetchSelectedTipBlueScore()
+		if err != nil {
+			return nil, err
+		}
+
+		txResponses = make([]*apimodels.TransactionResponse, len(txs))
+		for i, tx := range txs {
+			txResponses[i] = convertTxDBModelToTxResponse(tx)
+			txResponses[i].Confirmations = rpcmodel.Uint64(confirmations(txResponses[i].AcceptingBlockBlueScore, selectedTipBlueScore))
+		}
 	}
-	txResponses := make([]*apimodels.TransactionResponse, len(txs))
-	for i, tx := range txs {
-		txResponses[i] = convertTxDBModelToTxResponse(tx)
-		txResponses[i].Confirmations = rpcmodel.Uint64(confirmations(txResponses[i].AcceptingBlockBlueScore, selectedTipBlueScore))
-	}
-	return txResponses, nil
+	return apimodels.PaginatedTransactionsResponse{
+		Transactions: txResponses,
+		Total:        total,
+	}, nil
 }
 
 func fetchSelectedTipBlueScore() (uint64, error) {
