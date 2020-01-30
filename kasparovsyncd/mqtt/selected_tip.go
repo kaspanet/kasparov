@@ -2,7 +2,9 @@ package mqtt
 
 import "github.com/kaspanet/kasparov/kasparovd/controllers"
 
-const selectedTipTopic = "dag/selected-tip"
+const (
+	SelectedTipTopic = "dag/selected-tip"
+)
 
 // PublishSelectedTipNotification publishes notification for a new selected tip
 func PublishSelectedTipNotification(selectedTipHash string) error {
@@ -13,5 +15,5 @@ func PublishSelectedTipNotification(selectedTipHash string) error {
 	if err != nil {
 		return err
 	}
-	return publish(selectedTipTopic, block)
+	return publish(SelectedTipTopic, block)
 }

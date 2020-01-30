@@ -9,6 +9,12 @@ import (
 	"path"
 )
 
+const (
+	TransactionsTopic           = "transactions"
+	AcceptedTransactionsTopic   = "transactions/accepted"
+	UnacceptedTransactionsTopic = "transactions/unaccepted"
+)
+
 // PublishTransactionsNotifications publishes notification for each transaction of the given block
 func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) error {
 	if !isConnected() {
@@ -26,7 +32,7 @@ func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) er
 	}
 
 	for _, transaction := range transactions {
-		err = publishTransactionNotifications(transaction, "transactions")
+		err = publishTransactionNotifications(transaction, TransactionsTopic)
 		if err != nil {
 			return err
 		}
@@ -85,7 +91,7 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []*rpcclient.Chai
 			}
 
 			for _, transaction := range transactions {
-				err = publishTransactionNotifications(transaction, "transactions/accepted")
+				err = publishTransactionNotifications(transaction, AcceptedTransactionsTopic)
 				if err != nil {
 					return err
 				}
@@ -112,7 +118,7 @@ func PublishUnacceptedTransactionsNotifications(removedChainHashes []*daghash.Ha
 		}
 
 		for _, transaction := range transactions {
-			err = publishTransactionNotifications(transaction, "transactions/unaccepted")
+			err = publishTransactionNotifications(transaction, UnacceptedTransactionsTopic)
 			if err != nil {
 				return err
 			}
