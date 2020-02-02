@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jinzhu/gorm v1.9.11
-	github.com/kaspanet/kaspad v0.1.1-dev
+	github.com/kaspanet/kaspad v0.1.2
 	github.com/pkg/errors v0.9.1
 	github.com/t-tiger/gorm-bulk-insert v1.2.0
 )
