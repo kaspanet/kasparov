@@ -3,6 +3,7 @@ package mqtt
 import "github.com/kaspanet/kasparov/kasparovd/controllers"
 
 const (
+	// SelectedTipTopic is an MQTT topic for DAG selected tips
 	SelectedTipTopic = "dag/selected-tip"
 )
 

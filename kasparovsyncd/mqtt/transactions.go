@@ -10,8 +10,13 @@ import (
 )
 
 const (
-	TransactionsTopic           = "transactions"
-	AcceptedTransactionsTopic   = "transactions/accepted"
+	// TransactionsTopic is an MQTT topic for transactions
+	TransactionsTopic = "transactions"
+
+	// AcceptedTransactionsTopic is an MQTT topic for accepted transactions
+	AcceptedTransactionsTopic = "transactions/accepted"
+
+	// UnacceptedTransactionsTopic is an MQTT topic for unaccepted transactions
 	UnacceptedTransactionsTopic = "transactions/unaccepted"
 )
 
