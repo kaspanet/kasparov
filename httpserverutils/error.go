@@ -83,8 +83,7 @@ func (err *ClientError) Error() string {
 // to the http client.
 func SendErr(ctx *ServerContext, w http.ResponseWriter, err error) {
 	var hErr *HandlerError
-	var ok bool
-	if hErr, ok = err.(*HandlerError); !ok {
+	if ok := errors.As(err, &hErr); !ok {
 		hErr = NewInternalServerHandlerError(err).(*HandlerError)
 	}
 	ctx.Warnf("got error: %s", err)
