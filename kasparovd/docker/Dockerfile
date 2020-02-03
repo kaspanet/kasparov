@@ -15,7 +15,10 @@ COPY go.sum .
 # we should use the one in github
 RUN go mod edit -dropreplace github.com/kaspanet/kaspad
 ARG KASPAD_VERSION
-RUN if [ -n "${KASPAD_VERSION}" ]; then go mod edit -require github.com/kaspanet/kaspad@$KASPAD_VERSION; fi
+RUN if [ -n "${KASPAD_VERSION}" ]; then \
+        # use replace instead of require - to propagate into nested dependancies
+        go mod edit -replace github.com/kaspanet/kaspad=github.com/kaspanet/kaspad@$KASPAD_VERSION ;\
+    fi
 RUN cp go.mod go.mod.bu
 
 RUN go mod download
@@ -29,7 +32,7 @@ RUN mv go.mod.bu go.mod
 RUN GOFMT_RESULT=`go fmt ./...`; echo $GOFMT_RESULT; test -z "$GOFMT_RESULT"
 RUN go vet ./...
 RUN golint -set_exit_status ./...
-RUN go test -gcflags='-l' ./...
+RUN go test ./...
 
 RUN cd kasparovd && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kasparovd .
 

@@ -15,6 +15,8 @@ type TransactionResponse struct {
 	Outputs                 []*TransactionOutputResponse `json:"outputs"`
 	Mass                    uint64                       `json:"mass"`
 	Version                 int32                        `json:"version"`
+	Raw                     string                       `json:"raw"`
+	Confirmations           *uint64                      `json:"confirmations,omitempty"`
 }
 
 // TransactionOutputResponse is a json representation of a transaction output
@@ -62,4 +64,16 @@ type FeeEstimateResponse struct {
 	HighPriority   float64 `json:"highPriority"`
 	NormalPriority float64 `json:"normalPriority"`
 	LowPriority    float64 `json:"lowPriority"`
+}
+
+// PaginatedTransactionsResponse is a json representation of a paginated transactions response
+type PaginatedTransactionsResponse struct {
+	Transactions []*TransactionResponse `json:"transactions"`
+	Total        uint64                 `json:"total"`
+}
+
+// PaginatedBlocksResponse is a json representation of a paginated blocks response
+type PaginatedBlocksResponse struct {
+	Blocks []*BlockResponse `json:"blocks"`
+	Total  uint64           `json:"total"`
 }

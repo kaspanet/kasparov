@@ -37,7 +37,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{}, error) {
 	if limit < 1 || limit > maxGetBlocksLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("Limit higher than %d or lower than 1 was requested.", maxGetBlocksLimit))
+			errors.Errorf("Limit higher than %d was requested.", maxGetBlocksLimit))
 	}
 
 	order, err := dbaccess.StringToOrder(orderString)
@@ -54,5 +54,14 @@ func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{
 	for i, block := range blocks {
 		blockResponses[i] = convertBlockModelToBlockResponse(block)
 	}
-	return blockResponses, nil
+
+	total, err := dbaccess.BlocksCount()
+	if err != nil {
+		return nil, err
+	}
+
+	return apimodels.PaginatedBlocksResponse{
+		Blocks: blockResponses,
+		Total:  total,
+	}, nil
 }

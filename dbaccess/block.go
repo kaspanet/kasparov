@@ -214,3 +214,20 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 	}
 	return blocksCount > 0, nil
 }
+
+// BlocksCount returns the total number of blocks stored in the database
+func BlocksCount(ctx Context, blockHash string) (uint64, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return 0, err
+	}
+
+	var total uint64
+	dbResult := db.Model(dbmodels.Block{}).Count(&total)
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting blocks:", dbErrors)
+	}
+
+	return total, nil
+}

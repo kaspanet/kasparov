@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/jsonrpc"
-	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
@@ -44,7 +44,14 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given txid was found"))
 	}
 
-	return convertTxDBModelToTxResponse(tx), nil
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	txResponse := apimodels.ConvertTxDBModelToTxResponse(tx)
+	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
+	return txResponse, nil
 }
 
 // GetTransactionByHashHandler returns a transaction by a given transaction hash.
@@ -62,15 +69,22 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given txhash was found"))
 	}
 
-	return convertTxDBModelToTxResponse(tx), nil
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	txResponse := apimodels.ConvertTxDBModelToTxResponse(tx)
+	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
+	return txResponse, nil
 }
 
 // GetTransactionsByAddressHandler searches for all transactions
 // where the given address is either an input or an output.
 func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) (interface{}, error) {
-	if limit < 1 || limit > maxGetTransactionsLimit {
+	if limit > maxGetTransactionsLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("Limit higher than %d or lower than 1 was requested.", maxGetTransactionsLimit))
+			errors.Errorf("Limit higher than %d was requested.", maxGetTransactionsLimit))
 	}
 
 	if err := validateAddress(address); err != nil {
@@ -84,23 +98,18 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 
 	txResponses := make([]*apimodels.TransactionResponse, len(txs))
 	for i, tx := range txs {
-		txResponses[i] = convertTxDBModelToTxResponse(tx)
+		txResponses[i] = apimodels.ConvertTxDBModelToTxResponse(tx)
 	}
-	return txResponses, nil
-}
 
-// GetTransactionsByIDsHandler finds transactions by the given transactionIds.
-func GetTransactionsByIDsHandler(transactionIds []string) ([]*apimodels.TransactionResponse, error) {
-	txs, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIds, txPreloadedColumns...)
+	total, err := dbaccess.TransactionsByAddressCount(dbaccess.NoTx(), address)
 	if err != nil {
 		return nil, err
 	}
 
-	txResponses := make([]*apimodels.TransactionResponse, len(txs))
-	for i, tx := range txs {
-		txResponses[i] = convertTxDBModelToTxResponse(tx)
-	}
-	return txResponses, nil
+	return apimodels.PaginatedTransactionsResponse{
+		Transactions: txResponses,
+		Total:        total,
+	}, nil
 }
 
 // PostTransaction forwards a raw transaction to the JSON-RPC API server
