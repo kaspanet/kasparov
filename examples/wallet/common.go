@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/kaspanet/kasparov/kasparovd/apimodels"
+	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/pkg/errors"
 )
 

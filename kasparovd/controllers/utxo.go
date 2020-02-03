@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/kaspanet/kaspad/util/subnetworkid"
+	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
-	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 	"github.com/kaspanet/kasparov/kasparovd/config"
 	"github.com/pkg/errors"
 )
@@ -30,7 +30,7 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		}
 	}
 
-	selectedTip, err := dbaccess.SelectedTip(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
 	if err != nil {
 		return nil, err
 	}
@@ -43,16 +43,16 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("Couldn't decode subnetwork id %s", transactionOutput.Transaction.Subnetwork.SubnetworkID))
 		}
-		var acceptingBlockBlueScore *uint64
 		var acceptingBlockHash *string
-		var confirmations uint64
+		var acceptingBlockBlueScore *uint64
 		if transactionOutput.Transaction.AcceptingBlock != nil {
 			acceptingBlockHash = &transactionOutput.Transaction.AcceptingBlock.BlockHash
 			acceptingBlockBlueScore = &transactionOutput.Transaction.AcceptingBlock.BlueScore
-			confirmations = selectedTip.BlueScore - *acceptingBlockBlueScore + 1
 		}
 		isCoinbase := subnetworkID.IsEqual(subnetworkid.SubnetworkIDCoinbase)
-		isSpendable := confirmations > 0 && (!isCoinbase || confirmations >= activeNetParams.BlockCoinbaseMaturity)
+		utxoConfirmations := confirmations(acceptingBlockBlueScore, selectedTipBlueScore)
+		isSpendable := utxoConfirmations > 0 && (!isCoinbase || utxoConfirmations >= activeNetParams.BlockCoinbaseMaturity)
+
 		UTXOsResponses[i] = &apimodels.TransactionOutputResponse{
 			TransactionID:           transactionOutput.Transaction.TransactionID,
 			Value:                   transactionOutput.Value,
@@ -61,7 +61,7 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 			AcceptingBlockBlueScore: acceptingBlockBlueScore,
 			Index:                   transactionOutput.Index,
 			IsCoinbase:              &isCoinbase,
-			Confirmations:           &confirmations,
+			Confirmations:           &utxoConfirmations,
 			IsSpendable:             &isSpendable,
 		}
 	}

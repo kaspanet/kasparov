@@ -91,6 +91,27 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 	return txs, nil
 }
 
+// TransactionsByAddressCount returns the total number of transactions sent to or from `address`
+func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return 0, err
+	}
+
+	var count uint64
+	dbResult := joinTxInputsTxOutputsAndAddresses(db).
+		Where("`out_addresses`.`address` = ?", address).
+		Or("`in_addresses`.`address` = ?", address).
+		Count(&count)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+	}
+
+	return count, nil
+}
+
 // AcceptedTransactionIDsByBlockHash retrieves a list of transaction IDs that were accepted
 // by block with hash equal to `blockHash`
 func AcceptedTransactionIDsByBlockHash(ctx Context, blockHash string) ([]string, error) {

@@ -216,18 +216,39 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 }
 
 // BlocksCount returns the total number of blocks stored in the database
-func BlocksCount(ctx Context, blockHash string) (uint64, error) {
+func BlocksCount(ctx Context) (uint64, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return 0, err
 	}
 
-	var total uint64
-	dbResult := db.Model(dbmodels.Block{}).Count(&total)
+	var count uint64
+	dbResult := db.Model(dbmodels.Block{}).Count(&count)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting blocks:", dbErrors)
 	}
 
-	return total, nil
+	return count, nil
+}
+
+// SelectedTipBlueScore returns the blue score of the selected tip
+func SelectedTipBlueScore(ctx Context) (uint64, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return 0, err
+	}
+
+	var blueScore uint64
+	dbResult := db.Model(&dbmodels.Block{}).
+		Order("blue_score DESC").
+		Where(&dbmodels.Block{IsChainBlock: true}).
+		Pluck("blue_score", &blueScore)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+	}
+
+	return blueScore, nil
 }

@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"net/http"
 
+	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
-	"github.com/kaspanet/kasparov/kasparovd/apimodels"
 
 	"github.com/pkg/errors"
 
@@ -30,7 +30,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No block with the given block hash was found"))
 	}
 
-	return convertBlockModelToBlockResponse(block), nil
+	return apimodels.ConvertBlockModelToBlockResponse(block), nil
 }
 
 // GetBlocksHandler searches for all blocks
@@ -52,10 +52,10 @@ func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{
 
 	blockResponses := make([]*apimodels.BlockResponse, len(blocks))
 	for i, block := range blocks {
-		blockResponses[i] = convertBlockModelToBlockResponse(block)
+		blockResponses[i] = apimodels.ConvertBlockModelToBlockResponse(block)
 	}
 
-	total, err := dbaccess.BlocksCount()
+	total, err := dbaccess.BlocksCount(dbaccess.NoTx())
 	if err != nil {
 		return nil, err
 	}
