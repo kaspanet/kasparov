@@ -3,13 +3,12 @@ package database
 import (
 	nativeerrors "errors"
 	"fmt"
-	"os"
-
-	"github.com/kaspanet/kasparov/config"
-	"github.com/pkg/errors"
-
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/jinzhu/gorm"
+	"github.com/kaspanet/kasparov/config"
+	"github.com/kaspanet/kasparov/httpserverutils"
+	"github.com/pkg/errors"
+	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 )
@@ -53,8 +52,21 @@ func Connect(cfg *config.KasparovFlags) error {
 	if err != nil {
 		return err
 	}
-
 	db.SetLogger(gormLogger{})
+
+	return validateTimeZone(db)
+}
+
+func validateTimeZone(db *gorm.DB) error {
+	var isZeroDiff []uint
+	dbResult := db.Raw("SELECT TIMEDIFF(NOW(), UTC_TIMESTAMP)='00:00:00' AS is_zero_diff").Pluck("is_zero_diff", &isZeroDiff)
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return httpserverutils.NewErrorFromDBErrors("Some errors were encountered when checking the database timezone:", dbErrors)
+	}
+	if isZeroDiff[0] == 1 {
+		return errors.Errorf("timezone is not set to UTC")
+	}
 	return nil
 }
 
