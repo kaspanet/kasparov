@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 
-	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
@@ -616,11 +615,10 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 // bulkInsertBlocksData inserts the given blocks and their data (transactions
 // and new subnetworks data) to the database in chunks.
 func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*rawAndVerboseBlock) error {
-	db, err := database.DB()
+	dbTx, err := dbaccess.NewTx()
 	if err != nil {
 		return err
 	}
-	dbTx := db.Begin()
 	defer dbTx.RollbackUnlessCommitted()
 
 	subnetworkIDToID, err := insertSubnetworks(dbTx, client, blocks)

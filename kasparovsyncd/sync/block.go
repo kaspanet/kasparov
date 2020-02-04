@@ -1,16 +1,16 @@
 package sync
 
 import (
-	"github.com/jinzhu/gorm"
-	"github.com/kaspanet/kaspad/rpcmodel"
-	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
-	"github.com/pkg/errors"
 	"strconv"
 	"time"
+
+	"github.com/kaspanet/kaspad/rpcmodel"
+	"github.com/kaspanet/kasparov/dbaccess"
+	"github.com/kaspanet/kasparov/dbmodels"
+	"github.com/pkg/errors"
 )
 
-func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockMass := uint64(0)
@@ -23,10 +23,10 @@ func insertBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, transactionIDsToT
 			return err
 		}
 	}
-	return bulkInsert(dbTx, blocksToAdd)
+	return dbaccess.BulkInsert(dbTx, blocksToAdd)
 }
 
-func getBlocksAndParentIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
+func getBlocksAndParentIDs(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
 	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
 		blockSet[block.hash()] = struct{}{}
@@ -36,13 +36,10 @@ func getBlocksAndParentIDs(dbTx *gorm.DB, blocks []*rawAndVerboseBlock) (map[str
 	}
 
 	blockHashes := stringsSetToSlice(blockSet)
-	var dbBlocks []*dbmodels.Block
-	dbResult := dbTx.
-		Where("block_hash in (?)", blockHashes).
-		Find(&dbBlocks)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find blocks: ", dbErrors)
+
+	dbBlocks, err := dbaccess.BlocksByHashes(dbTx, blockHashes)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(dbBlocks) != len(blockSet) {
