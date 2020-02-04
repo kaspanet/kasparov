@@ -28,30 +28,32 @@ func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMe
 
 		newNonCoinbaseTransactions[transactionID] = transaction
 		inputsCount += len(transaction.verboseTx.Vin)
-		for _, txIn := range transaction.verboseTx.Vin {
-			outpointsSet[dbaccess.Outpoint{
+		for i := range transaction.verboseTx.Vin {
+			txIn := transaction.verboseTx.Vin[i]
+			outpoint := dbaccess.Outpoint{
 				TransactionID: txIn.TxID,
 				Index:         txIn.Vout,
-			}] = struct{}{}
+			}
+			outpointsSet[outpoint] = struct{}{}
 		}
 	}
 
 	if inputsCount == 0 {
 		return nil
 	}
-	// ~~~~~~~~~~~~~ Begin here
 	outpoints := make([]*dbaccess.Outpoint, 0, len(outpointsSet))
 	for outpoint := range outpointsSet {
-		outpoints = append(outpoints, &outpoint)
+		outpointCopy := outpoint // since outpoint is a value type - copy it, othewise it would be overwritten
+		outpoints = append(outpoints, &outpointCopy)
 	}
-	// ~~~~~~~~~~~~~ START
+
 	dbPreviousTransactionsOutputs, err := dbaccess.TransactionOutputsByOutpoints(dbTx, outpoints)
 	if err != nil {
 		return err
 	}
-	// ~~~~~~~~~~~~~~~~ END
 
 	if len(dbPreviousTransactionsOutputs) != len(outpoints) {
+		log.Infof("len(dbPreviousTransactionsOutputs): %d,  len(outpoints): %d", len(dbPreviousTransactionsOutputs), len(outpoints))
 		return errors.New("couldn't fetch all of the requested outpoints")
 	}
 

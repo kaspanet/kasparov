@@ -14,7 +14,7 @@ func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedCo
 	}
 
 	query := db.
-		Where("`addresss`.`address` IN (?)", addressStrings)
+		Where("`addresses`.`address` IN (?)", addressStrings)
 	query = preloadColumns(query, preloadedColumns)
 
 	var addresses []*dbmodels.Address
@@ -22,7 +22,7 @@ func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedCo
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading addresss from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading addresses from the database:", dbErrors)
 	}
 
 	return addresses, nil

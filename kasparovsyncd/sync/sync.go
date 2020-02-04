@@ -91,7 +91,11 @@ func syncBlocks(client *jsonrpc.Client) error {
 	}
 
 	for {
-		log.Debugf("Calling getBlocks with start hash %v", startHash)
+		if startHash != nil {
+			log.Debugf("Calling getBlocks with start hash %s", *startHash)
+		} else {
+			log.Debugf("Calling getBlocks with no start hash")
+		}
 		blocksResult, err := client.GetBlocks(true, true, startHash)
 		if err != nil {
 			return err

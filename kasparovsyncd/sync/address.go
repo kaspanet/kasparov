@@ -51,7 +51,7 @@ func insertAddresses(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata m
 		return nil, err
 	}
 
-	dbNewAddresses, err := dbaccess.AddressesByAddressStrings(dbTx, addresses)
+	dbNewAddresses, err := dbaccess.AddressesByAddressStrings(dbTx, newAddresses)
 	if err != nil {
 		return nil, err
 	}

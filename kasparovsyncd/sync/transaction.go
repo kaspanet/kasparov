@@ -79,16 +79,16 @@ func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, 
 		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].mass = dbTransaction.Mass
 	}
 
-	newTransactions := make([]string, 0)
+	newTransactionIDs := make([]string, 0)
 	for txID, transaction := range transactionIDsToTxsWithMetadata {
 		if transaction.id != 0 {
 			continue
 		}
-		newTransactions = append(newTransactions, txID)
+		newTransactionIDs = append(newTransactionIDs, txID)
 	}
 
-	transactionsToAdd := make([]interface{}, len(newTransactions))
-	for i, id := range newTransactions {
+	transactionsToAdd := make([]interface{}, len(newTransactionIDs))
+	for i, id := range newTransactionIDs {
 		verboseTx := transactionIDsToTxsWithMetadata[id].verboseTx
 		mass, err := calcTxMass(dbTx, verboseTx)
 		if err != nil {
@@ -123,12 +123,12 @@ func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, 
 		return nil, err
 	}
 
-	dbNewTransactions, err := dbaccess.TransactionsByIDs(dbTx, transactionIDs)
+	dbNewTransactions, err := dbaccess.TransactionsByIDs(dbTx, newTransactionIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(dbNewTransactions) != len(newTransactions) {
+	if len(dbNewTransactions) != len(newTransactionIDs) {
 		return nil, errors.New("couldn't add all new transactions")
 	}
 
@@ -146,7 +146,6 @@ func calcTxMass(dbTx *dbaccess.TxContext, transaction *rpcmodel.TxRawResult) (ui
 		return 0, err
 	}
 
-	// ~~~~~~~~~~~~~~ FIX
 	outpoints := make([]*dbaccess.Outpoint, 0, len(transaction.Vin))
 	for _, txIn := range transaction.Vin {
 		outpoints = append(outpoints, &dbaccess.Outpoint{
