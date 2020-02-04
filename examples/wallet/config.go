@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/pkg/errors"
 	"os"
 
 	"github.com/jessevdk/go-flags"
@@ -46,7 +47,8 @@ func parseCommandLine() (subCommand string, config interface{}) {
 	_, err := parser.Parse()
 
 	if err != nil {
-		if err, ok := err.(*flags.Error); ok && err.Type == flags.ErrHelp {
+		var flagsErr *flags.Error
+		if ok := errors.As(err, &flagsErr); ok && flagsErr.Type == flags.ErrHelp {
 			os.Exit(0)
 		} else {
 			os.Exit(1)

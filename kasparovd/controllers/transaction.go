@@ -145,12 +145,10 @@ func PostTransaction(requestBody []byte) error {
 
 	_, err = client.SendRawTransaction(tx, true)
 	if err != nil {
-		switch err := errors.Cause(err).(type) {
-		case *rpcmodel.RPCError:
+		if rpcErr := &(rpcmodel.RPCError{}); errors.As(err, &rpcErr) {
 			return httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, err)
-		default:
-			return err
 		}
+		return err
 	}
 	return nil
 }
