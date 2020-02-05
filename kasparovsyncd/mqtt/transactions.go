@@ -8,6 +8,7 @@ import (
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
+	"github.com/kaspanet/kasparov/dbmodels"
 )
 
 const (
@@ -32,7 +33,7 @@ func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) er
 		transactionIDs[i] = tx.TxID
 	}
 
-	dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs)
+	dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs, dbmodels.TransactionPreloadedColumns...)
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,7 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []*rpcclient.Chai
 				transactionIDs[i] = acceptedTxID.String()
 			}
 
-			dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs)
+			dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs, dbmodels.TransactionPreloadedColumns...)
 			if err != nil {
 				return err
 			}
@@ -120,7 +121,7 @@ func PublishUnacceptedTransactionsNotifications(removedChainHashes []*daghash.Ha
 			return err
 		}
 
-		dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs)
+		dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs, dbmodels.TransactionPreloadedColumns...)
 		if err != nil {
 			return err
 		}

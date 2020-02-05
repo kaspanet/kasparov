@@ -15,7 +15,7 @@ func PublishSelectedTipNotification(selectedTipHash string) error {
 	if !isConnected() {
 		return nil
 	}
-	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), selectedTipHash)
+	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), selectedTipHash, "AcceptingBlock")
 	if err != nil {
 		return err
 	}

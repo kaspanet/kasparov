@@ -8,6 +8,7 @@ import (
 
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
+	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/jsonrpc"
 
 	"github.com/kaspanet/kasparov/httpserverutils"
@@ -20,15 +21,6 @@ import (
 
 const maxGetTransactionsLimit = 1000
 
-var txPreloadedColumns = []string{
-	"AcceptingBlock",
-	"Subnetwork",
-	"TransactionOutputs",
-	"TransactionOutputs.Address",
-	"TransactionInputs.PreviousTransactionOutput.Transaction",
-	"TransactionInputs.PreviousTransactionOutput.Address",
-}
-
 // GetTransactionByIDHandler returns a transaction by a given transaction ID.
 func GetTransactionByIDHandler(txID string) (interface{}, error) {
 	if bytes, err := hex.DecodeString(txID); err != nil || len(bytes) != daghash.TxIDSize {
@@ -36,7 +28,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 			errors.Errorf("The given txid is not a hex-encoded %d-byte hash.", daghash.TxIDSize))
 	}
 
-	tx, err := dbaccess.TransactionByID(dbaccess.NoTx(), txID, txPreloadedColumns...)
+	tx, err := dbaccess.TransactionByID(dbaccess.NoTx(), txID, dbmodels.TransactionPreloadedColumns...)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +53,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 			errors.Errorf("The given txhash is not a hex-encoded %d-byte hash.", daghash.HashSize))
 	}
 
-	tx, err := dbaccess.TransactionByHash(dbaccess.NoTx(), txHash, txPreloadedColumns...)
+	tx, err := dbaccess.TransactionByHash(dbaccess.NoTx(), txHash, dbmodels.TransactionPreloadedColumns...)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +83,8 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 		return nil, err
 	}
 
-	txs, err := dbaccess.TransactionsByAddress(dbaccess.NoTx(), address, dbaccess.OrderAscending, skip, limit, txPreloadedColumns...)
+	txs, err := dbaccess.TransactionsByAddress(dbaccess.NoTx(), address, dbaccess.OrderAscending, skip, limit,
+		dbmodels.TransactionPreloadedColumns...)
 	if err != nil {
 		return nil, err
 	}

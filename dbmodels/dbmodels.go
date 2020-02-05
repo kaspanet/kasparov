@@ -66,6 +66,17 @@ type Transaction struct {
 	TransactionInputs  []TransactionInput
 }
 
+// TransactionPreloadedColumns is a list of columns recommended to preload when getting transactions
+var TransactionPreloadedColumns = []string{
+	"AcceptingBlock",
+	"Subnetwork",
+	"RawTransaction",
+	"TransactionOutputs",
+	"TransactionOutputs.Address",
+	"TransactionInputs.PreviousTransactionOutput.Transaction",
+	"TransactionInputs.PreviousTransactionOutput.Address",
+}
+
 // TransactionBlock is the gorm model for the 'transactions_to_blocks' table
 type TransactionBlock struct {
 	TransactionID uint64

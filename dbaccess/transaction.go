@@ -99,7 +99,8 @@ func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
 	}
 
 	var count uint64
-	dbResult := joinTxInputsTxOutputsAndAddresses(db).
+	query := db.Model(&dbmodels.Transaction{})
+	dbResult := joinTxInputsTxOutputsAndAddresses(query).
 		Where("`out_addresses`.`address` = ?", address).
 		Or("`in_addresses`.`address` = ?", address).
 		Count(&count)
