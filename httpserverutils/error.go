@@ -3,10 +3,11 @@ package httpserverutils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	"net/http"
 	"strings"
+
+	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 // HandlerError is an error returned from

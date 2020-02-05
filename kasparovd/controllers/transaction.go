@@ -99,6 +99,15 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 		return nil, err
 	}
 
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return nil, err
+	}
+	for _, txResponse := range txResponses {
+		txConfirmations := confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore)
+		txResponse.Confirmations = &txConfirmations
+	}
+
 	return apimodels.PaginatedTransactionsResponse{
 		Transactions: txResponses,
 		Total:        total,

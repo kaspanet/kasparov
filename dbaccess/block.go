@@ -239,7 +239,7 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 		return 0, err
 	}
 
-	var blueScore uint64
+	var blueScore []uint64
 	dbResult := db.Model(&dbmodels.Block{}).
 		Order("blue_score DESC").
 		Where(&dbmodels.Block{IsChainBlock: true}).
@@ -250,5 +250,8 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
 	}
 
-	return blueScore, nil
+	if len(blueScore) == 0 {
+		return 0, nil
+	}
+	return blueScore[0], nil
 }
