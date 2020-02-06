@@ -243,6 +243,7 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 	dbResult := db.Model(&dbmodels.Block{}).
 		Order("blue_score DESC").
 		Where(&dbmodels.Block{IsChainBlock: true}).
+		Limit(1).
 		Pluck("blue_score", &blueScore)
 
 	dbErrors := dbResult.GetErrors()
