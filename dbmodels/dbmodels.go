@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+// FieldName is the string reprenetation for field names of database models.
+// Used to specify which fields to preload
+type FieldName string
+
 // Block is the gorm model for the 'blocks' table
 type Block struct {
 	ID                   uint64 `gorm:"primary_key"`
@@ -23,6 +27,15 @@ type Block struct {
 	ParentBlocks         []Block `gorm:"many2many:parent_blocks;"`
 }
 
+// BlockFieldNames is a list of FieldNames for the 'Block' object
+var BlockFieldNames = struct {
+	AcceptingBlock FieldName
+	ParentBlocks   FieldName
+}{
+	AcceptingBlock: "AcceptingBlock",
+	ParentBlocks:   "ParentBlocks",
+}
+
 // ParentBlock is the gorm model for the 'parent_blocks' table
 type ParentBlock struct {
 	BlockID       uint64
@@ -31,11 +44,27 @@ type ParentBlock struct {
 	ParentBlock   Block
 }
 
+// ParentBlockFieldNames is a list of FieldNames for the 'ParentBlock' object
+var ParentBlockFieldNames = struct {
+	Block       FieldName
+	ParentBlock FieldName
+}{
+	Block:       "Block",
+	ParentBlock: "ParentBlock",
+}
+
 // RawBlock is the gorm model for the 'raw_blocks' table
 type RawBlock struct {
 	BlockID   uint64
 	Block     Block
 	BlockData []byte
+}
+
+// RawBlockFieldNames is a list of FieldNames for the 'RawBlock' object
+var RawBlockFieldNames = struct {
+	Block FieldName
+}{
+	Block: "Block",
 }
 
 // Subnetwork is the gorm model for the 'subnetworks' table
@@ -66,15 +95,40 @@ type Transaction struct {
 	TransactionInputs  []TransactionInput
 }
 
-// TransactionPreloadedColumns is a list of columns recommended to preload when getting transactions
-var TransactionPreloadedColumns = []string{
-	"AcceptingBlock",
-	"Subnetwork",
-	"RawTransaction",
-	"TransactionOutputs",
-	"TransactionOutputs.Address",
-	"TransactionInputs.PreviousTransactionOutput.Transaction",
-	"TransactionInputs.PreviousTransactionOutput.Address",
+// TransactionFieldNames is a list of FieldNames for the 'Transaction' object
+var TransactionFieldNames = struct {
+	AcceptingBlock                   FieldName
+	Subnetwork                       FieldName
+	RawTransaction                   FieldName
+	Blocks                           FieldName
+	TransactionOutputs               FieldName
+	TransactionInputs                FieldName
+	OutputsAddresses                 FieldName
+	InputsPreviousTransactionOutputs FieldName
+	InputsPreviousTransactions       FieldName
+	InputsAddresses                  FieldName
+}{
+	AcceptingBlock:                   "AcceptingBlock",
+	Subnetwork:                       "Subnetwork",
+	RawTransaction:                   "RawTransaction",
+	Blocks:                           "Blocks",
+	TransactionOutputs:               "TransactionOutputs",
+	TransactionInputs:                "TransactionInputs",
+	OutputsAddresses:                 "TransactionOutputs.Address",
+	InputsPreviousTransactionOutputs: "TransactionInputs.PreviousTransactionOutput",
+	InputsPreviousTransactions:       "TransactionInputs.PreviousTransactionOutput.Transaction",
+	InputsAddresses:                  "TransactionInputs.PreviousTransactionOutput.Address",
+}
+
+// TransactionRecommendedPreloadedFields is a list of fields recommended to preload when getting transactions
+var TransactionRecommendedPreloadedFields = []FieldName{
+	TransactionFieldNames.AcceptingBlock,
+	TransactionFieldNames.Subnetwork,
+	TransactionFieldNames.RawTransaction,
+	TransactionFieldNames.TransactionOutputs,
+	TransactionFieldNames.OutputsAddresses,
+	TransactionFieldNames.InputsPreviousTransactions,
+	TransactionFieldNames.InputsAddresses,
 }
 
 // TransactionBlock is the gorm model for the 'transactions_to_blocks' table
@@ -92,6 +146,15 @@ func (TransactionBlock) TableName() string {
 	return "transactions_to_blocks"
 }
 
+// TransactionBlockFieldNames  is a list of FieldNames for the 'TransactionBlock' object
+var TransactionBlockFieldNames = struct {
+	Transaction FieldName
+	Block       FieldName
+}{
+	Transaction: "Transaction",
+	Block:       "Block",
+}
+
 // TransactionOutput is the gorm model for the 'transaction_outputs' table
 type TransactionOutput struct {
 	ID            uint64 `gorm:"primary_key"`
@@ -103,6 +166,19 @@ type TransactionOutput struct {
 	IsSpent       bool
 	AddressID     *uint64
 	Address       *Address
+}
+
+// TransactionOutputFieldNames is a list of FieldNames for the 'TransactionOutput' object
+var TransactionOutputFieldNames = struct {
+	Transaction               FieldName
+	Address                   FieldName
+	TransactionAcceptingBlock FieldName
+	TransactionSubnetwork     FieldName
+}{
+	Transaction:               "Transaction",
+	Address:                   "Address",
+	TransactionAcceptingBlock: "Transaction.AcceptingBlock",
+	TransactionSubnetwork:     "Transaction.Subnetwork",
 }
 
 // TransactionInput is the gorm model for the 'transaction_inputs' table
@@ -117,6 +193,15 @@ type TransactionInput struct {
 	Sequence                    uint64
 }
 
+// TransactionInputFieldNames is a list of FieldNames for the 'TransactionInput' object
+var TransactionInputFieldNames = struct {
+	Transaction               FieldName
+	PreviousTransactionOutput FieldName
+}{
+	Transaction:               "Transaction",
+	PreviousTransactionOutput: "PreviousTransactionOutput",
+}
+
 // Address is the gorm model for the 'addresses' table
 type Address struct {
 	ID      uint64 `gorm:"primary_key"`
@@ -128,4 +213,11 @@ type RawTransaction struct {
 	TransactionID   uint64
 	Transaction     Transaction
 	TransactionData []byte
+}
+
+// RawTransactionFieldNames is a list of FieldNames for the 'RawTransaction' object
+var RawTransactionFieldNames = struct {
+	Transaction FieldName
+}{
+	Transaction: "Transaction",
 }

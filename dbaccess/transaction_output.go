@@ -6,8 +6,8 @@ import (
 )
 
 // TransactionOutputsByAddress retrieves all transaction outputs incoming to `address`.
-// If preloadedColumns was provided - preloads the requested columns
-func TransactionOutputsByAddress(ctx Context, address string, preloadedColumns ...string) ([]*dbmodels.TransactionOutput, error) {
+// If preloadedFields was provided - preloads the requested fields
+func TransactionOutputsByAddress(ctx Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -17,7 +17,7 @@ func TransactionOutputsByAddress(ctx Context, address string, preloadedColumns .
 		Joins("LEFT JOIN `addresses` ON `addresses`.`id` = `transaction_outputs`.`address_id`").
 		Joins("INNER JOIN `transactions` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
 		Where("`addresses`.`address` = ? AND `transaction_outputs`.`is_spent` = 0", address)
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	var transactionOutputs []*dbmodels.TransactionOutput
 	dbResult := query.Find(&transactionOutputs)
@@ -31,7 +31,7 @@ func TransactionOutputsByAddress(ctx Context, address string, preloadedColumns .
 }
 
 // TransactionOutputsByOutpoints retrieves all transaction outputs referenced by `outpoints`.
-// If preloadedColumns was provided - preloads the requested columns
+// If preloadedFields was provided - preloads the requested fields
 func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmodels.TransactionOutput, error) {
 	db, err := ctx.db()
 	if err != nil {

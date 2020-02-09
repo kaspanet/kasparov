@@ -6,8 +6,8 @@ import (
 )
 
 // AddressesByAddressStrings retrieves all addresss by their `addresses`.
-// If preloadedColumns was provided - preloads the requested columns
-func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedColumns ...string) ([]*dbmodels.Address, error) {
+// If preloadedFields was provided - preloads the requested fields
+func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Address, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -15,7 +15,7 @@ func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedCo
 
 	query := db.
 		Where("`addresses`.`address` IN (?)", addressStrings)
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	var addresses []*dbmodels.Address
 	dbResult := query.Find(&addresses)

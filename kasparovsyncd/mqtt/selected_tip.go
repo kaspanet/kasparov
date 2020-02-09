@@ -3,6 +3,7 @@ package mqtt
 import (
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
+	"github.com/kaspanet/kasparov/dbmodels"
 )
 
 const (
@@ -15,7 +16,7 @@ func PublishSelectedTipNotification(selectedTipHash string) error {
 	if !isConnected() {
 		return nil
 	}
-	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), selectedTipHash, "AcceptingBlock")
+	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), selectedTipHash, dbmodels.BlockFieldNames.AcceptingBlock)
 	if err != nil {
 		return err
 	}

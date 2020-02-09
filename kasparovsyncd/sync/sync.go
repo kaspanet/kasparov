@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 
 	"github.com/kaspanet/kasparov/dbaccess"
+	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/jsonrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
 
@@ -220,7 +221,8 @@ func updateRemovedChainHashes(dbTx *dbaccess.TxContext, removedHash string) erro
 		return errors.Errorf("block erroneously marked as not a chain block: %s", removedHash)
 	}
 
-	dbTransactions, err := dbaccess.AcceptedTransactionsByBlockID(dbTx, dbBlock.ID, "TransactionInputs.PreviousTransactionOutput")
+	dbTransactions, err := dbaccess.AcceptedTransactionsByBlockID(dbTx, dbBlock.ID,
+		dbmodels.TransactionFieldNames.InputsPreviousTransactionOutputs)
 	if err != nil {
 		return err
 	}
@@ -298,7 +300,8 @@ func updateAddedChainBlocks(dbTx *dbaccess.TxContext, addedBlock *rpcmodel.Chain
 		for i, acceptedTxID := range acceptedBlock.AcceptedTxIDs {
 			transactionIDsIn[i] = acceptedTxID
 		}
-		dbAcceptedTransactions, err := dbaccess.TransactionsByIDs(dbTx, transactionIDsIn, "TransactionInputs.PreviousTransactionOutput")
+		dbAcceptedTransactions, err := dbaccess.TransactionsByIDs(dbTx, transactionIDsIn,
+			dbmodels.TransactionFieldNames.InputsPreviousTransactionOutputs)
 		if err != nil {
 			return err
 		}
@@ -378,7 +381,9 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	return nil
 }
 
-func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
+func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, blockExistingInMemory map[string]*rawAndVerboseBlock) (
+	[]*rawAndVerboseBlock, error) {
+
 	pendingBlocks := []*rawAndVerboseBlock{block}
 	missingAncestors := make([]*rawAndVerboseBlock, 0)
 	missingAncestorsSet := make(map[string]struct{})

@@ -8,7 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertSubnetworks(dbTx *dbaccess.TxContext, client *jsonrpc.Client, blocks []*rawAndVerboseBlock) (subnetworkIDsToIDs map[string]uint64, err error) {
+func insertSubnetworks(dbTx *dbaccess.TxContext, client *jsonrpc.Client, blocks []*rawAndVerboseBlock) (
+	subnetworkIDsToIDs map[string]uint64, err error) {
+
 	subnetworkSet := make(map[string]struct{})
 	for _, block := range blocks {
 		for _, transaction := range block.Verbose.RawTx {

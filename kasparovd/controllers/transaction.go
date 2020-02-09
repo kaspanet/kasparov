@@ -28,7 +28,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 			errors.Errorf("The given txid is not a hex-encoded %d-byte hash.", daghash.TxIDSize))
 	}
 
-	tx, err := dbaccess.TransactionByID(dbaccess.NoTx(), txID, dbmodels.TransactionPreloadedColumns...)
+	tx, err := dbaccess.TransactionByID(dbaccess.NoTx(), txID, dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 			errors.Errorf("The given txhash is not a hex-encoded %d-byte hash.", daghash.HashSize))
 	}
 
-	tx, err := dbaccess.TransactionByHash(dbaccess.NoTx(), txHash, dbmodels.TransactionPreloadedColumns...)
+	tx, err := dbaccess.TransactionByHash(dbaccess.NoTx(), txHash, dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 	}
 
 	txs, err := dbaccess.TransactionsByAddress(dbaccess.NoTx(), address, dbaccess.OrderAscending, skip, limit,
-		dbmodels.TransactionPreloadedColumns...)
+		dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}

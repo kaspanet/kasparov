@@ -33,7 +33,8 @@ func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) er
 		transactionIDs[i] = tx.TxID
 	}
 
-	dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs, dbmodels.TransactionPreloadedColumns...)
+	dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs,
+		dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return err
 	}
@@ -93,7 +94,8 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []*rpcclient.Chai
 				transactionIDs[i] = acceptedTxID.String()
 			}
 
-			dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs, dbmodels.TransactionPreloadedColumns...)
+			dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs,
+				dbmodels.TransactionRecommendedPreloadedFields...)
 			if err != nil {
 				return err
 			}
@@ -121,7 +123,8 @@ func PublishUnacceptedTransactionsNotifications(removedChainHashes []*daghash.Ha
 			return err
 		}
 
-		dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs, dbmodels.TransactionPreloadedColumns...)
+		dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs,
+			dbmodels.TransactionRecommendedPreloadedFields...)
 		if err != nil {
 			return err
 		}

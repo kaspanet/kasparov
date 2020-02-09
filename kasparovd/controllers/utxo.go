@@ -7,6 +7,7 @@ import (
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
+	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/kasparovd/config"
 	"github.com/pkg/errors"
 )
@@ -18,7 +19,8 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 	}
 
 	transactionOutputs, err := dbaccess.TransactionOutputsByAddress(dbaccess.NoTx(), address,
-		"Transaction.AcceptingBlock", "Transaction.Subnetwork")
+		dbmodels.TransactionOutputFieldNames.TransactionAcceptingBlock,
+		dbmodels.TransactionOutputFieldNames.TransactionSubnetwork)
 	if err != nil {
 		return nil, err
 	}

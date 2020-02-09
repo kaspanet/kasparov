@@ -6,8 +6,8 @@ import (
 )
 
 // SubnetworksByIDs retrieves all subnetworks by their `subnetworkIDs`.
-// If preloadedColumns was provided - preloads the requested columns
-func SubnetworksByIDs(ctx Context, subnetworkIDs []string, preloadedColumns ...string) ([]*dbmodels.Subnetwork, error) {
+// If preloadedFields was provided - preloads the requested fields
+func SubnetworksByIDs(ctx Context, subnetworkIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Subnetwork, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -15,7 +15,7 @@ func SubnetworksByIDs(ctx Context, subnetworkIDs []string, preloadedColumns ...s
 
 	query := db.
 		Where("`subnetworks`.`subnetwork_id` IN (?)", subnetworkIDs)
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	var subnetworks []*dbmodels.Subnetwork
 	dbResult := query.Find(&subnetworks)

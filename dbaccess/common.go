@@ -2,14 +2,15 @@ package dbaccess
 
 import (
 	"github.com/jinzhu/gorm"
+	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 	gormbulk "github.com/t-tiger/gorm-bulk-insert"
 )
 
-func preloadColumns(query *gorm.DB, preloadedColumns []string) *gorm.DB {
-	for _, column := range preloadedColumns {
-		query = query.Preload(column)
+func preloadFields(query *gorm.DB, preloadedFields []dbmodels.FieldName) *gorm.DB {
+	for _, field := range preloadedFields {
+		query = query.Preload(string(field))
 	}
 	return query
 }

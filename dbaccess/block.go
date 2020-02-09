@@ -9,15 +9,15 @@ import (
 )
 
 // BlockByHash retrieves a block from the database according to it's hash
-// If preloadedColumns was provided - preloads the requested columns
-func BlockByHash(ctx Context, blockHash string, preloadedColumns ...string) (*dbmodels.Block, error) {
+// If preloadedFields was provided - preloads the requested fields
+func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
 
 	query := db.Where(&dbmodels.Block{BlockHash: blockHash})
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	block := &dbmodels.Block{}
 	dbResult := query.First(block)
@@ -35,14 +35,14 @@ func BlockByHash(ctx Context, blockHash string, preloadedColumns ...string) (*db
 }
 
 // BlocksByHashes retreives a list of blocks with the corresponding `hashes`
-func BlocksByHashes(ctx Context, hashes []string, preloadedColumns ...string) ([]*dbmodels.Block, error) {
+func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
 
 	query := db.Where("block_hash in (?)", hashes)
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	blocks := []*dbmodels.Block{}
 	dbResult := query.Find(&blocks)
@@ -57,8 +57,8 @@ func BlocksByHashes(ctx Context, hashes []string, preloadedColumns ...string) ([
 }
 
 // Blocks retrieves from the database up to `limit` blocks in the requested `order`, skipping the first `skip` blocks
-// If preloadedColumns was provided - preloads the requested columns
-func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedColumns ...string) ([]*dbmodels.Block, error) {
+// If preloadedFields was provided - preloads the requested fields
+func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedColumn
 		query = query.Order(fmt.Sprintf("`id` %s", order))
 	}
 
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	blocks := []*dbmodels.Block{}
 	dbResult := query.Find(&blocks)

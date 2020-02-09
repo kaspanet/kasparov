@@ -9,15 +9,15 @@ import (
 )
 
 // TransactionByID retrieves a transaction from the database that has the provided ID
-// If preloadedColumns was provided - preloads the requested columns
-func TransactionByID(ctx Context, transactionID string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
+// If preloadedFields was provided - preloads the requested fields
+func TransactionByID(ctx Context, transactionID string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
 
 	query := db.Where(&dbmodels.Transaction{TransactionID: transactionID})
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	tx := &dbmodels.Transaction{}
 	dbResult := query.First(&tx)
@@ -34,15 +34,15 @@ func TransactionByID(ctx Context, transactionID string, preloadedColumns ...stri
 }
 
 // TransactionByHash retrieves a transaction from the database that has the provided hash
-// If preloadedColumns was provided - preloads the requested columns
-func TransactionByHash(ctx Context, transactionHash string, preloadedColumns ...string) (*dbmodels.Transaction, error) {
+// If preloadedFields was provided - preloads the requested fields
+func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
 
 	query := db.Where(&dbmodels.Transaction{TransactionHash: transactionHash})
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	tx := &dbmodels.Transaction{}
 	dbResult := query.First(&tx)
@@ -60,8 +60,8 @@ func TransactionByHash(ctx Context, transactionHash string, preloadedColumns ...
 
 // TransactionsByAddress retrieves up to `limit` transactions sent to or from `address`,
 // in the requested `order`, skipping the first `skip` blocks
-// If preloadedColumns was provided - preloads the requested columns
-func TransactionsByAddress(ctx Context, address string, order Order, skip uint64, limit uint64, preloadedColumns ...string) (
+// If preloadedFields was provided - preloads the requested fields
+func TransactionsByAddress(ctx Context, address string, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) (
 	[]*dbmodels.Transaction, error) {
 
 	db, err := ctx.db()
@@ -78,7 +78,7 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 	if order != OrderUnknown {
 		query = query.Order(fmt.Sprintf("`transactions`.`id` %s", order))
 	}
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	txs := []*dbmodels.Transaction{}
 	dbResult := query.Find(&txs)
@@ -137,8 +137,8 @@ func AcceptedTransactionIDsByBlockHash(ctx Context, blockHash string) ([]string,
 
 // AcceptedTransactionsByBlockID retrieves a list of transactions that were accepted
 // by block with ID equal to `blockID`
-// If preloadedColumns was provided - preloads the requested columns
-func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedColumns ...string) ([]*dbmodels.Transaction, error) {
+// If preloadedFields was provided - preloads the requested fields
+func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedColumns
 
 	query := db.Model(&dbmodels.Transaction{}).
 		Where("`transactions`.`accepting_block_id` = ?", blockID)
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	var transactions []*dbmodels.Transaction
 	dbResult := query.Find(&transactions)
@@ -160,8 +160,8 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedColumns
 }
 
 // TransactionsByIDs retrieves all transactions by their `transactionIDs`.
-// If preloadedColumns was provided - preloads the requested columns
-func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedColumns ...string) ([]*dbmodels.Transaction, error) {
+// If preloadedFields was provided - preloads the requested fields
+func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedColumns ..
 	query := joinTxInputsTxOutputsAndAddresses(db).
 		Where("`transactions`.`transaction_id` IN (?)", transactionIDs).
 		Select("DISTINCT `transactions`.*")
-	query = preloadColumns(query, preloadedColumns)
+	query = preloadFields(query, preloadedFields)
 
 	var txs []*dbmodels.Transaction
 	dbResult := query.Find(&txs)
