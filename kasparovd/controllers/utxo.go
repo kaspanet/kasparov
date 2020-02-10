@@ -53,7 +53,8 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		}
 		isCoinbase := subnetworkID.IsEqual(subnetworkid.SubnetworkIDCoinbase)
 		utxoConfirmations := confirmations(acceptingBlockBlueScore, selectedTipBlueScore)
-		isSpendable := utxoConfirmations > 0 && (!isCoinbase || utxoConfirmations >= activeNetParams.BlockCoinbaseMaturity)
+		isSpendable := (!isCoinbase && utxoConfirmations > 0) ||
+			(isCoinbase && utxoConfirmations >= activeNetParams.BlockCoinbaseMaturity)
 
 		UTXOsResponses[i] = &apimodels.TransactionOutputResponse{
 			TransactionID:           transactionOutput.Transaction.TransactionID,
