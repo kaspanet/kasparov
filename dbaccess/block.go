@@ -133,8 +133,9 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 }
 
 // BluestBlock fetches the block with the highest blue score from the database
-// Note this is not necessarily the same as SelectedTip(), since SelectedTip requires
-// the selected-parent-chain to be fully synced
+// Note: this is not necessarily the same as SelectedTip(): In a non-fully synced
+// Kasparov - chain is still partial, and therefore SelectedTip() returns a lower
+// block.
 func BluestBlock(ctx Context) (*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
