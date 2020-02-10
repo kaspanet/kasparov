@@ -22,7 +22,7 @@ func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedFi
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading addresses from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading addresses from the database:", dbErrors)
 	}
 
 	return addresses, nil

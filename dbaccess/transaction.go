@@ -27,7 +27,7 @@ func TransactionByID(ctx Context, transactionID string, preloadedFields ...dbmod
 		return nil, nil
 	}
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transaction from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transaction from the database:", dbErrors)
 	}
 
 	return tx, nil
@@ -52,7 +52,7 @@ func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...d
 		return nil, nil
 	}
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transaction from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transaction from the database:", dbErrors)
 	}
 
 	return tx, nil
@@ -85,7 +85,7 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
 	}
 
 	return txs, nil
@@ -107,7 +107,7 @@ func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting transactions in the database:", dbErrors)
+		return 0, httpserverutils.NewErrorFromDBErrors("some errors were encountered when counting transactions in the database:", dbErrors)
 	}
 
 	return count, nil
@@ -129,7 +129,7 @@ func AcceptedTransactionIDsByBlockHash(ctx Context, blockHash string) ([]string,
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Failed to find transactions: ", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
 	}
 
 	return transactionIDs, nil
@@ -153,7 +153,7 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields 
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Failed to find transactions: ", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
 	}
 
 	return transactions, nil
@@ -175,7 +175,7 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
 	}
 
 	return txs, nil
@@ -195,7 +195,7 @@ func UpdateTransactionAcceptingBlockID(ctx Context, transactionID uint64, accept
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("Failed to update transaction acceptingBlockID: ", dbErrors)
+		return httpserverutils.NewErrorFromDBErrors("failed to update transaction acceptingBlockID: ", dbErrors)
 	}
 
 	return nil

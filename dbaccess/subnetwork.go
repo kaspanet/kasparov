@@ -22,7 +22,7 @@ func SubnetworksByIDs(ctx Context, subnetworkIDs []string, preloadedFields ...db
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading subnetworks from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading subnetworks from the database:", dbErrors)
 	}
 
 	return subnetworks, nil

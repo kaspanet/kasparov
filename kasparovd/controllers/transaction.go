@@ -33,7 +33,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 		return nil, err
 	}
 	if tx == nil {
-		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given txid was found"))
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no transaction with the given txid was found"))
 	}
 
 	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
@@ -58,7 +58,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 		return nil, err
 	}
 	if tx == nil {
-		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given txhash was found"))
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no transaction with the given txhash was found"))
 	}
 
 	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
@@ -76,7 +76,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) (interface{}, error) {
 	if limit > maxGetTransactionsLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("Limit higher than %d was requested.", maxGetTransactionsLimit))
+			errors.Errorf("limit higher than %d was requested.", maxGetTransactionsLimit))
 	}
 
 	if err := validateAddress(address); err != nil {
@@ -125,15 +125,15 @@ func PostTransaction(requestBody []byte) error {
 	err = json.Unmarshal(requestBody, rawTx)
 	if err != nil {
 		return httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,
-			errors.Wrap(err, "Error unmarshalling request body"),
-			"The request body is not json-formatted")
+			errors.Wrap(err, "error unmarshalling request body"),
+			"the request body is not json-formatted")
 	}
 
 	txBytes, err := hex.DecodeString(rawTx.RawTransaction)
 	if err != nil {
 		return httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,
-			errors.Wrap(err, "Error decoding hex raw transaction"),
-			"The raw transaction is not a hex-encoded transaction")
+			errors.Wrap(err, "error decoding hex raw transaction"),
+			"the raw transaction is not a hex-encoded transaction")
 	}
 
 	txReader := bytes.NewReader(txBytes)
@@ -141,8 +141,8 @@ func PostTransaction(requestBody []byte) error {
 	err = tx.KaspaDecode(txReader, 0)
 	if err != nil {
 		return httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,
-			errors.Wrap(err, "Error decoding raw transaction"),
-			"Error decoding raw transaction")
+			errors.Wrap(err, "error decoding raw transaction"),
+			"error decoding raw transaction")
 	}
 
 	_, err = client.SendRawTransaction(tx, true)

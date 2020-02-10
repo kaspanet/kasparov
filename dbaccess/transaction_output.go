@@ -30,7 +30,7 @@ func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.Fie
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading UTXOs from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading UTXOs from the database:", dbErrors)
 	}
 
 	return transactionOutputs, nil
@@ -43,7 +43,7 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 	if err != nil {
 		return nil, err
 	}
-	outpointTuples := outpointToSQLTuples(outpoints)
+	outpointTuples := outpointsToSQLTuples(outpoints)
 
 	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
 	// fetch previous transaction outputs in chunks to prevent too-large SQL queries
@@ -69,7 +69,7 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 	return dbPreviousTransactionsOutputs, nil
 }
 
-func outpointToSQLTuples(outpoints []*Outpoint) [][]interface{} {
+func outpointsToSQLTuples(outpoints []*Outpoint) [][]interface{} {
 	tuples := make([][]interface{}, len(outpoints))
 	i := 0
 	for _, o := range outpoints {

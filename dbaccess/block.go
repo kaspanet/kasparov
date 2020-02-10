@@ -26,7 +26,7 @@ func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.Fiel
 		return nil, nil
 	}
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading block from database:",
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading block from database:",
 			dbResult.GetErrors())
 	}
 
@@ -48,7 +48,7 @@ func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.Fi
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading blocks from database:",
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading blocks from database:",
 			dbResult.GetErrors())
 	}
 
@@ -78,7 +78,7 @@ func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedFields
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading blocks from the database:",
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading blocks from the database:",
 			dbResult.GetErrors())
 	}
 
@@ -102,7 +102,7 @@ func SelectedTip(ctx Context) (*dbmodels.Block, error) {
 		return nil, nil
 	}
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading selected tip from the database:", dbErrors)
 	}
 
 	return block, nil
@@ -123,7 +123,7 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip blue score from the database:", dbErrors)
+		return 0, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading selected tip blue score from the database:", dbErrors)
 	}
 
 	if len(blueScore) == 0 {
@@ -151,7 +151,7 @@ func BluestBlock(ctx Context) (*dbmodels.Block, error) {
 		return nil, nil
 	}
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading bluest block from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading bluest block from the database:", dbErrors)
 	}
 
 	return block, nil
@@ -235,7 +235,7 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return false, httpserverutils.NewErrorFromDBErrors("Some errors were encountered while checking if block exists: ", dbErrors)
+		return false, httpserverutils.NewErrorFromDBErrors("some errors were encountered while checking if block exists: ", dbErrors)
 	}
 	return count > 0, nil
 }
@@ -251,7 +251,7 @@ func BlocksCount(ctx Context) (uint64, error) {
 	dbResult := db.Model(dbmodels.Block{}).Count(&count)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting blocks:", dbErrors)
+		return 0, httpserverutils.NewErrorFromDBErrors("some errors were encountered when counting blocks:", dbErrors)
 	}
 
 	return count, nil

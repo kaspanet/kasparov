@@ -31,7 +31,7 @@ func (ctx *TxContext) Commit() error {
 	dbErrors := ctx.dbInstance.Commit().GetErrors()
 
 	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("Some errors were encountered when commiting transaction:", dbErrors)
+		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when commiting transaction:", dbErrors)
 	}
 	return nil
 }
@@ -41,7 +41,7 @@ func (ctx *TxContext) Rollback() error {
 	dbErrors := ctx.dbInstance.Rollback().GetErrors()
 
 	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("Some errors were encountered when rolling-back transaction:", dbErrors)
+		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when rolling-back transaction:", dbErrors)
 	}
 	return nil
 }
@@ -52,7 +52,7 @@ func (ctx *TxContext) RollbackUnlessCommitted() error {
 	dbErrors := ctx.dbInstance.RollbackUnlessCommitted().GetErrors()
 
 	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("Some errors were encountered when rolling-back transaction:", dbErrors)
+		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when rolling-back transaction:", dbErrors)
 	}
 	return nil
 }
