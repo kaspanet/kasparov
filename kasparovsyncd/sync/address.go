@@ -1,13 +1,12 @@
 package sync
 
 import (
-	"github.com/jinzhu/gorm"
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 )
 
-func insertAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) (map[string]uint64, error) {
+func insertAddresses(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) (map[string]uint64, error) {
 	addressSet := make(map[string]struct{})
 	for _, transaction := range transactionIDsToTxsWithMetadata {
 		if !transaction.isNew {
@@ -22,13 +21,9 @@ func insertAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*
 	}
 	addresses := stringsSetToSlice(addressSet)
 
-	var dbAddresses []*dbmodels.Address
-	dbResult := dbTx.
-		Where("address in (?)", addresses).
-		Find(&dbAddresses)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find addresses: ", dbErrors)
+	dbAddresses, err := dbaccess.AddressesByAddressStrings(dbTx, addresses)
+	if err != nil {
+		return nil, err
 	}
 
 	addressesToAddressIDs := make(map[string]uint64)
@@ -51,20 +46,15 @@ func insertAddresses(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*
 		}
 	}
 
-	err := bulkInsert(dbTx, addressesToAdd)
+	err = dbaccess.BulkInsert(dbTx, addressesToAdd)
 	if err != nil {
 		return nil, err
 	}
 
-	var dbNewAddresses []*dbmodels.Address
-	dbResult = dbTx.
-		Where("address in (?)", newAddresses).
-		Find(&dbNewAddresses)
-	dbErrors = dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find addresses: ", dbErrors)
+	dbNewAddresses, err := dbaccess.AddressesByAddressStrings(dbTx, newAddresses)
+	if err != nil {
+		return nil, err
 	}
-
 	if len(dbNewAddresses) != len(newAddresses) {
 		return nil, errors.New("couldn't add all new addresses")
 	}

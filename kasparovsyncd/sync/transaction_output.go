@@ -2,13 +2,14 @@ package sync
 
 import (
 	"encoding/hex"
-	"github.com/jinzhu/gorm"
+
 	"github.com/kaspanet/kaspad/rpcmodel"
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/pkg/errors"
 )
 
-func insertTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertTransactionOutputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	addressesToAddressIDs, err := insertAddresses(dbTx, transactionIDsToTxsWithMetadata)
 	if err != nil {
 		return err
@@ -39,5 +40,5 @@ func insertTransactionOutputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map
 		}
 	}
 
-	return bulkInsert(dbTx, outputsToAdd)
+	return dbaccess.BulkInsert(dbTx, outputsToAdd)
 }

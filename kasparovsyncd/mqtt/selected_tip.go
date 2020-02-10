@@ -1,6 +1,10 @@
 package mqtt
 
-import "github.com/kaspanet/kasparov/kasparovd/controllers"
+import (
+	"github.com/kaspanet/kasparov/apimodels"
+	"github.com/kaspanet/kasparov/dbaccess"
+	"github.com/kaspanet/kasparov/dbmodels"
+)
 
 const (
 	// SelectedTipTopic is an MQTT topic for DAG selected tips
@@ -12,9 +16,11 @@ func PublishSelectedTipNotification(selectedTipHash string) error {
 	if !isConnected() {
 		return nil
 	}
-	block, err := controllers.GetBlockByHashHandler(selectedTipHash)
+	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), selectedTipHash, dbmodels.BlockFieldNames.AcceptingBlock)
 	if err != nil {
 		return err
 	}
+
+	block := apimodels.ConvertBlockModelToBlockResponse(dbBlock)
 	return publish(SelectedTipTopic, block)
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/kasparovd/controllers"
 	"github.com/pkg/errors"
@@ -28,7 +29,7 @@ const (
 const (
 	defaultGetTransactionsLimit = 100
 	defaultGetBlocksLimit       = 25
-	defaultGetBlocksOrder       = controllers.OrderDescending
+	defaultGetBlocksOrder       = string(dbaccess.OrderDescending)
 )
 
 func mainHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[string]string, _ map[string]string, _ []byte) (interface{}, error) {
@@ -163,10 +164,6 @@ func getBlocksHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[s
 	}
 	order := defaultGetBlocksOrder
 	if orderParamValue, ok := queryParams[queryParamOrder]; ok {
-		if orderParamValue != controllers.OrderAscending && orderParamValue != controllers.OrderDescending {
-			return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, errors.Errorf(
-				"Couldn't parse the '%s' query parameter", queryParamOrder))
-		}
 		order = orderParamValue
 	}
 	return controllers.GetBlocksHandler(order, uint64(skip), uint64(limit))

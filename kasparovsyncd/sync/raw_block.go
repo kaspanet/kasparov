@@ -2,13 +2,14 @@ package sync
 
 import (
 	"encoding/hex"
-	"github.com/jinzhu/gorm"
+
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 
 	"github.com/pkg/errors"
 )
 
-func insertRawBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
+func insertRawBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
 	rawBlocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockID, ok := blockHashesToIDs[block.hash()]
@@ -21,7 +22,7 @@ func insertRawBlocks(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToI
 		}
 		rawBlocksToAdd[i] = dbRawBlock
 	}
-	err := bulkInsert(dbTx, rawBlocksToAdd)
+	err := dbaccess.BulkInsert(dbTx, rawBlocksToAdd)
 	if err != nil {
 		return err
 	}

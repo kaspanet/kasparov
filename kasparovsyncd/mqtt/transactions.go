@@ -1,12 +1,14 @@
 package mqtt
 
 import (
+	"path"
+
 	"github.com/kaspanet/kaspad/rpcclient"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util/daghash"
-	"github.com/kaspanet/kasparov/kasparovd/apimodels"
-	"github.com/kaspanet/kasparov/kasparovd/controllers"
-	"path"
+	"github.com/kaspanet/kasparov/apimodels"
+	"github.com/kaspanet/kasparov/dbaccess"
+	"github.com/kaspanet/kasparov/dbmodels"
 )
 
 const (
@@ -31,12 +33,14 @@ func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) er
 		transactionIDs[i] = tx.TxID
 	}
 
-	transactions, err := controllers.GetTransactionsByIDsHandler(transactionIDs)
+	dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs,
+		dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return err
 	}
 
-	for _, transaction := range transactions {
+	for _, dbTransaction := range dbTransactions {
+		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
 		err = publishTransactionNotifications(transaction, TransactionsTopic)
 		if err != nil {
 			return err
@@ -90,12 +94,14 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []*rpcclient.Chai
 				transactionIDs[i] = acceptedTxID.String()
 			}
 
-			transactions, err := controllers.GetTransactionsByIDsHandler(transactionIDs)
+			dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs,
+				dbmodels.TransactionRecommendedPreloadedFields...)
 			if err != nil {
 				return err
 			}
 
-			for _, transaction := range transactions {
+			for _, dbTransaction := range dbTransactions {
+				transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
 				err = publishTransactionNotifications(transaction, AcceptedTransactionsTopic)
 				if err != nil {
 					return err
@@ -112,17 +118,19 @@ func PublishUnacceptedTransactionsNotifications(removedChainHashes []*daghash.Ha
 		return nil
 	}
 	for _, removedHash := range removedChainHashes {
-		transactionIDs, err := controllers.GetAcceptedTransactionIDsByBlockHashHandler(removedHash.String())
+		transactionIDs, err := dbaccess.AcceptedTransactionIDsByBlockHash(dbaccess.NoTx(), removedHash.String())
 		if err != nil {
 			return err
 		}
 
-		transactions, err := controllers.GetTransactionsByIDsHandler(transactionIDs)
+		dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs,
+			dbmodels.TransactionRecommendedPreloadedFields...)
 		if err != nil {
 			return err
 		}
 
-		for _, transaction := range transactions {
+		for _, dbTransaction := range dbTransactions {
+			transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
 			err = publishTransactionNotifications(transaction, UnacceptedTransactionsTopic)
 			if err != nil {
 				return err

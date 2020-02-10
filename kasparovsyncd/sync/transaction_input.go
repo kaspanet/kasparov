@@ -3,25 +3,15 @@ package sync
 import (
 	"encoding/hex"
 
-	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 )
 
-func outpointsChunk(outpoints [][]interface{}, i int) [][]interface{} {
-	chunkStart := i * chunkSize
-	chunkEnd := chunkStart + chunkSize
-	if chunkEnd > len(outpoints) {
-		chunkEnd = len(outpoints)
-	}
-	return outpoints[chunkStart:chunkEnd]
-}
-
-func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
-	outpointsSet := make(map[outpoint]struct{})
+func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+	outpointsSet := make(map[dbaccess.Outpoint]struct{})
 	newNonCoinbaseTransactions := make(map[string]*txWithMetadata)
 	inputsCount := 0
 	for transactionID, transaction := range transactionIDsToTxsWithMetadata {
@@ -38,47 +28,41 @@ func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[
 
 		newNonCoinbaseTransactions[transactionID] = transaction
 		inputsCount += len(transaction.verboseTx.Vin)
-		for _, txIn := range transaction.verboseTx.Vin {
-			outpointsSet[outpoint{
-				transactionID: txIn.TxID,
-				index:         txIn.Vout,
-			}] = struct{}{}
+		for i := range transaction.verboseTx.Vin {
+			txIn := transaction.verboseTx.Vin[i]
+			outpoint := dbaccess.Outpoint{
+				TransactionID: txIn.TxID,
+				Index:         txIn.Vout,
+			}
+			outpointsSet[outpoint] = struct{}{}
 		}
 	}
 
 	if inputsCount == 0 {
 		return nil
 	}
+	outpoints := make([]*dbaccess.Outpoint, len(outpointsSet))
+	i := 0
+	for outpoint := range outpointsSet {
+		outpointCopy := outpoint // since outpoint is a value type - copy it, othewise it would be overwritten
+		outpoints[i] = &outpointCopy
+		i++
+	}
 
-	outpoints := outpointSetToSQLTuples(outpointsSet)
-
-	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
-	// fetch previous transaction outputs in chunks to prevent too-large SQL queries
-	for i := 0; i < len(outpoints)/chunkSize+1; i++ {
-		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
-
-		dbResult := dbTx.
-			Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-			Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", outpointsChunk(outpoints, i)).
-			Preload("Transaction").
-			Find(&dbPreviousTransactionsOutputsChunk)
-		dbErrors := dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return httpserverutils.NewErrorFromDBErrors("failed to find previous transaction outputs: ", dbErrors)
-		}
-
-		dbPreviousTransactionsOutputs = append(dbPreviousTransactionsOutputs, dbPreviousTransactionsOutputsChunk...)
+	dbPreviousTransactionsOutputs, err := dbaccess.TransactionOutputsByOutpoints(dbTx, outpoints)
+	if err != nil {
+		return err
 	}
 
 	if len(dbPreviousTransactionsOutputs) != len(outpoints) {
 		return errors.New("couldn't fetch all of the requested outpoints")
 	}
 
-	outpointsToIDs := make(map[outpoint]uint64)
+	outpointsToIDs := make(map[dbaccess.Outpoint]uint64)
 	for _, dbTransactionOutput := range dbPreviousTransactionsOutputs {
-		outpointsToIDs[outpoint{
-			transactionID: dbTransactionOutput.Transaction.TransactionID,
-			index:         dbTransactionOutput.Index,
+		outpointsToIDs[dbaccess.Outpoint{
+			TransactionID: dbTransactionOutput.Transaction.TransactionID,
+			Index:         dbTransactionOutput.Index,
 		}] = dbTransactionOutput.ID
 	}
 
@@ -90,9 +74,9 @@ func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[
 			if err != nil {
 				return nil
 			}
-			prevOutputID, ok := outpointsToIDs[outpoint{
-				transactionID: txIn.TxID,
-				index:         txIn.Vout,
+			prevOutputID, ok := outpointsToIDs[dbaccess.Outpoint{
+				TransactionID: txIn.TxID,
+				Index:         txIn.Vout,
 			}]
 			if !ok || prevOutputID == 0 {
 				return errors.Errorf("couldn't find ID for outpoint (%s:%d)", txIn.TxID, txIn.Vout)
@@ -107,7 +91,7 @@ func insertTransactionInputs(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[
 			inputIndex++
 		}
 	}
-	return bulkInsert(dbTx, inputsToAdd)
+	return dbaccess.BulkInsert(dbTx, inputsToAdd)
 }
 
 func isTransactionCoinbase(transaction *rpcmodel.TxRawResult) (bool, error) {
@@ -116,19 +100,4 @@ func isTransactionCoinbase(transaction *rpcmodel.TxRawResult) (bool, error) {
 		return false, err
 	}
 	return subnetwork.IsEqual(subnetworkid.SubnetworkIDCoinbase), nil
-}
-
-type outpoint struct {
-	transactionID string
-	index         uint32
-}
-
-func outpointSetToSQLTuples(outpointsToIDs map[outpoint]struct{}) [][]interface{} {
-	outpoints := make([][]interface{}, len(outpointsToIDs))
-	i := 0
-	for o := range outpointsToIDs {
-		outpoints[i] = []interface{}{o.transactionID, o.index}
-		i++
-	}
-	return outpoints
 }

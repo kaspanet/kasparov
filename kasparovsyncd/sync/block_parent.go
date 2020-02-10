@@ -1,14 +1,14 @@
 package sync
 
 import (
-	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 
 	"github.com/pkg/errors"
 )
 
-func insertBlockParents(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
+func insertBlockParents(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
 	parentsToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
 		dbBlockParents, err := makeBlockParents(blockHashesToIDs, block.Verbose)
@@ -19,7 +19,7 @@ func insertBlockParents(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, blockHashes
 			parentsToAdd = append(parentsToAdd, dbBlockParent)
 		}
 	}
-	err := bulkInsert(dbTx, parentsToAdd)
+	err := dbaccess.BulkInsert(dbTx, parentsToAdd)
 	if err != nil {
 		return err
 	}

@@ -3,15 +3,14 @@ package sync
 import (
 	"encoding/hex"
 
-	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/blockdag"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/kaspanet/kaspad/wire"
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 
 	"github.com/pkg/errors"
 )
@@ -33,7 +32,7 @@ func transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMeta
 	return transactionIDs
 }
 
-func insertRawTransactions(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertRawTransactions(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
 	rawTransactionsToAdd := make([]interface{}, 0)
 	for _, transaction := range transactionIDsToTxsWithMetadata {
 		if !transaction.isNew {
@@ -50,10 +49,12 @@ func insertRawTransactions(dbTx *gorm.DB, transactionIDsToTxsWithMetadata map[st
 			TransactionData: txData,
 		})
 	}
-	return bulkInsert(dbTx, rawTransactionsToAdd)
+	return dbaccess.BulkInsert(dbTx, rawTransactionsToAdd)
 }
 
-func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (map[string]*txWithMetadata, error) {
+func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (
+	map[string]*txWithMetadata, error) {
+
 	transactionIDsToTxsWithMetadata := make(map[string]*txWithMetadata)
 	for _, block := range blocks {
 		// We do not directly iterate over block.Verbose.RawTx because it is a slice of values, and iterating
@@ -68,13 +69,9 @@ func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkI
 
 	transactionIDs := transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMetadata)
 
-	var dbTransactions []*dbmodels.Transaction
-	dbResult := dbTx.
-		Where("transaction_id in (?)", transactionIDs).
-		Find(&dbTransactions)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
+	dbTransactions, err := dbaccess.TransactionsByIDs(dbTx, transactionIDs)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, dbTransaction := range dbTransactions {
@@ -82,16 +79,16 @@ func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkI
 		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].mass = dbTransaction.Mass
 	}
 
-	newTransactions := make([]string, 0)
+	newTransactionIDs := make([]string, 0)
 	for txID, transaction := range transactionIDsToTxsWithMetadata {
 		if transaction.id != 0 {
 			continue
 		}
-		newTransactions = append(newTransactions, txID)
+		newTransactionIDs = append(newTransactionIDs, txID)
 	}
 
-	transactionsToAdd := make([]interface{}, len(newTransactions))
-	for i, id := range newTransactions {
+	transactionsToAdd := make([]interface{}, len(newTransactionIDs))
+	for i, id := range newTransactionIDs {
 		verboseTx := transactionIDsToTxsWithMetadata[id].verboseTx
 		mass, err := calcTxMass(dbTx, verboseTx)
 		if err != nil {
@@ -121,21 +118,17 @@ func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkI
 		}
 	}
 
-	err := bulkInsert(dbTx, transactionsToAdd)
+	err = dbaccess.BulkInsert(dbTx, transactionsToAdd)
 	if err != nil {
 		return nil, err
 	}
 
-	var dbNewTransactions []*dbmodels.Transaction
-	dbResult = dbTx.
-		Where("transaction_id in (?)", newTransactions).
-		Find(&dbNewTransactions)
-	dbErrors = dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
+	dbNewTransactions, err := dbaccess.TransactionsByIDs(dbTx, newTransactionIDs)
+	if err != nil {
+		return nil, err
 	}
 
-	if len(dbNewTransactions) != len(newTransactions) {
+	if len(dbNewTransactions) != len(newTransactionIDs) {
 		return nil, errors.New("couldn't add all new transactions")
 	}
 
@@ -147,25 +140,24 @@ func insertTransactions(dbTx *gorm.DB, blocks []*rawAndVerboseBlock, subnetworkI
 	return transactionIDsToTxsWithMetadata, nil
 }
 
-func calcTxMass(dbTx *gorm.DB, transaction *rpcmodel.TxRawResult) (uint64, error) {
+func calcTxMass(dbTx *dbaccess.TxContext, transaction *rpcmodel.TxRawResult) (uint64, error) {
 	msgTx, err := convertTxRawResultToMsgTx(transaction)
 	if err != nil {
 		return 0, err
 	}
-	prevTxIDs := make([]string, len(transaction.Vin))
-	for i, txIn := range transaction.Vin {
-		prevTxIDs[i] = txIn.TxID
+
+	outpoints := make([]*dbaccess.Outpoint, 0, len(transaction.Vin))
+	for _, txIn := range transaction.Vin {
+		outpoints = append(outpoints, &dbaccess.Outpoint{
+			TransactionID: txIn.TxID,
+			Index:         txIn.Vout,
+		})
 	}
-	var prevDBTransactionsOutputs []dbmodels.TransactionOutput
-	dbResult := dbTx.
-		Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-		Where("transactions.transaction_id in (?)", prevTxIDs).
-		Preload("Transaction").
-		Find(&prevDBTransactionsOutputs)
-	dbErrors := dbResult.GetErrors()
-	if len(dbErrors) > 0 {
-		return 0, httpserverutils.NewErrorFromDBErrors("error fetching previous transactions: ", dbErrors)
+	prevDBTransactionsOutputs, err := dbaccess.TransactionOutputsByOutpoints(dbTx, outpoints)
+	if err != nil {
+		return 0, err
 	}
+
 	prevScriptPubKeysMap := make(map[string]map[uint32][]byte)
 	for _, prevDBTransactionsOutput := range prevDBTransactionsOutputs {
 		txID := prevDBTransactionsOutput.Transaction.TransactionID

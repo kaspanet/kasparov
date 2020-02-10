@@ -4,20 +4,16 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/kaspanet/kasparov/database"
+	"github.com/kaspanet/kasparov/apimodels"
+	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/jsonrpc"
-	"github.com/kaspanet/kasparov/kasparovd/apimodels"
-	"github.com/kaspanet/kasparov/kasparovd/config"
 
-	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 
-	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kaspad/wire"
@@ -32,37 +28,22 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 			errors.Errorf("The given txid is not a hex-encoded %d-byte hash.", daghash.TxIDSize))
 	}
 
-	db, err := database.DB()
+	tx, err := dbaccess.TransactionByID(dbaccess.NoTx(), txID, dbmodels.TransactionRecommendedPreloadedFields...)
+	if err != nil {
+		return nil, err
+	}
+	if tx == nil {
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no transaction with the given txid was found"))
+	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
 	if err != nil {
 		return nil, err
 	}
 
-	tx := &dbmodels.Transaction{}
-	query := db.Where(&dbmodels.Transaction{TransactionID: txID})
-	dbResult := addTxPreloadedFields(query).First(&tx)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
-		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("No transaction with the given txid was found"))
-	}
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transaction from the database:", dbErrors)
-	}
-
-	selectedTipBlueScore, err := fetchSelectedTipBlueScore()
-	if err != nil {
-		return nil, err
-	}
-
-	txResponse := convertTxDBModelToTxResponse(tx)
+	txResponse := apimodels.ConvertTxModelToTxResponse(tx)
 	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
 	return txResponse, nil
-}
-
-func confirmations(acceptingBlueScore *uint64, selectedTipBlueScore uint64) uint64 {
-	if acceptingBlueScore == nil {
-		return 0
-	}
-	return selectedTipBlueScore - *acceptingBlueScore + 1
 }
 
 // GetTransactionByHashHandler returns a transaction by a given transaction hash.
@@ -72,28 +53,20 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 			errors.Errorf("The given txhash is not a hex-encoded %d-byte hash.", daghash.HashSize))
 	}
 
-	db, err := database.DB()
+	tx, err := dbaccess.TransactionByHash(dbaccess.NoTx(), txHash, dbmodels.TransactionRecommendedPreloadedFields...)
+	if err != nil {
+		return nil, err
+	}
+	if tx == nil {
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no transaction with the given txhash was found"))
+	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
 	if err != nil {
 		return nil, err
 	}
 
-	tx := &dbmodels.Transaction{}
-	query := db.Where(&dbmodels.Transaction{TransactionHash: txHash})
-	dbResult := addTxPreloadedFields(query).First(&tx)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
-		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.Errorf("No transaction with the given txhash was found."))
-	}
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transaction from the database:", dbErrors)
-	}
-
-	selectedTipBlueScore, err := fetchSelectedTipBlueScore()
-	if err != nil {
-		return nil, err
-	}
-
-	txResponse := convertTxDBModelToTxResponse(tx)
+	txResponse := apimodels.ConvertTxModelToTxResponse(tx)
 	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
 	return txResponse, nil
 }
@@ -103,164 +76,42 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) (interface{}, error) {
 	if limit > maxGetTransactionsLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("Limit higher than %d was requested.", maxGetTransactionsLimit))
+			errors.Errorf("limit higher than %d was requested.", maxGetTransactionsLimit))
 	}
 
 	if err := validateAddress(address); err != nil {
 		return nil, err
 	}
 
-	db, err := database.DB()
+	txs, err := dbaccess.TransactionsByAddress(dbaccess.NoTx(), address, dbaccess.OrderAscending, skip, limit,
+		dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
 
-	queryForCount := joinTxInputsTxOutputsAndAddresses(db).
-		Where("`out_addresses`.`address` = ?", address).
-		Or("`in_addresses`.`address` = ?", address).
-		Model(dbmodels.Transaction{})
-
-	var total uint64
-	dbResult := queryForCount.Count(&total)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting transactions:", dbErrors)
+	txResponses := make([]*apimodels.TransactionResponse, len(txs))
+	for i, tx := range txs {
+		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx)
 	}
 
-	var txResponses []*apimodels.TransactionResponse
-	// limit can be set to 0, if the user is interested
-	// only on the `total` field.
-	if limit > 0 {
-		txs := []*dbmodels.Transaction{}
-		query := queryForCount.
-			Limit(limit).
-			Offset(skip).
-			Order("`transactions`.`id` ASC")
-		dbResult = addTxPreloadedFields(query).Find(&txs)
-		dbErrors = dbResult.GetErrors()
-		if httpserverutils.HasDBError(dbErrors) {
-			return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
-		}
-
-		selectedTipBlueScore, err := fetchSelectedTipBlueScore()
-		if err != nil {
-			return nil, err
-		}
-
-		txResponses = make([]*apimodels.TransactionResponse, len(txs))
-		for i, tx := range txs {
-			txResponses[i] = convertTxDBModelToTxResponse(tx)
-			txResponses[i].Confirmations = rpcmodel.Uint64(confirmations(txResponses[i].AcceptingBlockBlueScore, selectedTipBlueScore))
-		}
+	total, err := dbaccess.TransactionsByAddressCount(dbaccess.NoTx(), address)
+	if err != nil {
+		return nil, err
 	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return nil, err
+	}
+	for _, txResponse := range txResponses {
+		txConfirmations := confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore)
+		txResponse.Confirmations = &txConfirmations
+	}
+
 	return apimodels.PaginatedTransactionsResponse{
 		Transactions: txResponses,
 		Total:        total,
 	}, nil
-}
-
-func fetchSelectedTipBlueScore() (uint64, error) {
-	db, err := database.DB()
-	if err != nil {
-		return 0, err
-	}
-	block := &dbmodels.Block{}
-	dbResult := db.Order("blue_score DESC").
-		Where(&dbmodels.Block{IsChainBlock: true}).
-		Select("blue_score").
-		First(block)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
-	}
-	return block.BlueScore, nil
-}
-
-// GetUTXOsByAddressHandler searches for all UTXOs that belong to a certain address.
-func GetUTXOsByAddressHandler(address string) (interface{}, error) {
-	if err := validateAddress(address); err != nil {
-		return nil, err
-	}
-
-	db, err := database.DB()
-	if err != nil {
-		return nil, err
-	}
-
-	var transactionOutputs []*dbmodels.TransactionOutput
-	dbErrors := db.
-		Joins("LEFT JOIN `addresses` ON `addresses`.`id` = `transaction_outputs`.`address_id`").
-		Joins("INNER JOIN `transactions` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
-		Where("`addresses`.`address` = ? AND `transaction_outputs`.`is_spent` = 0", address).
-		Where("`transactions`.`accepting_block_id` IS NOT NULL").
-		Preload("Transaction.AcceptingBlock").
-		Preload("Transaction.Subnetwork").
-		Find(&transactionOutputs).GetErrors()
-	if len(dbErrors) > 0 {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading UTXOs from the database:", dbErrors)
-	}
-
-	nonAcceptedTxIds := make([]uint64, len(transactionOutputs))
-	for i, txOut := range transactionOutputs {
-		if txOut.Transaction.AcceptingBlock == nil {
-			nonAcceptedTxIds[i] = txOut.TransactionID
-		}
-	}
-
-	selectedTipBlueScore, err := fetchSelectedTipBlueScore()
-	if err != nil {
-		return nil, err
-	}
-
-	activeNetParams := config.ActiveConfig().NetParams()
-
-	UTXOsResponses := make([]*apimodels.TransactionOutputResponse, len(transactionOutputs))
-	for i, transactionOutput := range transactionOutputs {
-		subnetworkID := &subnetworkid.SubnetworkID{}
-		err := subnetworkid.Decode(subnetworkID, transactionOutput.Transaction.Subnetwork.SubnetworkID)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("Couldn't decode subnetwork id %s", transactionOutput.Transaction.Subnetwork.SubnetworkID))
-		}
-		var acceptingBlockHash *string
-		var acceptingBlockBlueScore *uint64
-		if transactionOutput.Transaction.AcceptingBlock != nil {
-			acceptingBlockHash = &transactionOutput.Transaction.AcceptingBlock.BlockHash
-			acceptingBlockBlueScore = &transactionOutput.Transaction.AcceptingBlock.BlueScore
-		}
-		isCoinbase := subnetworkID.IsEqual(subnetworkid.SubnetworkIDCoinbase)
-		utxoConfirmations := confirmations(acceptingBlockBlueScore, selectedTipBlueScore)
-		UTXOsResponses[i] = &apimodels.TransactionOutputResponse{
-			TransactionID:           transactionOutput.Transaction.TransactionID,
-			Value:                   transactionOutput.Value,
-			ScriptPubKey:            hex.EncodeToString(transactionOutput.ScriptPubKey),
-			AcceptingBlockHash:      acceptingBlockHash,
-			AcceptingBlockBlueScore: acceptingBlockBlueScore,
-			Index:                   transactionOutput.Index,
-			IsCoinbase:              &isCoinbase,
-			Confirmations:           &utxoConfirmations,
-			IsSpendable:             rpcmodel.Bool(!isCoinbase || utxoConfirmations >= activeNetParams.BlockCoinbaseMaturity),
-		}
-	}
-	return UTXOsResponses, nil
-}
-
-func joinTxInputsTxOutputsAndAddresses(query *gorm.DB) *gorm.DB {
-	return query.
-		Joins("LEFT JOIN `transaction_outputs` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
-		Joins("LEFT JOIN `addresses` AS `out_addresses` ON `out_addresses`.`id` = `transaction_outputs`.`address_id`").
-		Joins("LEFT JOIN `transaction_inputs` ON `transaction_inputs`.`transaction_id` = `transactions`.`id`").
-		Joins("LEFT JOIN `transaction_outputs` AS `inputs_outs` ON `inputs_outs`.`id` = `transaction_inputs`.`previous_transaction_output_id`").
-		Joins("LEFT JOIN `addresses` AS `in_addresses` ON `in_addresses`.`id` = `inputs_outs`.`address_id`")
-}
-
-func addTxPreloadedFields(query *gorm.DB) *gorm.DB {
-	return query.Preload("AcceptingBlock").
-		Preload("Subnetwork").
-		Preload("RawTransaction").
-		Preload("TransactionOutputs").
-		Preload("TransactionOutputs.Address").
-		Preload("TransactionInputs.PreviousTransactionOutput.Transaction").
-		Preload("TransactionInputs.PreviousTransactionOutput.Address")
 }
 
 // PostTransaction forwards a raw transaction to the JSON-RPC API server
@@ -274,15 +125,15 @@ func PostTransaction(requestBody []byte) error {
 	err = json.Unmarshal(requestBody, rawTx)
 	if err != nil {
 		return httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,
-			errors.Wrap(err, "Error unmarshalling request body"),
-			"The request body is not json-formatted")
+			errors.Wrap(err, "error unmarshalling request body"),
+			"the request body is not json-formatted")
 	}
 
 	txBytes, err := hex.DecodeString(rawTx.RawTransaction)
 	if err != nil {
 		return httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,
-			errors.Wrap(err, "Error decoding hex raw transaction"),
-			"The raw transaction is not a hex-encoded transaction")
+			errors.Wrap(err, "error decoding hex raw transaction"),
+			"the raw transaction is not a hex-encoded transaction")
 	}
 
 	txReader := bytes.NewReader(txBytes)
@@ -290,8 +141,8 @@ func PostTransaction(requestBody []byte) error {
 	err = tx.KaspaDecode(txReader, 0)
 	if err != nil {
 		return httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,
-			errors.Wrap(err, "Error decoding raw transaction"),
-			"Error decoding raw transaction")
+			errors.Wrap(err, "error decoding raw transaction"),
+			"error decoding raw transaction")
 	}
 
 	_, err = client.SendRawTransaction(tx, true)
@@ -302,28 +153,4 @@ func PostTransaction(requestBody []byte) error {
 		return err
 	}
 	return nil
-}
-
-// GetTransactionsByIDsHandler finds transactions by the given transactionIds.
-func GetTransactionsByIDsHandler(transactionIds []string) ([]*apimodels.TransactionResponse, error) {
-	db, err := database.DB()
-	if err != nil {
-		return nil, err
-	}
-
-	var txs []*dbmodels.Transaction
-	query := joinTxInputsTxOutputsAndAddresses(db).
-		Where("`transactions`.`transaction_id` IN (?)", transactionIds)
-
-	dbResult := addTxPreloadedFields(query).Find(&txs)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
-	}
-
-	txResponses := make([]*apimodels.TransactionResponse, len(txs))
-	for i, tx := range txs {
-		txResponses[i] = convertTxDBModelToTxResponse(tx)
-	}
-	return txResponses, nil
 }

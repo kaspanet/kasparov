@@ -1,17 +1,8 @@
 package sync
 
 import (
-	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kaspad/rpcmodel"
-	"github.com/pkg/errors"
-	gormbulk "github.com/t-tiger/gorm-bulk-insert"
 )
-
-const chunkSize = 3000
-
-func bulkInsert(db *gorm.DB, objects []interface{}) error {
-	return errors.WithStack(gormbulk.BulkInsert(db, objects, chunkSize))
-}
 
 func stringsSetToSlice(set map[string]struct{}) []string {
 	ids := make([]string, len(set))
