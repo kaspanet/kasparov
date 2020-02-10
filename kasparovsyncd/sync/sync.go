@@ -243,7 +243,6 @@ func updateRemovedChainHashes(dbTx *dbaccess.TxContext, removedHash string) erro
 			}
 		}
 
-		// Don't use Save() here--it updates all fields in dbTransaction
 		dbTransaction.AcceptingBlockID = nil
 		err := dbaccess.UpdateTransactionAcceptingBlockID(dbTx, dbTransaction.ID, nil)
 		if err != nil {
@@ -251,13 +250,11 @@ func updateRemovedChainHashes(dbTx *dbaccess.TxContext, removedHash string) erro
 		}
 	}
 
-	// Don't use Save() here--it updates all fields in dbBlock
 	err = dbaccess.UpdateBlocksAcceptedByAcceptingBlock(dbTx, dbBlock.ID, nil)
 	if err != nil {
 		return err
 	}
 
-	// Don't use Save() here--it updates all fields in dbBlock
 	err = dbaccess.UpdateBlockIsChainBlock(dbTx, dbBlock.ID, false)
 	if err != nil {
 		return err
@@ -324,21 +321,18 @@ func updateAddedChainBlocks(dbTx *dbaccess.TxContext, addedBlock *rpcmodel.Chain
 				}
 			}
 
-			// Don't use Save() here--it updates all fields in dbAcceptedTransaction
 			err := dbaccess.UpdateTransactionAcceptingBlockID(dbTx, dbAcceptedTransaction.ID, &dbAddedBlock.ID)
 			if err != nil {
 				return err
 			}
 		}
 
-		// Don't use Save() here--it updates all fields in dbAcceptedBlock
 		err = dbaccess.UpdateBlockAcceptingBlockID(dbTx, dbAcceptedBlock.ID, &dbAddedBlock.ID)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Don't use Save() here--it updates all fields in dbAddedBlock
 	err = dbaccess.UpdateBlockIsChainBlock(dbTx, dbAddedBlock.ID, true)
 	if err != nil {
 		return err
