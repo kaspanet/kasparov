@@ -7,8 +7,8 @@ import (
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
-// ConvertTxDBModelToTxResponse converts a transaction database object to a TransactionResponse
-func ConvertTxDBModelToTxResponse(tx *dbmodels.Transaction) *TransactionResponse {
+// ConvertTxModelToTxResponse converts a transaction database object to a TransactionResponse
+func ConvertTxModelToTxResponse(tx *dbmodels.Transaction) *TransactionResponse {
 	txRes := &TransactionResponse{
 		TransactionHash: tx.TransactionHash,
 		TransactionID:   tx.TransactionID,

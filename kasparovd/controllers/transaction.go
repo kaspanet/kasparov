@@ -41,7 +41,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 		return nil, err
 	}
 
-	txResponse := apimodels.ConvertTxDBModelToTxResponse(tx)
+	txResponse := apimodels.ConvertTxModelToTxResponse(tx)
 	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
 	return txResponse, nil
 }
@@ -66,7 +66,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 		return nil, err
 	}
 
-	txResponse := apimodels.ConvertTxDBModelToTxResponse(tx)
+	txResponse := apimodels.ConvertTxModelToTxResponse(tx)
 	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
 	return txResponse, nil
 }
@@ -91,7 +91,7 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 
 	txResponses := make([]*apimodels.TransactionResponse, len(txs))
 	for i, tx := range txs {
-		txResponses[i] = apimodels.ConvertTxDBModelToTxResponse(tx)
+		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx)
 	}
 
 	total, err := dbaccess.TransactionsByAddressCount(dbaccess.NoTx(), address)

@@ -40,7 +40,7 @@ func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) er
 	}
 
 	for _, dbTransaction := range dbTransactions {
-		transaction := apimodels.ConvertTxDBModelToTxResponse(dbTransaction)
+		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
 		err = publishTransactionNotifications(transaction, TransactionsTopic)
 		if err != nil {
 			return err
@@ -101,7 +101,7 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []*rpcclient.Chai
 			}
 
 			for _, dbTransaction := range dbTransactions {
-				transaction := apimodels.ConvertTxDBModelToTxResponse(dbTransaction)
+				transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
 				err = publishTransactionNotifications(transaction, AcceptedTransactionsTopic)
 				if err != nil {
 					return err
@@ -130,7 +130,7 @@ func PublishUnacceptedTransactionsNotifications(removedChainHashes []*daghash.Ha
 		}
 
 		for _, dbTransaction := range dbTransactions {
-			transaction := apimodels.ConvertTxDBModelToTxResponse(dbTransaction)
+			transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
 			err = publishTransactionNotifications(transaction, UnacceptedTransactionsTopic)
 			if err != nil {
 				return err
