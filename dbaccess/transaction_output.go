@@ -5,6 +5,12 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
+// Outpoint represent an outpoint in a transaction input.
+type Outpoint struct {
+	TransactionID string
+	Index         uint32
+}
+
 // UTXOsByAddress retrieves all transaction outputs incoming to `address`.
 // If preloadedFields was provided - preloads the requested fields
 func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
