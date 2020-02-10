@@ -109,6 +109,30 @@ func SelectedTip(ctx Context) (*dbmodels.Block, error) {
 	return block, nil
 }
 
+// SelectedTipBlueScore returns the blue score of the selected tip
+func SelectedTipBlueScore(ctx Context) (uint64, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return 0, err
+	}
+
+	var blueScore []uint64
+	dbResult := db.Model(&dbmodels.Block{}).
+		Where(&dbmodels.Block{IsChainBlock: true}).
+		Select("MAX(`blue_score`) as `blue_score`").
+		Pluck("blue_score", &blueScore)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip blue score from the database:", dbErrors)
+	}
+
+	if len(blueScore) == 0 {
+		return 0, nil
+	}
+	return blueScore[0], nil
+}
+
 // BluestBlock fetches the block with the highest blue score from the database
 // Note this is not necessarily the same as SelectedTip(), since SelectedTip requires
 // the selected-parent-chain to be fully synced
@@ -203,16 +227,17 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 		return false, err
 	}
 
-	var blocksCount uint64
+	var count uint64
 	dbResult := db.
 		Model(&dbmodels.Block{}).
 		Where(&dbmodels.Block{BlockHash: blockHash}).
-		Count(&blocksCount)
+		Count(&count)
+
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return false, httpserverutils.NewErrorFromDBErrors("Some errors were encountered while checking if block exists: ", dbErrors)
 	}
-	return blocksCount > 0, nil
+	return count > 0, nil
 }
 
 // BlocksCount returns the total number of blocks stored in the database
@@ -230,29 +255,4 @@ func BlocksCount(ctx Context) (uint64, error) {
 	}
 
 	return count, nil
-}
-
-// SelectedTipBlueScore returns the blue score of the selected tip
-func SelectedTipBlueScore(ctx Context) (uint64, error) {
-	db, err := ctx.db()
-	if err != nil {
-		return 0, err
-	}
-
-	var blueScore []uint64
-	dbResult := db.Model(&dbmodels.Block{}).
-		Order("blue_score DESC").
-		Where(&dbmodels.Block{IsChainBlock: true}).
-		Limit(1).
-		Pluck("blue_score", &blueScore)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip blue score from the database:", dbErrors)
-	}
-
-	if len(blueScore) == 0 {
-		return 0, nil
-	}
-	return blueScore[0], nil
 }
