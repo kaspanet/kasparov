@@ -15,7 +15,7 @@ func preloadFields(query *gorm.DB, preloadedFields []dbmodels.FieldName) *gorm.D
 	return query
 }
 
-// Save update value in database, if the value doesn't have primary key, will insert it
+// Save updates a value in database, if the value's primary key is nil (or the type's default value), will insert it
 func Save(ctx Context, value interface{}) error {
 	db, err := ctx.db()
 	if err != nil {

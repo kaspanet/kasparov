@@ -17,7 +17,7 @@ const (
 )
 
 // StringToOrder converts an order string into an Order type.
-// Returns ORderUnknown and an error if passed string is not ASC or DESC
+// Returns OrderUnknown and an error if passed string is not ASC or DESC
 func StringToOrder(orderString string) (Order, error) {
 	order := Order(strings.ToUpper(orderString))
 	if order != OrderAscending && order != OrderDescending {

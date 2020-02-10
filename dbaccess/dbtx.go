@@ -8,7 +8,7 @@ import (
 
 // Context is an interface type representing the context in which queries run, currently relating to the
 // existance or non-existance of a database transaction
-// Call `.NoTx()` or `.NewTx()` to aquire a Context
+// Call `.NoTx()` or `.NewTx()` to acquire a Context
 type Context interface {
 	db() (*gorm.DB, error)
 }

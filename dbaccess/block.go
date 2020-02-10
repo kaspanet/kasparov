@@ -8,7 +8,7 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
-// BlockByHash retrieves a block from the database according to it's hash
+// BlockByHash retrieves a block from the database according to its hash
 // If preloadedFields was provided - preloads the requested fields
 func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Block, error) {
 	db, err := ctx.db()
@@ -49,7 +49,7 @@ func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.Fi
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading block from database:",
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading blocks from database:",
 			dbResult.GetErrors())
 	}
 
@@ -65,8 +65,8 @@ func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedFields
 	}
 
 	query := db.
-		Limit(limit).
-		Offset(skip)
+		Offset(skip).
+		Limit(limit)
 
 	if order != OrderUnknown {
 		query = query.Order(fmt.Sprintf("`id` %s", order))
@@ -127,7 +127,7 @@ func BluestBlock(ctx Context) (*dbmodels.Block, error) {
 		return nil, nil
 	}
 	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip from the database:", dbErrors)
+		return nil, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading bluest block from the database:", dbErrors)
 	}
 
 	return block, nil
@@ -155,7 +155,7 @@ func UpdateBlocksAcceptedByAcceptingBlock(ctx Context, currentAcceptingBlockID u
 	return nil
 }
 
-// UpdateBlockAcceptingBlockID updates blocks with `blockID to be accepted by `acceptingBlockID `.
+// UpdateBlockAcceptingBlockID updates blocks with `blockID` to be accepted by `acceptingBlockID `.
 // `acceptingBlockID` can be set nil.
 func UpdateBlockAcceptingBlockID(ctx Context, blockID uint64, acceptingBlockID *uint64) error {
 	db, err := ctx.db()
@@ -176,7 +176,7 @@ func UpdateBlockAcceptingBlockID(ctx Context, blockID uint64, acceptingBlockID *
 	return nil
 }
 
-// UpdateBlockIsChainBlock updates the block `blockID` by setting it's is_chain_block column to `isChainBlock`
+// UpdateBlockIsChainBlock updates the block `blockID` by setting its isChainBlock field to `isChainBlock`
 func UpdateBlockIsChainBlock(ctx Context, blockID uint64, isChainBlock bool) error {
 	db, err := ctx.db()
 	if err != nil {
@@ -210,7 +210,7 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 		Count(&blocksCount)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return false, httpserverutils.NewErrorFromDBErrors("failed to find block: ", dbErrors)
+		return false, httpserverutils.NewErrorFromDBErrors("Some errors were encountered while checking if block exists: ", dbErrors)
 	}
 	return blocksCount > 0, nil
 }
@@ -248,7 +248,7 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading selected tip blue score from the database:", dbErrors)
 	}
 
 	if len(blueScore) == 0 {
