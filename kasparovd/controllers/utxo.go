@@ -18,7 +18,7 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		return nil, err
 	}
 
-	transactionOutputs, err := dbaccess.TransactionOutputsByAddress(dbaccess.NoTx(), address,
+	transactionOutputs, err := dbaccess.UTXOsByAddress(dbaccess.NoTx(), address,
 		dbmodels.TransactionOutputFieldNames.TransactionAcceptingBlock,
 		dbmodels.TransactionOutputFieldNames.TransactionSubnetwork)
 	if err != nil {

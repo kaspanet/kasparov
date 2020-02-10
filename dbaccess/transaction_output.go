@@ -5,9 +5,9 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
-// TransactionOutputsByAddress retrieves all transaction outputs incoming to `address`.
+// UTXOsByAddress retrieves all transaction outputs incoming to `address`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionOutputsByAddress(ctx Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
+func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
