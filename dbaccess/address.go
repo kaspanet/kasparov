@@ -5,7 +5,7 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
-// AddressesByAddressStrings retrieves all addresss by their `addresses`.
+// AddressesByAddressStrings retrieves all addresss by their address strings.
 // If preloadedFields was provided - preloads the requested fields
 func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Address, error) {
 	db, err := ctx.db()
