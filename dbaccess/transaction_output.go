@@ -37,16 +37,18 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 	if err != nil {
 		return nil, err
 	}
-	outpointTuples := outpointToSQLTuples(outpoints)
+	outpointTuples := outpointsToSQLTuples(outpoints)
 
 	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
 	// fetch previous transaction outputs in chunks to prevent too-large SQL queries
-	for i := 0; i < len(outpointTuples)/chunkSize+1; i++ {
+	for offset := 0; offset < len(outpointTuples); outpoints := make([]*dbaccess.Outpoint, 0, len(outpointsSet)) {
+		var chunk [][]interface{}
+		chunk, offset = outpointsChunk(outpointTuples, offset)
 		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
 
 		dbResult := db.
 			Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-			Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", outpointsChunk(outpointTuples, i)).
+			Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", chunk).
 			Preload("Transaction").
 			Find(&dbPreviousTransactionsOutputsChunk)
 		dbErrors := dbResult.GetErrors()
@@ -61,7 +63,7 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 	return dbPreviousTransactionsOutputs, nil
 }
 
-func outpointToSQLTuples(outpoints []*Outpoint) [][]interface{} {
+func outpointsToSQLTuples(outpoints []*Outpoint) [][]interface{} {
 	tuples := make([][]interface{}, len(outpoints))
 	i := 0
 	for _, o := range outpoints {
@@ -71,11 +73,12 @@ func outpointToSQLTuples(outpoints []*Outpoint) [][]interface{} {
 	return tuples
 }
 
-func outpointsChunk(outpointTuples [][]interface{}, i int) [][]interface{} {
-	chunkStart := i * chunkSize
-	chunkEnd := chunkStart + chunkSize
-	if chunkEnd > len(outpointTuples) {
-		chunkEnd = len(outpointTuples)
+func outpointsChunk(outpointTuples [][]interface{}, offset int) (chunk [][]interface{}, nextOffset int) {
+	nextOffset = offset + chunkSize
+
+	if nextOffset > len(outpointTuples) {
+		nextOffset = len(outpointTuples)
 	}
-	return outpointTuples[chunkStart:chunkEnd]
+
+	return outpointTuples[nextOffset:nextOffset], nextOffset
 }

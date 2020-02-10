@@ -154,6 +154,9 @@ func calcTxMass(dbTx *dbaccess.TxContext, transaction *rpcmodel.TxRawResult) (ui
 		})
 	}
 	prevDBTransactionsOutputs, err := dbaccess.TransactionOutputsByOutpoints(dbTx, outpoints)
+	if err != nil {
+		return 0, err
+	}
 
 	prevScriptPubKeysMap := make(map[string]map[uint32][]byte)
 	for _, prevDBTransactionsOutput := range prevDBTransactionsOutputs {

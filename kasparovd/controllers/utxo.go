@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/hex"
-	"fmt"
 
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/kaspanet/kasparov/apimodels"
@@ -25,13 +24,6 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		return nil, err
 	}
 
-	nonAcceptedTxIds := make([]uint64, len(transactionOutputs))
-	for i, txOut := range transactionOutputs {
-		if txOut.Transaction.AcceptingBlock == nil {
-			nonAcceptedTxIds[i] = txOut.TransactionID
-		}
-	}
-
 	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
 	if err != nil {
 		return nil, err
@@ -43,7 +35,7 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		subnetworkID := &subnetworkid.SubnetworkID{}
 		err := subnetworkid.Decode(subnetworkID, transactionOutput.Transaction.Subnetwork.SubnetworkID)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("Couldn't decode subnetwork id %s", transactionOutput.Transaction.Subnetwork.SubnetworkID))
+			return nil, errors.Wrapf(err, "couldn't decode subnetwork id %s", transactionOutput.Transaction.Subnetwork.SubnetworkID)
 		}
 		var acceptingBlockHash *string
 		var acceptingBlockBlueScore *uint64

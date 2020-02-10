@@ -107,7 +107,7 @@ func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when loading transactions from the database:", dbErrors)
+		return 0, httpserverutils.NewErrorFromDBErrors("Some errors were encountered when counting transactions in the database:", dbErrors)
 	}
 
 	return count, nil
@@ -167,9 +167,7 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...
 		return nil, err
 	}
 
-	query := joinTxInputsTxOutputsAndAddresses(db).
-		Where("`transactions`.`transaction_id` IN (?)", transactionIDs).
-		Select("DISTINCT `transactions`.*")
+	query := db.Where("`transactions`.`transaction_id` IN (?)", transactionIDs)
 	query = preloadFields(query, preloadedFields)
 
 	var txs []*dbmodels.Transaction

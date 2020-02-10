@@ -3,7 +3,6 @@ package dbaccess
 import (
 	"fmt"
 
-	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/httpserverutils"
 )
@@ -168,7 +167,7 @@ func UpdateBlocksAcceptedByAcceptingBlock(ctx Context, currentAcceptingBlockID u
 
 	dbResult := db.
 		Model(&dbmodels.Block{}).
-		Where(&dbmodels.Block{AcceptingBlockID: rpcmodel.Uint64(currentAcceptingBlockID)}).
+		Where(&dbmodels.Block{AcceptingBlockID: &currentAcceptingBlockID}).
 		Update("accepting_block_id", newAcceptingBlockID)
 
 	dbErrors := dbResult.GetErrors()

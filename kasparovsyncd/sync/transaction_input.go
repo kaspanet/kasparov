@@ -41,10 +41,12 @@ func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMe
 	if inputsCount == 0 {
 		return nil
 	}
-	outpoints := make([]*dbaccess.Outpoint, 0, len(outpointsSet))
+	outpoints := make([]*dbaccess.Outpoint, len(outpointsSet))
+	i := 0
 	for outpoint := range outpointsSet {
 		outpointCopy := outpoint // since outpoint is a value type - copy it, othewise it would be overwritten
-		outpoints = append(outpoints, &outpointCopy)
+		outpoints[i] = &outpointCopy
+		i++
 	}
 
 	dbPreviousTransactionsOutputs, err := dbaccess.TransactionOutputsByOutpoints(dbTx, outpoints)
@@ -53,7 +55,6 @@ func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMe
 	}
 
 	if len(dbPreviousTransactionsOutputs) != len(outpoints) {
-		log.Infof("len(dbPreviousTransactionsOutputs): %d,  len(outpoints): %d", len(dbPreviousTransactionsOutputs), len(outpoints))
 		return errors.New("couldn't fetch all of the requested outpoints")
 	}
 
