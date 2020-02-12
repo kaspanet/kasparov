@@ -86,5 +86,5 @@ func outpointsChunk(outpointTuples [][]interface{}, offset int) (chunk [][]inter
 		nextOffset = len(outpointTuples)
 	}
 
-	return outpointTuples[nextOffset:nextOffset], nextOffset
+	return outpointTuples[offset:nextOffset], nextOffset
 }
