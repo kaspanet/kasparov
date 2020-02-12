@@ -346,7 +346,7 @@ func updateAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, ad
 	return nil
 }
 
-func fetchMissingBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext,addedBlock *rpcmodel.ChainBlock) (*dbmodels.Block, error) {
+func fetchMissingBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) (*dbmodels.Block, error) {
 	log.Debugf("Block %s not found in the database - fetching from node", addedBlock.Hash)
 	blockHash, err := daghash.NewHashFromStr(addedBlock.Hash)
 	if err != nil {
