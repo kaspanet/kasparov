@@ -13,7 +13,7 @@ var nextRequestID uint64 = 1
 func AddRequestMetadataMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rCtx := ToServerContext(r.Context()).SetRequestID(nextRequestID)
-		r.WithContext(rCtx)
+		r = r.WithContext(rCtx)
 		nextRequestID++
 		next.ServeHTTP(w, r)
 	})
