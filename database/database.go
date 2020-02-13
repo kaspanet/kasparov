@@ -18,7 +18,7 @@ var db *gorm.DB
 
 const (
 	globalTimeZoneSystem = "SYSTEM"
-	expectedTimeZone     = "UTC"
+	utcTimeZone          = "UTC"
 )
 
 // DB returns a reference to the database connection
@@ -75,8 +75,8 @@ func validateTimeZone(db *gorm.DB) error {
 	if result.GlobalTimeZone == globalTimeZoneSystem {
 		timeZone = result.SystemTimeZone
 	}
-	if timeZone != expectedTimeZone {
-		return errors.Errorf("timezone is %s but is expected to be %s", timeZone, expectedTimeZone)
+	if timeZone != utcTimeZone {
+		return errors.Errorf("to prevent conversion errors - Kasparov should only run with a database configured to use the UTC timezone, currently configured timezone is %s", timeZone)
 	}
 	return nil
 }
