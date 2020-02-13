@@ -62,12 +62,16 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block) *BlockResponse {
 		Timestamp:            uint64(block.Timestamp.Unix()),
 		Bits:                 block.Bits,
 		Nonce:                block.Nonce,
+		ParentBlockHashes:    make([]string, len(block.ParentBlocks)),
 		BlueScore:            block.BlueScore,
 		IsChainBlock:         block.IsChainBlock,
 		Mass:                 block.Mass,
 	}
 	if block.AcceptingBlock != nil {
 		blockRes.AcceptingBlockHash = rpcmodel.String(block.AcceptingBlock.BlockHash)
+	}
+	for i, parent := range block.ParentBlocks {
+		blockRes.ParentBlockHashes[i] = parent.BlockHash
 	}
 	return blockRes
 }

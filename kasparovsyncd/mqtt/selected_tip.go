@@ -16,7 +16,7 @@ func PublishSelectedTipNotification(selectedTipHash string) error {
 	if !isConnected() {
 		return nil
 	}
-	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), selectedTipHash, dbmodels.BlockFieldNames.AcceptingBlock)
+	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), selectedTipHash, dbmodels.BlockRecommendedPreloadedFields...)
 	if err != nil {
 		return err
 	}
