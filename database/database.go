@@ -3,19 +3,23 @@ package database
 import (
 	nativeerrors "errors"
 	"fmt"
-	"os"
-
-	"github.com/kaspanet/kasparov/config"
-	"github.com/pkg/errors"
-
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/jinzhu/gorm"
+	"github.com/kaspanet/kasparov/config"
+	"github.com/kaspanet/kasparov/httpserverutils"
+	"github.com/pkg/errors"
+	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 )
 
 // db is the Kasparov database.
 var db *gorm.DB
+
+const (
+	systemTimeZone = "SYSTEM"
+	utcTimeZone    = "UTC"
+)
 
 // DB returns a reference to the database connection
 func DB() (*gorm.DB, error) {
@@ -53,8 +57,32 @@ func Connect(cfg *config.KasparovFlags) error {
 	if err != nil {
 		return err
 	}
-
 	db.SetLogger(gormLogger{})
+
+	return validateTimeZone(db)
+}
+
+func validateTimeZone(db *gorm.DB) error {
+	result := struct {
+		GlobalTimeZone, SystemTimeZone string
+	}{}
+	dbResult := db.
+		Raw("SELECT @@global.time_zone as global_time_zone, " +
+			"@@global.system_time_zone as system_time_zone").
+		Scan(&result)
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when "+
+			"checking the database timezone:", dbErrors)
+	}
+	timeZone := result.GlobalTimeZone
+	if timeZone == systemTimeZone {
+		timeZone = result.SystemTimeZone
+	}
+	if timeZone != utcTimeZone {
+		return errors.Errorf("to prevent conversion errors - Kasparov should only run with "+
+			"a database configured to use the UTC timezone, currently configured timezone is %s", timeZone)
+	}
 	return nil
 }
 
