@@ -66,17 +66,22 @@ func validateTimeZone(db *gorm.DB) error {
 	result := struct {
 		GlobalTimeZone, SystemTimeZone string
 	}{}
-	dbResult := db.Raw("SELECT @@global.time_zone as global_time_zone, @@global.system_time_zone as system_time_zone").Scan(&result)
+	dbResult := db.
+		Raw("SELECT @@global.time_zone as global_time_zone, " +
+			"@@global.system_time_zone as system_time_zone").
+		Scan(&result)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when checking the database timezone:", dbErrors)
+		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when "+
+			"checking the database timezone:", dbErrors)
 	}
 	timeZone := result.GlobalTimeZone
 	if result.GlobalTimeZone == globalTimeZoneSystem {
 		timeZone = result.SystemTimeZone
 	}
 	if timeZone != utcTimeZone {
-		return errors.Errorf("to prevent conversion errors - Kasparov should only run with a database configured to use the UTC timezone, currently configured timezone is %s", timeZone)
+		return errors.Errorf("to prevent conversion errors - Kasparov should only run with "+
+			"a database configured to use the UTC timezone, currently configured timezone is %s", timeZone)
 	}
 	return nil
 }
