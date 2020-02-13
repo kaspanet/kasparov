@@ -65,7 +65,7 @@ func sync(client *jsonrpc.Client, doneChan chan struct{}) error {
 			}
 		case chainChanged := <-client.OnChainChanged:
 			enqueueChainChangedMsg(chainChanged)
-			err := processChainChangedMsgs()
+			err := processChainChangedMsgs(client)
 			if err != nil {
 				return err
 			}
@@ -138,7 +138,7 @@ func syncSelectedParentChain(client *jsonrpc.Client) error {
 		}
 
 		startHash = chainFromBlockResult.AddedChainBlocks[len(chainFromBlockResult.AddedChainBlocks)-1].Hash
-		err = updateSelectedParentChain(chainFromBlockResult.RemovedChainBlockHashes,
+		err = updateSelectedParentChain(client, chainFromBlockResult.RemovedChainBlockHashes,
 			chainFromBlockResult.AddedChainBlocks)
 		if err != nil {
 			return err
@@ -178,7 +178,7 @@ func fetchBlock(client *jsonrpc.Client, blockHash *daghash.Hash) (
 // all addChainBlocks.
 // Note that if this function may take a nil dbTx, in which case it would start
 // a database transaction by itself and commit it before returning.
-func updateSelectedParentChain(removedChainHashes []string, addedChainBlocks []rpcmodel.ChainBlock) error {
+func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []string, addedChainBlocks []rpcmodel.ChainBlock) error {
 	dbTx, err := dbaccess.NewTx()
 	if err != nil {
 		return err
@@ -192,7 +192,7 @@ func updateSelectedParentChain(removedChainHashes []string, addedChainBlocks []r
 		}
 	}
 	for _, addedBlock := range addedChainBlocks {
-		err := updateAddedChainBlocks(dbTx, &addedBlock)
+		err := updateAddedChainBlocks(client, dbTx, &addedBlock)
 		if err != nil {
 			return err
 		}
@@ -269,13 +269,18 @@ func updateRemovedChainHashes(dbTx *dbaccess.TxContext, removedHash string) erro
 // * All its Transactions are set AcceptingBlockID = addedBlock
 // * The block is set IsChainBlock = true
 // This function will return an error if any of the above are in an unexpected state
-func updateAddedChainBlocks(dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) error {
+func updateAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) error {
 	dbAddedBlock, err := dbaccess.BlockByHash(dbTx, addedBlock.Hash)
 	if err != nil {
 		return err
 	}
 	if dbAddedBlock == nil {
-		return errors.Errorf("missing block for hash: %s", addedBlock.Hash)
+		// Sometime it happens that block referenced in a selectedParent-chain have not yet been added to the
+		// database. In that case - fetch it, and add it to the database
+		dbAddedBlock, err = fetchMissingBlock(client, dbTx, addedBlock)
+		if err != nil {
+			return err
+		}
 	}
 	if dbAddedBlock.IsChainBlock {
 		return errors.Errorf("block erroneously marked as a chain block: %s", addedBlock.Hash)
@@ -341,8 +346,36 @@ func updateAddedChainBlocks(dbTx *dbaccess.TxContext, addedBlock *rpcmodel.Chain
 	return nil
 }
 
+func fetchMissingBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) (*dbmodels.Block, error) {
+	log.Debugf("Block %s not found in the database - fetching from node", addedBlock.Hash)
+	blockHash, err := daghash.NewHashFromStr(addedBlock.Hash)
+	if err != nil {
+		return nil, err
+	}
+	err = fetchAndAddBlock(client, dbTx, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	// Now get block from database again - this time it has to be there
+	dbAddedBlock, err := dbaccess.BlockByHash(dbTx, addedBlock.Hash)
+	if err != nil {
+		return nil, err
+	}
+	if dbAddedBlock == nil {
+		return nil, errors.Errorf("missing block for hash %s, even after it was explicitly fetched", addedBlock.Hash)
+	}
+	return dbAddedBlock, nil
+}
+
 func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedMsg) error {
-	blockExists, err := dbaccess.DoesBlockExist(dbaccess.NoTx(), blockAdded.Header.BlockHash().String())
+	dbTx, err := dbaccess.NewTx()
+	if err != nil {
+		return err
+	}
+	defer dbTx.RollbackUnlessCommitted()
+
+	blockHash := blockAdded.Header.BlockHash()
+	blockExists, err := dbaccess.DoesBlockExist(dbaccess.NoTx(), blockHash.String())
 	if err != nil {
 		return err
 	}
@@ -350,18 +383,26 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 		return nil
 	}
 
-	block, err := fetchBlock(client, blockAdded.Header.BlockHash())
+	err = fetchAndAddBlock(client, dbTx, blockHash)
+	if err != nil {
+		return err
+	}
+	return dbTx.Commit()
+}
+
+func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blockHash *daghash.Hash) error {
+	block, err := fetchBlock(client, blockHash)
 	if err != nil {
 		return err
 	}
 
-	missingAncestors, err := fetchMissingAncestors(client, block, nil)
+	missingAncestors, err := fetchMissingAncestors(client, dbTx, block, nil)
 	if err != nil {
 		return err
 	}
 
 	blocks := append([]*rawAndVerboseBlock{block}, missingAncestors...)
-	err = bulkInsertBlocksData(client, blocks)
+	err = bulkInsertBlocksData(client, dbTx, blocks)
 	if err != nil {
 		return err
 	}
@@ -372,11 +413,12 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 			return err
 		}
 	}
+
 	return nil
 }
 
-func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, blockExistingInMemory map[string]*rawAndVerboseBlock) (
-	[]*rawAndVerboseBlock, error) {
+func fetchMissingAncestors(client *jsonrpc.Client, dbTx *dbaccess.TxContext, block *rawAndVerboseBlock,
+	blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
 
 	pendingBlocks := []*rawAndVerboseBlock{block}
 	missingAncestors := make([]*rawAndVerboseBlock, 0)
@@ -384,7 +426,7 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, bl
 	for len(pendingBlocks) > 0 {
 		var currentBlock *rawAndVerboseBlock
 		currentBlock, pendingBlocks = pendingBlocks[0], pendingBlocks[1:]
-		missingParentHashes, err := missingBlockHashes(currentBlock.Verbose.ParentHashes, blockExistingInMemory)
+		missingParentHashes, err := missingBlockHashes(dbTx, currentBlock.Verbose.ParentHashes, blockExistingInMemory)
 		if err != nil {
 			return nil, err
 		}
@@ -420,7 +462,9 @@ func fetchMissingAncestors(client *jsonrpc.Client, block *rawAndVerboseBlock, bl
 // missingBlockHashes takes a slice of block hashes and returns
 // a slice that contains all the block hashes that do not exist
 // in the database or in the given blocksExistingInMemory map.
-func missingBlockHashes(blockHashes []string, blocksExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
+func missingBlockHashes(dbTx *dbaccess.TxContext, blockHashes []string,
+	blocksExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
+
 	// filter out all the hashes that exist in blocksExistingInMemory
 	hashesNotInMemory := make([]string, 0)
 	for _, hash := range blockHashes {
@@ -431,7 +475,7 @@ func missingBlockHashes(blockHashes []string, blocksExistingInMemory map[string]
 
 	// Check which of the hashes in hashesNotInMemory do
 	// not exist in the database.
-	dbBlocks, err := dbaccess.BlocksByHashes(dbaccess.NoTx(), hashesNotInMemory)
+	dbBlocks, err := dbaccess.BlocksByHashes(dbTx, hashesNotInMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +504,7 @@ func enqueueChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) {
 
 // processChainChangedMsgs processes all pending onChainChanged messages.
 // Messages that cannot yet be processed are re-enqueued.
-func processChainChangedMsgs() error {
+func processChainChangedMsgs(client *jsonrpc.Client) error {
 	var unprocessedChainChangedMessages []*jsonrpc.ChainChangedMsg
 	for _, chainChanged := range pendingChainChangedMsgs {
 		canHandle, err := canHandleChainChangedMsg(chainChanged)
@@ -477,7 +521,7 @@ func processChainChangedMsgs() error {
 			panic(errors.Errorf("Error while publishing unaccepted transactions notifications %s", err))
 		}
 
-		err = handleChainChangedMsg(chainChanged)
+		err = handleChainChangedMsg(client, chainChanged)
 		if err != nil {
 			return err
 		}
@@ -486,12 +530,12 @@ func processChainChangedMsgs() error {
 	return nil
 }
 
-func handleChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) error {
+func handleChainChangedMsg(client *jsonrpc.Client, chainChanged *jsonrpc.ChainChangedMsg) error {
 	// Convert the data in chainChanged to something we can feed into
 	// updateSelectedParentChain
 	removedHashes, addedBlocks := convertChainChangedMsg(chainChanged)
 
-	err := updateSelectedParentChain(removedHashes, addedBlocks)
+	err := updateSelectedParentChain(client, removedHashes, addedBlocks)
 	if err != nil {
 		return errors.Wrap(err, "Could not update selected parent chain")
 	}
@@ -581,10 +625,15 @@ func convertChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (
 // addBlocks inserts data in the given rawBlocks and verboseBlocks pairwise
 // into the database.
 func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmodel.GetBlockVerboseResult) error {
+	dbTx, err := dbaccess.NewTx()
+	defer dbTx.RollbackUnlessCommitted()
+	if err != nil {
+		return err
+	}
 	blocks := make([]*rawAndVerboseBlock, 0)
 	blockHashesToRawAndVerboseBlock := make(map[string]*rawAndVerboseBlock)
 	for i, rawBlock := range rawBlocks {
-		blockExists, err := dbaccess.DoesBlockExist(dbaccess.NoTx(), verboseBlocks[i].Hash)
+		blockExists, err := dbaccess.DoesBlockExist(dbTx, verboseBlocks[i].Hash)
 		if err != nil {
 			return err
 		}
@@ -596,7 +645,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			Raw:     rawBlock,
 			Verbose: &verboseBlocks[i],
 		}
-		missingAncestors, err := fetchMissingAncestors(client, &rawAndVerboseBlock{
+		missingAncestors, err := fetchMissingAncestors(client, dbTx, &rawAndVerboseBlock{
 			Raw:     rawBlock,
 			Verbose: &verboseBlocks[i],
 		}, blockHashesToRawAndVerboseBlock)
@@ -612,19 +661,18 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			blockHashesToRawAndVerboseBlock[block.hash()] = block
 		}
 	}
-	return bulkInsertBlocksData(client, blocks)
+	err = bulkInsertBlocksData(client, dbTx, blocks)
+	if err != nil {
+		return err
+	}
+
+	return dbTx.Commit()
 }
 
 // bulkInsertBlocksData inserts the given blocks and their data (transactions
 // and new subnetworks data) to the database in chunks.
-func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*rawAndVerboseBlock) error {
-	dbTx, err := dbaccess.NewTx()
-	if err != nil {
-		return err
-	}
-	defer dbTx.RollbackUnlessCommitted()
-
-	subnetworkIDToID, err := insertSubnetworks(dbTx, client, blocks)
+func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock) error {
+	subnetworkIDToID, err := insertSubnetworks(client, dbTx, blocks)
 	if err != nil {
 		return err
 	}
@@ -674,7 +722,6 @@ func bulkInsertBlocksData(client *jsonrpc.Client, blocks []*rawAndVerboseBlock) 
 		return err
 	}
 
-	dbTx.Commit()
 	log.Infof("Added %d blocks", len(blocks))
 	return nil
 }
