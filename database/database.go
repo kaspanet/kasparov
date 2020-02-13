@@ -17,8 +17,8 @@ import (
 var db *gorm.DB
 
 const (
-	globalTimeZoneSystem = "SYSTEM"
-	utcTimeZone          = "UTC"
+	systemTimeZone = "SYSTEM"
+	utcTimeZone    = "UTC"
 )
 
 // DB returns a reference to the database connection
@@ -76,7 +76,7 @@ func validateTimeZone(db *gorm.DB) error {
 			"checking the database timezone:", dbErrors)
 	}
 	timeZone := result.GlobalTimeZone
-	if result.GlobalTimeZone == globalTimeZoneSystem {
+	if result.GlobalTimeZone == systemTimeZone {
 		timeZone = result.SystemTimeZone
 	}
 	if timeZone != utcTimeZone {
