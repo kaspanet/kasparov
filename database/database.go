@@ -76,7 +76,7 @@ func validateTimeZone(db *gorm.DB) error {
 			"checking the database timezone:", dbErrors)
 	}
 	timeZone := result.GlobalTimeZone
-	if result.GlobalTimeZone == systemTimeZone {
+	if timeZone == systemTimeZone {
 		timeZone = result.SystemTimeZone
 	}
 	if timeZone != utcTimeZone {
