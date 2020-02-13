@@ -28,13 +28,15 @@ func ToServerContext(ctx context.Context) *ServerContext {
 
 // SetRequestID associates a request ID for the context.
 func (ctx *ServerContext) SetRequestID(requestID uint64) context.Context {
-	context.WithValue(ctx, contextKeyRequestID, requestID)
-	return ctx
+	return context.WithValue(ctx, contextKeyRequestID, requestID)
 }
 
 func (ctx *ServerContext) requestID() uint64 {
 	id := ctx.Value(contextKeyRequestID)
-	uint64ID, _ := id.(uint64)
+	uint64ID, ok := id.(uint64)
+	if !ok {
+		panic("request ID is not uint64")
+	}
 	return uint64ID
 }
 

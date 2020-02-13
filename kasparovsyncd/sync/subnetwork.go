@@ -56,6 +56,9 @@ func insertSubnetworks(dbTx *dbaccess.TxContext, client *jsonrpc.Client, blocks 
 	}
 
 	dbNewSubnetworks, err := dbaccess.SubnetworksByIDs(dbTx, newSubnetworkIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(dbNewSubnetworks) != len(newSubnetworkIDs) {
 		return nil, errors.New("couldn't add all new subnetworks")
