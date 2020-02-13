@@ -36,6 +36,12 @@ var BlockFieldNames = struct {
 	ParentBlocks:   "ParentBlocks",
 }
 
+// BlockRecommendedPreloadedFields is a list of fields recommended to preload when getting blocks
+var BlockRecommendedPreloadedFields = []FieldName{
+	BlockFieldNames.AcceptingBlock,
+	BlockFieldNames.ParentBlocks,
+}
+
 // ParentBlock is the gorm model for the 'parent_blocks' table
 type ParentBlock struct {
 	BlockID       uint64
