@@ -16,6 +16,11 @@ import (
 // db is the Kasparov database.
 var db *gorm.DB
 
+const (
+	globalTimeZoneSystem = "SYSTEM"
+	expectedTimeZone     = "UTC"
+)
+
 // DB returns a reference to the database connection
 func DB() (*gorm.DB, error) {
 	if db == nil {
@@ -58,14 +63,20 @@ func Connect(cfg *config.KasparovFlags) error {
 }
 
 func validateTimeZone(db *gorm.DB) error {
-	var isZeroDiff []uint
-	dbResult := db.Raw("SELECT TIMEDIFF(NOW(), UTC_TIMESTAMP)='00:00:00' AS is_zero_diff").Pluck("is_zero_diff", &isZeroDiff)
+	result := struct {
+		GlobalTimeZone, SystemTimeZone string
+	}{}
+	dbResult := db.Raw("SELECT @@global.time_zone as global_time_zone, @@global.system_time_zone as system_time_zone").Scan(&result)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("Some errors were encountered when checking the database timezone:", dbErrors)
+		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when checking the database timezone:", dbErrors)
 	}
-	if isZeroDiff[0] == 1 {
-		return errors.Errorf("timezone is not set to UTC")
+	timeZone := result.GlobalTimeZone
+	if result.GlobalTimeZone == globalTimeZoneSystem {
+		timeZone = result.SystemTimeZone
+	}
+	if timeZone != expectedTimeZone {
+		return errors.Errorf("timezone is %s but is expected to be %s", timeZone, expectedTimeZone)
 	}
 	return nil
 }
