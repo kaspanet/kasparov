@@ -11,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// apiURL returns a full concatenated URL from the base
+// resourceURL returns a full concatenated URL from the base
 // kasparov server URL and the given path.
-func apiURL(kasparovAddress string, pathElements ...string) (string, error) {
+func resourceURL(kasparovAddress string, pathElements ...string) (string, error) {
 	u, err := url.Parse(kasparovAddress)
 	if err != nil {
 		return "", errors.WithStack(err)
@@ -26,7 +26,7 @@ func apiURL(kasparovAddress string, pathElements ...string) (string, error) {
 }
 
 func getUTXOs(kasparovAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
-	requestURL, err := apiURL(kasparovAddress, "utxos/address", address)
+	requestURL, err := resourceURL(kasparovAddress, "utxos/address", address)
 	if err != nil {
 		return nil, err
 	}
