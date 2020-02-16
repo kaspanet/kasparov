@@ -14,15 +14,15 @@ import (
 // resourceURL returns a full concatenated URL from the base
 // kasparov server URL and the given path.
 func resourceURL(kasparovAddress string, pathElements ...string) (string, error) {
-	u, err := url.Parse(kasparovAddress)
+	kasparovURL, err := url.Parse(kasparovAddress)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
 	newPathElements := make([]string, len(pathElements)+1)
-	newPathElements[0] = u.Path
+	newPathElements[0] = kasparovURL.Path
 	copy(newPathElements[1:], pathElements)
-	u.Path = path.Join(newPathElements...)
-	return u.String(), nil
+	kasparovURL.Path = path.Join(newPathElements...)
+	return kasparovURL.String(), nil
 }
 
 func getUTXOs(kasparovAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
