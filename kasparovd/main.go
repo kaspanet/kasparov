@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kaspanet/kasparov/profiling"
 	"os"
 
 	"github.com/pkg/errors"
@@ -34,6 +35,11 @@ func main() {
 
 	// Show version at startup.
 	log.Infof("Version %s", version.Version())
+
+	// Start the profiling server if required
+	if config.ActiveConfig().Profile != "" {
+		profiling.Start(config.ActiveConfig().Profile)
+	}
 
 	err = database.Connect(&config.ActiveConfig().KasparovFlags)
 	if err != nil {
