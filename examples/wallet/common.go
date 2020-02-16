@@ -11,6 +11,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	getUTXOsEndpoint        = "utxos/address"
+	sendTransactionEndpoint = "transaction"
+)
+
 // resourceURL returns a full concatenated URL from the base
 // kasparov server URL and the given path.
 func resourceURL(kasparovAddress string, pathElements ...string) (string, error) {
@@ -26,7 +31,7 @@ func resourceURL(kasparovAddress string, pathElements ...string) (string, error)
 }
 
 func getUTXOs(kasparovAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
-	requestURL, err := resourceURL(kasparovAddress, "utxos/address", address)
+	requestURL, err := resourceURL(kasparovAddress, getUTXOsEndpoint, address)
 	if err != nil {
 		return nil, err
 	}

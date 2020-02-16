@@ -153,7 +153,7 @@ func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 		return errors.Wrap(err, "Error marshalling transaction to json")
 	}
 
-	requestURL, err := resourceURL(conf.KasparovAddress, "transaction")
+	requestURL, err := resourceURL(conf.KasparovAddress, sendTransactionEndpoint)
 	if err != nil {
 		return err
 	}
