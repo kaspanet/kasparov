@@ -2,16 +2,35 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"path"
 
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/pkg/errors"
 )
 
+// apiURL returns a full concatenated URL from the base
+// kasparov server URL and the given path.
+func apiURL(kasparovAddress string, pathElements ...string) (string, error) {
+	u, err := url.Parse(kasparovAddress)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	newPathElements := make([]string, len(pathElements)+1)
+	newPathElements[0] = u.Path
+	copy(newPathElements[1:], pathElements)
+	u.Path = path.Join(newPathElements...)
+	return u.String(), nil
+}
+
 func getUTXOs(kasparovAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
-	response, err := http.Get(fmt.Sprintf("%s/utxos/address/%s", kasparovAddress, address))
+	requestURL, err := apiURL(kasparovAddress, "utxos/address", address)
+	if err != nil {
+		return nil, err
+	}
+	response, err := http.Get(requestURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error getting UTXOs from Kasparov server")
 	}
