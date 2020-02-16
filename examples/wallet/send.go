@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"github.com/kaspanet/kaspad/ecc"
 	"github.com/kaspanet/kaspad/txscript"
 	"github.com/kaspanet/kaspad/util"
@@ -14,6 +12,7 @@ import (
 	"github.com/kaspanet/kaspad/wire"
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/pkg/errors"
+	"net/http"
 )
 
 const feeSompis uint64 = 1000
@@ -154,7 +153,11 @@ func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
 		return errors.Wrap(err, "Error marshalling transaction to json")
 	}
 
-	response, err := http.Post(fmt.Sprintf("%s/transaction", conf.KasparovAddress), "application/json", bytes.NewBuffer(txBytes))
+	requestURL, err := resourceURL(conf.KasparovAddress, sendTransactionEndpoint)
+	if err != nil {
+		return err
+	}
+	response, err := http.Post(requestURL, "application/json", bytes.NewBuffer(txBytes))
 	if err != nil {
 		return errors.Wrap(err, "Error posting transaction to server")
 	}

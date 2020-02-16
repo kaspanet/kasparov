@@ -2,16 +2,38 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"path"
 
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/pkg/errors"
 )
 
+const (
+	getUTXOsEndpoint        = "utxos/address"
+	sendTransactionEndpoint = "transaction"
+)
+
+// resourceURL returns a full concatenated URL from the base
+// kasparov server URL and the given path.
+func resourceURL(kasparovAddress string, pathElements ...string) (string, error) {
+	kasparovURL, err := url.Parse(kasparovAddress)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	pathElements = append([]string{kasparovURL.Path}, pathElements...)
+	kasparovURL.Path = path.Join(pathElements...)
+	return kasparovURL.String(), nil
+}
+
 func getUTXOs(kasparovAddress string, address string) ([]*apimodels.TransactionOutputResponse, error) {
-	response, err := http.Get(fmt.Sprintf("%s/utxos/address/%s", kasparovAddress, address))
+	requestURL, err := resourceURL(kasparovAddress, getUTXOsEndpoint, address)
+	if err != nil {
+		return nil, err
+	}
+	response, err := http.Get(requestURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error getting UTXOs from Kasparov server")
 	}
