@@ -23,7 +23,8 @@ func resourceURL(kasparovAddress string, pathElements ...string) (string, error)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
-	kasparovURL.Path = path.Join(append([]string{kasparovURL.Path}, pathElements...)...)
+	pathElements = append([]string{kasparovURL.Path}, pathElements...)
+	kasparovURL.Path = path.Join(pathElements...)
 	return kasparovURL.String(), nil
 }
 
