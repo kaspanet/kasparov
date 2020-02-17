@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/kaspanet/kasparov/kasparovsyncd/sync"
+	"github.com/kaspanet/kasparov/profiling"
 	"os"
 
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
@@ -34,6 +35,11 @@ func main() {
 
 	// Show version at startup.
 	log.Infof("Version %s", version.Version())
+
+	// Start the profiling server if required
+	if config.ActiveConfig().Profile != "" {
+		profiling.Start(config.ActiveConfig().Profile)
+	}
 
 	if config.ActiveConfig().Migrate {
 		err := database.Migrate(&config.ActiveConfig().KasparovFlags)

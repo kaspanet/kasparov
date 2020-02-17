@@ -28,6 +28,7 @@ type KasparovFlags struct {
 	RPCServer   string `short:"s" long:"rpcserver" description:"RPC server to connect to"`
 	RPCCert     string `short:"c" long:"rpccert" description:"RPC server certificate chain for validation"`
 	DisableTLS  bool   `long:"notls" description:"Disable TLS"`
+	Profile     string `long:"profile" description:"Enable HTTP profiling on the given port"`
 	config.NetworkFlags
 }
 
