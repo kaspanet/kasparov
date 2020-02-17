@@ -15,6 +15,6 @@ func Start(port string) {
 		log.Infof("Profile server listening on %s", listenAddr)
 		profileRedirect := http.RedirectHandler("/debug/pprof", http.StatusSeeOther)
 		http.Handle("/", profileRedirect)
-		log.Errorf("%s", http.ListenAndServe(listenAddr, nil))
+		log.Error(http.ListenAndServe(listenAddr, nil))
 	})
 }
