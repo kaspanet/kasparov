@@ -3,7 +3,6 @@ package apimodels
 import (
 	"encoding/hex"
 
-	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
@@ -68,7 +67,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block) *BlockResponse {
 		Mass:                 block.Mass,
 	}
 	if block.AcceptingBlock != nil {
-		blockRes.AcceptingBlockHash = rpcmodel.String(block.AcceptingBlock.BlockHash)
+		blockRes.AcceptingBlockHash = &block.AcceptingBlock.BlockHash
 	}
 	for i, parent := range block.ParentBlocks {
 		blockRes.ParentBlockHashes[i] = parent.BlockHash
