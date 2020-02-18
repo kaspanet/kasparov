@@ -179,6 +179,11 @@ func fetchBlock(client *jsonrpc.Client, blockHash *daghash.Hash) (
 // Note that if this function may take a nil dbTx, in which case it would start
 // a database transaction by itself and commit it before returning.
 func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []string, addedChainBlocks []rpcmodel.ChainBlock) error {
+	unacceptedTransactions, err := dbaccess.AcceptedTransactionsByBlockHashes(dbaccess.NoTx(), removedChainHashes, dbmodels.TransactionRecommendedPreloadedFields...)
+	if err != nil {
+		return err
+	}
+
 	dbTx, err := dbaccess.NewTx()
 	if err != nil {
 		return err
@@ -198,7 +203,20 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 		}
 	}
 
-	dbTx.Commit()
+	err = dbTx.Commit()
+	if err != nil {
+		return err
+	}
+
+	err = mqtt.PublishUnacceptedTransactionsNotifications(unacceptedTransactions)
+	if err != nil {
+		return errors.Wrap(err, "Error while publishing unaccepted transactions notifications")
+	}
+
+	err = mqtt.PublishAcceptedTransactionsNotifications(addedChainBlocks)
+	if err != nil {
+		return errors.Wrap(err, "Error while publishing accepted transactions notifications")
+	}
 	return nil
 }
 
@@ -516,11 +534,6 @@ func processChainChangedMsgs(client *jsonrpc.Client) error {
 			continue
 		}
 
-		err = mqtt.PublishUnacceptedTransactionsNotifications(chainChanged.RemovedChainBlockHashes)
-		if err != nil {
-			panic(errors.Errorf("Error while publishing unaccepted transactions notifications %s", err))
-		}
-
 		err = handleChainChangedMsg(client, chainChanged)
 		if err != nil {
 			return err
@@ -542,10 +555,6 @@ func handleChainChangedMsg(client *jsonrpc.Client, chainChanged *jsonrpc.ChainCh
 	log.Infof("Chain changed: removed %d blocks and added %d block",
 		len(removedHashes), len(addedBlocks))
 
-	err = mqtt.PublishAcceptedTransactionsNotifications(chainChanged.AddedChainBlocks)
-	if err != nil {
-		return errors.Wrap(err, "Error while publishing accepted transactions notifications")
-	}
 	return mqtt.PublishSelectedTipNotification(addedBlocks[len(addedBlocks)-1].Hash)
 }
 

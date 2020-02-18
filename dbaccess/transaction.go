@@ -113,26 +113,28 @@ func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
 	return count, nil
 }
 
-// AcceptedTransactionIDsByBlockHash retrieves a list of transaction IDs that were accepted
-// by block with hash equal to `blockHash`
-func AcceptedTransactionIDsByBlockHash(ctx Context, blockHash string) ([]string, error) {
+// AcceptedTransactionsByBlockHashes retrieves a list of transactions that were accepted
+// by blocks with the given `blockHashes`
+func AcceptedTransactionsByBlockHashes(ctx Context, blockHashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
 
-	var transactionIDs []string
-	dbResult := db.Model(&dbmodels.Transaction{}).
+	query := db.
+		Select("DISTINCT(transactions.id)").
 		Joins("LEFT JOIN `blocks` ON `blocks`.`id` = `transactions`.`accepting_block_id`").
-		Where("`blocks`.`block_hash` = ?", blockHash).
-		Pluck("`transaction_id`", &transactionIDs)
+		Where("`blocks`.`block_hash` in (?)", blockHashes)
+	query = preloadFields(query, preloadedFields)
 
+	var transactions []*dbmodels.Transaction
+	dbResult := query.Find(&transactions)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
 	}
 
-	return transactionIDs, nil
+	return transactions, nil
 }
 
 // AcceptedTransactionsByBlockID retrieves a list of transactions that were accepted
