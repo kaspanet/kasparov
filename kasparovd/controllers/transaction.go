@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/kaspanet/kaspad/util/pointers"
 	"net/http"
 
 	"github.com/kaspanet/kasparov/apimodels"
@@ -42,7 +43,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 	}
 
 	txResponse := apimodels.ConvertTxModelToTxResponse(tx)
-	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
+	txResponse.Confirmations = pointers.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
 	return txResponse, nil
 }
 
@@ -67,7 +68,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 	}
 
 	txResponse := apimodels.ConvertTxModelToTxResponse(tx)
-	txResponse.Confirmations = rpcmodel.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
+	txResponse.Confirmations = pointers.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
 	return txResponse, nil
 }
 

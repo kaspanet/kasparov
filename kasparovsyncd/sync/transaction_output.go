@@ -2,8 +2,8 @@ package sync
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kaspad/util/pointers"
 
-	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/pkg/errors"
@@ -27,7 +27,7 @@ func insertTransactionOutputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithM
 			}
 			var addressID *uint64
 			if txOut.ScriptPubKey.Address != nil {
-				addressID = rpcmodel.Uint64(addressesToAddressIDs[*txOut.ScriptPubKey.Address])
+				addressID = pointers.Uint64(addressesToAddressIDs[*txOut.ScriptPubKey.Address])
 			}
 			outputsToAdd = append(outputsToAdd, &dbmodels.TransactionOutput{
 				TransactionID: transaction.id,
