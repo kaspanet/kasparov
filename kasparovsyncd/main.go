@@ -26,7 +26,7 @@ func main() {
 	err := config.Parse()
 	if err != nil {
 		errString := fmt.Sprintf("Error parsing command-line arguments: %s\n", err)
-		_, fErr := fmt.Fprintf(os.Stderr, errString)
+		_, fErr := fmt.Fprint(os.Stderr, errString)
 		if fErr != nil {
 			panic(errString)
 		}

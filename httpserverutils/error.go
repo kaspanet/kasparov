@@ -102,7 +102,7 @@ func SendJSONResponse(w http.ResponseWriter, response interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	_, err = fmt.Fprintf(w, string(b))
+	_, err = fmt.Fprint(w, string(b))
 	if err != nil {
 		panic(err)
 	}
