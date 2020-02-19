@@ -68,6 +68,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block) *BlockResponse {
 	}
 	if block.AcceptingBlock != nil {
 		blockRes.AcceptingBlockHash = &block.AcceptingBlock.BlockHash
+		blockRes.AcceptingBlockBlueScore = &block.AcceptingBlock.BlueScore
 	}
 	for i, parent := range block.ParentBlocks {
 		blockRes.ParentBlockHashes[i] = parent.BlockHash
