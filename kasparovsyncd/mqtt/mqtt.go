@@ -47,6 +47,7 @@ func Connect() error {
 		return token.Error()
 	}
 	client = newClient
+	log.Infof("Connected to MQTT in %s", cfg.MQTTBrokerAddress)
 
 	return nil
 }
