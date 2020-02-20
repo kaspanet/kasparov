@@ -9,7 +9,7 @@ CREATE TABLE blocks
     utxo_commitment         CHAR(64)        NOT NULL,
     timestamp               TIMESTAMP(0)        NOT NULL,
     bits                    INT CHECK (bits >= 0)    NOT NULL,
-    nonce                   bytea,
+    nonce                   BYTEA,
     blue_score              BIGINT CHECK (blue_score >= 0) NOT NULL,
     is_chain_block          BOOLEAN         NOT NULL,
     mass                    BIGINT          NOT NULL,
