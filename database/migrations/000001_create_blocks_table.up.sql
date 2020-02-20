@@ -1,8 +1,6 @@
-CREATE SEQUENCE blocks_seq;
-
 CREATE TABLE blocks
 (
-    id                      BIGINT CHECK (id > 0) NOT NULL DEFAULT NEXTVAL ('blocks_seq'),
+    id                      SERIAL,
     block_hash              CHAR(64)        NOT NULL,
     accepting_block_id      BIGINT CHECK (accepting_block_id > 0) NULL,
     version                 INT             NOT NULL,

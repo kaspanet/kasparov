@@ -1,8 +1,6 @@
-CREATE SEQUENCE transaction_inputs_seq;
-
 CREATE TABLE transaction_inputs
 (
-    id                             BIGINT CHECK (id > 0) NOT NULL DEFAULT NEXTVAL ('transaction_inputs_seq'),
+    id                             SERIAL,
     transaction_id                 BIGINT CHECK (transaction_id > 0) NULL,
     previous_transaction_output_id BIGINT CHECK (previous_transaction_output_id >= 0) NOT NULL,
     index                          INT CHECK (index >= 0)    NOT NULL,

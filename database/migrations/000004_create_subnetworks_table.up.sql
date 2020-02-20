@@ -1,8 +1,6 @@
-CREATE SEQUENCE subnetworks_seq;
-
 CREATE TABLE subnetworks
 (
-    id            BIGINT CHECK (id > 0) NOT NULL DEFAULT NEXTVAL ('subnetworks_seq'),
+    id            SERIAL,
     subnetwork_id CHAR(40)        NOT NULL,
     gas_limit     BIGINT CHECK (gas_limit >= 0) NULL,
     PRIMARY KEY (id),
