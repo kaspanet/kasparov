@@ -8,7 +8,7 @@ import (
 )
 
 func insertTransactionBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock,
-	blockHashesToIDs map[string]uint64, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+	blockHashesToIDs map[string]uint64, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 
 	transactionBlocksToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
@@ -18,7 +18,7 @@ func insertTransactionBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBl
 		}
 		for i, tx := range block.Verbose.RawTx {
 			transactionBlocksToAdd = append(transactionBlocksToAdd, &dbmodels.TransactionBlock{
-				TransactionID: transactionIDsToTxsWithMetadata[tx.TxID].id,
+				TransactionID: transactionHashesToTxsWithMetadata[tx.Hash].id,
 				BlockID:       blockID,
 				Index:         uint32(i),
 			})

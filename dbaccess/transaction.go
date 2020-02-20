@@ -161,6 +161,81 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields 
 	return transactions, nil
 }
 
+// TransactionsByHashes retrieves all transactions by their `transactionHashes`.
+// If preloadedFields was provided - preloads the requested fields
+func TransactionsByHashes(ctx Context, transactionHashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return nil, err
+	}
+
+	query := db.Where("`transactions`.`transaction_hash` IN (?)", transactionHashes)
+	query = preloadFields(query, preloadedFields)
+
+	var txs []*dbmodels.Transaction
+	dbResult := query.Find(&txs)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
+	}
+
+	return txs, nil
+}
+
+// TransactionsByIDsAndBlockID retrieves all transactions in a
+// block with the given ID by their `transactionIDs`.
+// If preloadedFields was provided - preloads the requested fields
+func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return nil, err
+	}
+
+	query := db.
+		Joins("INNER JOIN `transactions_to_blocks` ON `transactions`.`id` = `transactions_to_blocks`.`transaction_id`").
+		Where("`transactions`.`transaction_id` IN (?)", transactionIDs).
+		Where("`transactions_to_blocks`.`block_id` = ?", blockID)
+	query = preloadFields(query, preloadedFields)
+
+	var txs []*dbmodels.Transaction
+	dbResult := query.Find(&txs)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
+	}
+
+	return txs, nil
+}
+
+// TransactionsByIDsAndBlockID retrieves all transactions in a
+// block with the given hash by their `transactionIDs`.
+// If preloadedFields was provided - preloads the requested fields
+func TransactionsByIDsAndBlockHash(ctx Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return nil, err
+	}
+
+	query := db.
+		Joins("INNER JOIN `transactions_to_blocks` ON `transactions`.`id` = `transactions_to_blocks`.`transaction_id`").
+		Joins("INNER JOIN `blocks` ON `blocks`.`id` = `transactions_to_blocks`.`block_id`").
+		Where("`transactions`.`transaction_id` IN (?)", transactionIDs).
+		Where("`blocks`.`block_hash` = ?", blockHash)
+	query = preloadFields(query, preloadedFields)
+
+	var txs []*dbmodels.Transaction
+	dbResult := query.Find(&txs)
+
+	dbErrors := dbResult.GetErrors()
+	if httpserverutils.HasDBError(dbErrors) {
+		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
+	}
+
+	return txs, nil
+}
+
 // TransactionsByIDs retrieves all transactions by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
 func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {

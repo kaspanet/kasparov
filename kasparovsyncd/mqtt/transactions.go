@@ -26,12 +26,12 @@ func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) er
 		return nil
 	}
 
-	transactionIDs := make([]string, len(rawTransactions))
+	transactionHashes := make([]string, len(rawTransactions))
 	for i, tx := range rawTransactions {
-		transactionIDs[i] = tx.TxID
+		transactionHashes[i] = tx.Hash
 	}
 
-	dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs,
+	dbTransactions, err := dbaccess.TransactionsByHashes(dbaccess.NoTx(), transactionHashes,
 		dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainB
 	}
 	for _, addedChainBlock := range addedChainBlocks {
 		for _, acceptedBlock := range addedChainBlock.AcceptedBlocks {
-			dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), acceptedBlock.AcceptedTxIDs,
+			dbTransactions, err := dbaccess.TransactionsByIDsAndBlockHash(dbaccess.NoTx(), acceptedBlock.AcceptedTxIDs, acceptedBlock.Hash,
 				dbmodels.TransactionRecommendedPreloadedFields...)
 			if err != nil {
 				return err

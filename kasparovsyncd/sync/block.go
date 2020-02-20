@@ -15,7 +15,7 @@ func insertBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, transa
 	for i, block := range blocks {
 		blockMass := uint64(0)
 		for _, tx := range block.Verbose.RawTx {
-			blockMass += transactionIDsToTxsWithMetadata[tx.TxID].mass
+			blockMass += transactionIDsToTxsWithMetadata[tx.Hash].mass
 		}
 		var err error
 		blocksToAdd[i], err = makeDBBlock(block.Verbose, blockMass)
