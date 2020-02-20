@@ -17,8 +17,7 @@ import (
 var db *gorm.DB
 
 const (
-	systemTimeZone = "SYSTEM"
-	utcTimeZone    = "UTC"
+	utcTimeZone = "UTC"
 )
 
 // DB returns a reference to the database connection
@@ -39,8 +38,7 @@ func (l gormLogger) Print(v ...interface{}) {
 // Connect connects to the database mentioned in
 // config variable.
 func Connect(cfg *config.KasparovFlags) error {
-	connectionString := buildConnectionString(cfg)
-	migrator, driver, err := openMigrator(connectionString)
+	migrator, driver, err := openMigrator(cfg)
 	if err != nil {
 		return err
 	}
@@ -52,8 +50,7 @@ func Connect(cfg *config.KasparovFlags) error {
 		return errors.Errorf("Database is not current (version %d). Please migrate"+
 			" the database by running the server with --migrate flag and then run it again.", version)
 	}
-
-	db, err = gorm.Open("mysql", connectionString)
+	db, err = gorm.Open("postgres", buildConnectionString(cfg))
 	if err != nil {
 		return err
 	}
@@ -63,22 +60,16 @@ func Connect(cfg *config.KasparovFlags) error {
 }
 
 func validateTimeZone(db *gorm.DB) error {
-	result := struct {
-		GlobalTimeZone, SystemTimeZone string
-	}{}
+	var timeZone string
 	dbResult := db.
-		Raw("SELECT @@global.time_zone as global_time_zone, " +
-			"@@global.system_time_zone as system_time_zone").
-		Scan(&result)
+		Raw("SELECT current_setting('TIMEZONE') as time_zone")
+	dbResult.Row().Scan(&timeZone)
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
 		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when "+
 			"checking the database timezone:", dbErrors)
 	}
-	timeZone := result.GlobalTimeZone
-	if timeZone == systemTimeZone {
-		timeZone = result.SystemTimeZone
-	}
+
 	if timeZone != utcTimeZone {
 		return errors.Errorf("to prevent conversion errors - Kasparov should only run with "+
 			"a database configured to use the UTC timezone, currently configured timezone is %s", timeZone)
@@ -96,9 +87,14 @@ func Close() error {
 	return err
 }
 
+func buildMigratorConnectionString(cfg *config.KasparovFlags) string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBSSLMode)
+}
+
 func buildConnectionString(cfg *config.KasparovFlags) string {
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True",
-		cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName)
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBSSLMode)
 }
 
 // isCurrent resolves whether the database is on the latest
@@ -127,13 +123,13 @@ func isCurrent(migrator *migrate.Migrate, driver source.Driver) (bool, uint, err
 	return false, version, err
 }
 
-func openMigrator(connectionString string) (*migrate.Migrate, source.Driver, error) {
+func openMigrator(cfg *config.KasparovFlags) (*migrate.Migrate, source.Driver, error) {
 	driver, err := source.Open("file://../database/migrations")
 	if err != nil {
 		return nil, nil, err
 	}
 	migrator, err := migrate.NewWithSourceInstance(
-		"migrations", driver, "mysql://"+connectionString)
+		"migrations", driver, buildMigratorConnectionString(cfg))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -142,8 +138,7 @@ func openMigrator(connectionString string) (*migrate.Migrate, source.Driver, err
 
 // Migrate database to the latest version.
 func Migrate(cfg *config.KasparovFlags) error {
-	connectionString := buildConnectionString(cfg)
-	migrator, driver, err := openMigrator(connectionString)
+	migrator, driver, err := openMigrator(cfg)
 	if err != nil {
 		return err
 	}

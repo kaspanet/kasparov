@@ -11,7 +11,9 @@ import (
 
 var (
 	// Default configuration options
-	defaultDBAddress = "localhost:3306"
+	defaultDBHost    = "localhost"
+	defaultDBPort    = "5432"
+	defaultDBSSLMode = "disable"
 )
 
 // KasparovFlags holds configuration common to both the Kasparov server and the Kasparov daemon.
@@ -19,7 +21,9 @@ type KasparovFlags struct {
 	ShowVersion bool   `short:"V" long:"version" description:"Display version information and exit"`
 	LogDir      string `long:"logdir" description:"Directory to log output."`
 	DebugLevel  string `short:"d" long:"debuglevel" description:"Set log level {trace, debug, info, warn, error, critical}"`
-	DBAddress   string `long:"dbaddress" description:"Database address"`
+	DBHost      string `long:"dbhost" description:"Database host"`
+	DBPort      string `long:"dbport" description:"Database port"`
+	DBSSLMode   string `long:"dbsslmode" description:"Database SSL mode {disable, allow, prefer, require, verify-ca, verify-full}"`
 	DBUser      string `long:"dbuser" description:"Database user" required:"true"`
 	DBPassword  string `long:"dbpass" description:"Database password" required:"true"`
 	DBName      string `long:"dbname" description:"Database name" required:"true"`
@@ -49,8 +53,13 @@ func (kasparovFlags *KasparovFlags) ResolveKasparovFlags(parser *flags.Parser,
 		}
 	}
 
-	if kasparovFlags.DBAddress == "" {
-		kasparovFlags.DBAddress = defaultDBAddress
+	if kasparovFlags.DBHost == "" {
+		kasparovFlags.DBHost = defaultDBHost
+		kasparovFlags.DBPort = defaultDBPort
+	}
+
+	if kasparovFlags.DBSSLMode == "" {
+		kasparovFlags.DBSSLMode = defaultDBSSLMode
 	}
 	if kasparovFlags.RPCUser == "" && !isMigrate {
 		return errors.New("--rpcuser is required")
