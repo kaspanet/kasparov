@@ -1,18 +1,22 @@
-CREATE TABLE `transaction_outputs`
+CREATE SEQUENCE transaction_outputs_seq;
+
+CREATE TABLE transaction_outputs
 (
-    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `transaction_id` BIGINT UNSIGNED NOT NULL,
-    `index`          INT UNSIGNED    NOT NULL,
-    `value`          BIGINT UNSIGNED NOT NULL,
-    `script_pub_key` BLOB            NOT NULL,
-    `is_spent`       TINYINT         NOT NULL,
-    `address_id`     BIGINT UNSIGNED NULL,
-    PRIMARY KEY (`id`),
-    INDEX `idx_transaction_outputs_transaction_id` (`transaction_id`),
-    CONSTRAINT `fk_transaction_outputs_transaction_id`
-        FOREIGN KEY (`transaction_id`)
-            REFERENCES `transactions` (`id`),
-    CONSTRAINT `fk_transaction_outputs_address_id`
-        FOREIGN KEY (`address_id`)
-            REFERENCES `addresses` (`id`)
+    id             BIGINT CHECK (id > 0) NOT NULL DEFAULT NEXTVAL ('transaction_outputs_seq'),
+    transaction_id BIGINT CHECK (transaction_id > 0) NOT NULL,
+    index          BIGINT CHECK (index >= 0)    NOT NULL,
+    value          BIGINT CHECK (value >= 0) NOT NULL,
+    script_pub_key BYTEA            NOT NULL,
+    is_spent       BOOLEAN         NOT NULL,
+    address_id     BIGINT CHECK (address_id > 0) NULL,
+    PRIMARY KEY (id)
+    ,
+    CONSTRAINT fk_transaction_outputs_transaction_id
+        FOREIGN KEY (transaction_id)
+            REFERENCES transactions (id),
+    CONSTRAINT fk_transaction_outputs_address_id
+        FOREIGN KEY (address_id)
+            REFERENCES addresses (id)
 );
+
+CREATE INDEX idx_transaction_outputs_transaction_id ON transaction_outputs (transaction_id);

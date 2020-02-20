@@ -70,13 +70,13 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 	}
 
 	query := joinTxInputsTxOutputsAndAddresses(db).
-		Where("`out_addresses`.`address` = ?", address).
-		Or("`in_addresses`.`address` = ?", address).
+		Where("out_addresses.address = ?", address).
+		Or("in_addresses.address = ?", address).
 		Limit(limit).
 		Offset(skip)
 
 	if order != OrderUnknown {
-		query = query.Order(fmt.Sprintf("`transactions`.`id` %s", order))
+		query = query.Order(fmt.Sprintf("transactions.id %s", order))
 	}
 	query = preloadFields(query, preloadedFields)
 
@@ -101,8 +101,8 @@ func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
 	var count uint64
 	query := db.Model(&dbmodels.Transaction{})
 	dbResult := joinTxInputsTxOutputsAndAddresses(query).
-		Where("`out_addresses`.`address` = ?", address).
-		Or("`in_addresses`.`address` = ?", address).
+		Where("out_addresses.address = ?", address).
+		Or("in_addresses.address = ?", address).
 		Count(&count)
 
 	dbErrors := dbResult.GetErrors()
@@ -123,9 +123,9 @@ func AcceptedTransactionIDsByBlockHash(ctx Context, blockHash string) ([]string,
 
 	var transactionIDs []string
 	dbResult := db.Model(&dbmodels.Transaction{}).
-		Joins("LEFT JOIN `blocks` ON `blocks`.`id` = `transactions`.`accepting_block_id`").
-		Where("`blocks`.`block_hash` = ?", blockHash).
-		Pluck("`transaction_id`", &transactionIDs)
+		Joins("LEFT JOIN blocks ON blocks.id = transactions.accepting_block_id").
+		Where("blocks.block_hash = ?", blockHash).
+		Pluck("transaction_id", &transactionIDs)
 
 	dbErrors := dbResult.GetErrors()
 	if httpserverutils.HasDBError(dbErrors) {
@@ -145,7 +145,7 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields 
 	}
 
 	query := db.Model(&dbmodels.Transaction{}).
-		Where("`transactions`.`accepting_block_id` = ?", blockID)
+		Where("transactions.accepting_block_id = ?", blockID)
 	query = preloadFields(query, preloadedFields)
 
 	var transactions []*dbmodels.Transaction
@@ -167,7 +167,7 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...
 		return nil, err
 	}
 
-	query := db.Where("`transactions`.`transaction_id` IN (?)", transactionIDs)
+	query := db.Where("transactions.transaction_id IN (?)", transactionIDs)
 	query = preloadFields(query, preloadedFields)
 
 	var txs []*dbmodels.Transaction
@@ -203,9 +203,9 @@ func UpdateTransactionAcceptingBlockID(ctx Context, transactionID uint64, accept
 
 func joinTxInputsTxOutputsAndAddresses(query *gorm.DB) *gorm.DB {
 	return query.
-		Joins("LEFT JOIN `transaction_outputs` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
-		Joins("LEFT JOIN `addresses` AS `out_addresses` ON `out_addresses`.`id` = `transaction_outputs`.`address_id`").
-		Joins("LEFT JOIN `transaction_inputs` ON `transaction_inputs`.`transaction_id` = `transactions`.`id`").
-		Joins("LEFT JOIN `transaction_outputs` AS `inputs_outs` ON `inputs_outs`.`id` = `transaction_inputs`.`previous_transaction_output_id`").
-		Joins("LEFT JOIN `addresses` AS `in_addresses` ON `in_addresses`.`id` = `inputs_outs`.`address_id`")
+		Joins("LEFT JOIN transaction_outputs ON transaction_outputs.transaction_id = transactions.id").
+		Joins("LEFT JOIN addresses AS out_addresses ON out_addresses.id = transaction_outputs.address_id").
+		Joins("LEFT JOIN transaction_inputs ON transaction_inputs.transaction_id = transactions.id").
+		Joins("LEFT JOIN transaction_outputs AS inputs_outs ON inputs_outs.id = transaction_inputs.previous_transaction_output_id").
+		Joins("LEFT JOIN addresses AS in_addresses ON in_addresses.id = inputs_outs.address_id")
 }

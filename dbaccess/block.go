@@ -68,7 +68,7 @@ func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedFields
 		Limit(limit)
 
 	if order != OrderUnknown {
-		query = query.Order(fmt.Sprintf("`id` %s", order))
+		query = query.Order(fmt.Sprintf("id %s", order))
 	}
 
 	query = preloadFields(query, preloadedFields)
@@ -118,7 +118,7 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 	var blueScore []uint64
 	dbResult := db.Model(&dbmodels.Block{}).
 		Where(&dbmodels.Block{IsChainBlock: true}).
-		Select("MAX(`blue_score`) as `blue_score`").
+		Select("MAX(blue_score) as blue_score").
 		Pluck("blue_score", &blueScore)
 
 	dbErrors := dbResult.GetErrors()

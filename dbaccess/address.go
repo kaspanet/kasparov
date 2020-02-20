@@ -14,7 +14,7 @@ func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedFi
 	}
 
 	query := db.
-		Where("`addresses`.`address` IN (?)", addressStrings)
+		Where("addresses.address IN (?)", addressStrings)
 	query = preloadFields(query, preloadedFields)
 
 	var addresses []*dbmodels.Address

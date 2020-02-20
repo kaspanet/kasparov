@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"encoding/binary"
 	"strconv"
 	"time"
 
@@ -58,6 +59,10 @@ func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*db
 	if err != nil {
 		return nil, err
 	}
+	// Converting nonce to a byte array as we store in binary format since postgres does not support unsigned integers.
+	nonce := make([]byte, 8)
+	binary.LittleEndian.PutUint64(nonce, verboseBlock.Nonce)
+
 	dbBlock := dbmodels.Block{
 		BlockHash:            verboseBlock.Hash,
 		Version:              verboseBlock.Version,
@@ -66,7 +71,7 @@ func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*db
 		UTXOCommitment:       verboseBlock.UTXOCommitment,
 		Timestamp:            time.Unix(verboseBlock.Time, 0),
 		Bits:                 uint32(bits),
-		Nonce:                verboseBlock.Nonce,
+		Nonce:                nonce,
 		BlueScore:            verboseBlock.BlueScore,
 		IsChainBlock:         false, // This must be false for updateSelectedParentChain to work properly
 		Mass:                 mass,

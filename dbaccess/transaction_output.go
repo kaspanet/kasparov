@@ -20,9 +20,9 @@ func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.Fie
 	}
 
 	query := db.
-		Joins("LEFT JOIN `addresses` ON `addresses`.`id` = `transaction_outputs`.`address_id`").
-		Joins("INNER JOIN `transactions` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
-		Where("`addresses`.`address` = ? AND `transaction_outputs`.`is_spent` = 0", address)
+		Joins("LEFT JOIN addresses ON addresses.id = transaction_outputs.address_id").
+		Joins("INNER JOIN transactions ON transaction_outputs.transaction_id = transactions.id").
+		Where("addresses.address = ? AND transaction_outputs.is_spent = false", address)
 	query = preloadFields(query, preloadedFields)
 
 	var transactionOutputs []*dbmodels.TransactionOutput
@@ -47,14 +47,13 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 
 	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
 	// fetch previous transaction outputs in chunks to prevent too-large SQL queries
-	for offset := 0; offset < len(outpointTuples); {
+	for i, offset := 0, 0; offset < len(outpointTuples); i++ {
 		var chunk [][]interface{}
 		chunk, offset = outpointsChunk(outpointTuples, offset)
 		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
-
 		dbResult := db.
-			Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-			Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", chunk).
+			Joins("LEFT JOIN transactions ON transactions.id = transaction_outputs.transaction_id").
+			Where("transactions.transaction_id in (?) AND transaction_outputs.index IN (?)", chunk[i][0], chunk[i][1]).
 			Preload("Transaction").
 			Find(&dbPreviousTransactionsOutputsChunk)
 		dbErrors := dbResult.GetErrors()

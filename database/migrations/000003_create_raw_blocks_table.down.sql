@@ -1,1 +1,1 @@
-DROP TABLE `raw_blocks`;
+DROP TABLE raw_blocks;

@@ -1,1 +1,1 @@
-DROP TABLE `transaction_outputs`;
+DROP TABLE transaction_outputs;

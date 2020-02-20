@@ -1,1 +1,1 @@
-DROP TABLE `transactions_to_blocks`;
+DROP TABLE transactions_to_blocks;

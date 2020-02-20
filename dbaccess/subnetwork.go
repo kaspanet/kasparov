@@ -14,7 +14,7 @@ func SubnetworksByIDs(ctx Context, subnetworkIDs []string, preloadedFields ...db
 	}
 
 	query := db.
-		Where("`subnetworks`.`subnetwork_id` IN (?)", subnetworkIDs)
+		Where("subnetworks.subnetwork_id IN (?)", subnetworkIDs)
 	query = preloadFields(query, preloadedFields)
 
 	var subnetworks []*dbmodels.Subnetwork

@@ -1,6 +1,7 @@
 package apimodels
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 
 	"github.com/kaspanet/kasparov/dbmodels"
@@ -60,7 +61,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block) *BlockResponse {
 		UTXOCommitment:       block.UTXOCommitment,
 		Timestamp:            uint64(block.Timestamp.Unix()),
 		Bits:                 block.Bits,
-		Nonce:                block.Nonce,
+		Nonce:                binary.LittleEndian.Uint64(block.Nonce),
 		ParentBlockHashes:    make([]string, len(block.ParentBlocks)),
 		BlueScore:            block.BlueScore,
 		IsChainBlock:         block.IsChainBlock,

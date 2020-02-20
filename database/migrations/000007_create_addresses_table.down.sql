@@ -1,1 +1,1 @@
-DROP TABLE `addresses`;
+DROP TABLE addresses;

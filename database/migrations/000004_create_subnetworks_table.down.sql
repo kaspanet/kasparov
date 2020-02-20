@@ -1,1 +1,1 @@
-DROP TABLE `subnetworks`;
+DROP TABLE subnetworks;

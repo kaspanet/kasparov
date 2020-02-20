@@ -20,7 +20,7 @@ type Block struct {
 	UTXOCommitment       string
 	Timestamp            time.Time
 	Bits                 uint32
-	Nonce                uint64
+	Nonce                []byte
 	BlueScore            uint64
 	IsChainBlock         bool
 	Mass                 uint64
