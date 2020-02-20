@@ -4,7 +4,7 @@ Kasparov
 Warning: This is pre-alpha software. There's no guarantee anything works.
 ====
 
-[![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
+[![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](https://choosealicense.com/licenses/isc/)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/kaspanet/kasparov)
 
 Kasparov is an API server for Kaspa written in Go (golang).
@@ -89,5 +89,5 @@ is used for this project.
 
 ## License
 
-Kasparov is licensed under the [copyfree](http://copyfree.org) ISC License.
+Kasparov is licensed under the copyfree [ISC License](https://choosealicense.com/licenses/isc/).
 
