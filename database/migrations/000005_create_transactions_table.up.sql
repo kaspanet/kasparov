@@ -1,8 +1,6 @@
-CREATE SEQUENCE transactions_seq;
-
 CREATE TABLE transactions
 (
-    id                 BIGINT CHECK (id > 0) NOT NULL DEFAULT NEXTVAL ('transactions_seq'),
+    id                 SERIAL,
     accepting_block_id BIGINT CHECK (accepting_block_id > 0) NULL,
     transaction_hash   CHAR(64)        NOT NULL,
     transaction_id     CHAR(64)        NOT NULL,
@@ -14,8 +12,7 @@ CREATE TABLE transactions
     mass               BIGINT          NOT NULL,
     version            INT             NOT NULL,
     PRIMARY KEY (id),
-    CONSTRAINT idx_transactions_transaction_hash UNIQUE  (transaction_hash)
-    ,
+    CONSTRAINT idx_transactions_transaction_hash UNIQUE (transaction_hash),
     CONSTRAINT fk_transactions_accepting_block_id
         FOREIGN KEY (accepting_block_id)
             REFERENCES blocks (id)

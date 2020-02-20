@@ -7,8 +7,7 @@ CREATE TABLE transaction_outputs
     script_pub_key BYTEA            NOT NULL,
     is_spent       BOOLEAN         NOT NULL,
     address_id     BIGINT CHECK (address_id > 0) NULL,
-    PRIMARY KEY (id)
-    ,
+    PRIMARY KEY (id),
     CONSTRAINT fk_transaction_outputs_transaction_id
         FOREIGN KEY (transaction_id)
             REFERENCES transactions (id),

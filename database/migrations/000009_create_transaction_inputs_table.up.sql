@@ -6,8 +6,7 @@ CREATE TABLE transaction_inputs
     index                          INT CHECK (index >= 0)    NOT NULL,
     signature_script               BYTEA            NOT NULL,
     sequence                       BIGINT CHECK (sequence >= 0) NOT NULL,
-    PRIMARY KEY (id)
-    ,
+    PRIMARY KEY (id),
     CONSTRAINT fk_transaction_inputs_transaction_id
         FOREIGN KEY (transaction_id)
             REFERENCES transactions (id),
