@@ -37,8 +37,13 @@ func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) er
 		return err
 	}
 
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return err
+	}
+
 	for _, dbTransaction := range dbTransactions {
-		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
+		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction, selectedTipBlueScore)
 		err = publishTransactionNotifications(transaction, TransactionsTopic)
 		if err != nil {
 			return err
@@ -85,6 +90,12 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainB
 	if !isConnected() {
 		return nil
 	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return err
+	}
+
 	for _, addedChainBlock := range addedChainBlocks {
 		for _, acceptedBlock := range addedChainBlock.AcceptedBlocks {
 			dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), acceptedBlock.AcceptedTxIDs,
@@ -94,7 +105,7 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainB
 			}
 
 			for _, dbTransaction := range dbTransactions {
-				transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
+				transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction, selectedTipBlueScore)
 				err = publishTransactionNotifications(transaction, AcceptedTransactionsTopic)
 				if err != nil {
 					return err
@@ -111,8 +122,13 @@ func PublishUnacceptedTransactionsNotifications(unacceptedTransactions []*dbmode
 		return nil
 	}
 
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return err
+	}
+
 	for _, dbTransaction := range unacceptedTransactions {
-		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
+		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction, selectedTipBlueScore)
 		err := publishTransactionNotifications(transaction, UnacceptedTransactionsTopic)
 		if err != nil {
 			return err

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/kaspanet/kaspad/util/pointers"
 	"net/http"
 
 	"github.com/kaspanet/kasparov/apimodels"
@@ -42,8 +41,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 		return nil, err
 	}
 
-	txResponse := apimodels.ConvertTxModelToTxResponse(tx)
-	txResponse.Confirmations = pointers.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
+	txResponse := apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
 	return txResponse, nil
 }
 
@@ -67,8 +65,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 		return nil, err
 	}
 
-	txResponse := apimodels.ConvertTxModelToTxResponse(tx)
-	txResponse.Confirmations = pointers.Uint64(confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore))
+	txResponse := apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
 	return txResponse, nil
 }
 
@@ -90,23 +87,19 @@ func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) 
 		return nil, err
 	}
 
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
 	txResponses := make([]*apimodels.TransactionResponse, len(txs))
 	for i, tx := range txs {
-		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx)
+		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
 	}
 
 	total, err := dbaccess.TransactionsByAddressCount(dbaccess.NoTx(), address)
 	if err != nil {
 		return nil, err
-	}
-
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
-	if err != nil {
-		return nil, err
-	}
-	for _, txResponse := range txResponses {
-		txConfirmations := confirmations(txResponse.AcceptingBlockBlueScore, selectedTipBlueScore)
-		txResponse.Confirmations = &txConfirmations
 	}
 
 	return apimodels.PaginatedTransactionsResponse{

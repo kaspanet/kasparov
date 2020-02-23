@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/hex"
-	"github.com/kaspanet/kaspad/util/pointers"
 	"net/http"
 
 	"github.com/kaspanet/kasparov/apimodels"
@@ -37,8 +36,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 		return nil, err
 	}
 
-	blockRes := apimodels.ConvertBlockModelToBlockResponse(block)
-	blockRes.Confirmations = pointers.Uint64(confirmations(blockRes.AcceptingBlockBlueScore, selectedTipBlueScore))
+	blockRes := apimodels.ConvertBlockModelToBlockResponse(block, selectedTipBlueScore)
 	return blockRes, nil
 }
 
@@ -66,8 +64,7 @@ func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{
 
 	blockResponses := make([]*apimodels.BlockResponse, len(blocks))
 	for i, block := range blocks {
-		blockResponses[i] = apimodels.ConvertBlockModelToBlockResponse(block)
-		blockResponses[i].Confirmations = pointers.Uint64(confirmations(blockResponses[i].AcceptingBlockBlueScore, selectedTipBlueScore))
+		blockResponses[i] = apimodels.ConvertBlockModelToBlockResponse(block, selectedTipBlueScore)
 	}
 
 	total, err := dbaccess.BlocksCount(dbaccess.NoTx())

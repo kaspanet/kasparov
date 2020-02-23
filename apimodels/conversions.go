@@ -2,12 +2,20 @@ package apimodels
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kaspad/util/pointers"
 
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
+func confirmations(acceptingBlueScore *uint64, selectedTipBlueScore uint64) uint64 {
+	if acceptingBlueScore == nil {
+		return 0
+	}
+	return selectedTipBlueScore - *acceptingBlueScore + 1
+}
+
 // ConvertTxModelToTxResponse converts a transaction database object to a TransactionResponse
-func ConvertTxModelToTxResponse(tx *dbmodels.Transaction) *TransactionResponse {
+func ConvertTxModelToTxResponse(tx *dbmodels.Transaction, selectedTipBlueScore uint64) *TransactionResponse {
 	txRes := &TransactionResponse{
 		TransactionHash: tx.TransactionHash,
 		TransactionID:   tx.TransactionID,
@@ -26,6 +34,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction) *TransactionResponse {
 		txRes.AcceptingBlockHash = &tx.AcceptingBlock.BlockHash
 		txRes.AcceptingBlockBlueScore = &tx.AcceptingBlock.BlueScore
 	}
+	txRes.Confirmations = pointers.Uint64(confirmations(txRes.AcceptingBlockBlueScore, selectedTipBlueScore))
 	for i, txOut := range tx.TransactionOutputs {
 		txRes.Outputs[i] = &TransactionOutputResponse{
 			Value:        txOut.Value,
@@ -51,7 +60,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction) *TransactionResponse {
 }
 
 // ConvertBlockModelToBlockResponse converts a block database object into a BlockResponse
-func ConvertBlockModelToBlockResponse(block *dbmodels.Block) *BlockResponse {
+func ConvertBlockModelToBlockResponse(block *dbmodels.Block, selectedTipBlueScore uint64) *BlockResponse {
 	blockRes := &BlockResponse{
 		BlockHash:            block.BlockHash,
 		Version:              block.Version,
@@ -70,6 +79,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block) *BlockResponse {
 		blockRes.AcceptingBlockHash = &block.AcceptingBlock.BlockHash
 		blockRes.AcceptingBlockBlueScore = &block.AcceptingBlock.BlueScore
 	}
+	blockRes.Confirmations = pointers.Uint64(confirmations(blockRes.AcceptingBlockBlueScore, selectedTipBlueScore))
 	for i, parent := range block.ParentBlocks {
 		blockRes.ParentBlockHashes[i] = parent.BlockHash
 	}
