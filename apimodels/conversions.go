@@ -2,7 +2,10 @@ package apimodels
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kaspad/dagconfig"
 	"github.com/kaspanet/kaspad/util/pointers"
+	"github.com/kaspanet/kaspad/util/subnetworkid"
+	"github.com/pkg/errors"
 
 	"github.com/kaspanet/kasparov/dbmodels"
 )
@@ -84,4 +87,42 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block, selectedTipBlueScor
 		blockRes.ParentBlockHashes[i] = parent.BlockHash
 	}
 	return blockRes
+}
+
+// ConvertTransactionOutputModelToTransactionOutputResponse converts a transaction output
+// database object into a TransactionOutputResponse
+func ConvertTransactionOutputModelToTransactionOutputResponse(transactionOutput *dbmodels.TransactionOutput,
+	selectedTipBlueScore uint64, activeNetParams *dagconfig.Params, isSpent bool) (*TransactionOutputResponse, error) {
+	subnetworkID := &subnetworkid.SubnetworkID{}
+	err := subnetworkid.Decode(subnetworkID, transactionOutput.Transaction.Subnetwork.SubnetworkID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "couldn't decode subnetwork id %s", transactionOutput.Transaction.Subnetwork.SubnetworkID)
+	}
+	var acceptingBlockHash *string
+	var acceptingBlockBlueScore *uint64
+	if transactionOutput.Transaction.AcceptingBlock != nil {
+		acceptingBlockHash = &transactionOutput.Transaction.AcceptingBlock.BlockHash
+		acceptingBlockBlueScore = &transactionOutput.Transaction.AcceptingBlock.BlueScore
+	}
+	isCoinbase := subnetworkID.IsEqual(subnetworkid.SubnetworkIDCoinbase)
+	utxoConfirmations := confirmations(acceptingBlockBlueScore, selectedTipBlueScore)
+
+	txOutRes := &TransactionOutputResponse{
+		TransactionID:           transactionOutput.Transaction.TransactionID,
+		Value:                   transactionOutput.Value,
+		ScriptPubKey:            hex.EncodeToString(transactionOutput.ScriptPubKey),
+		AcceptingBlockHash:      acceptingBlockHash,
+		AcceptingBlockBlueScore: acceptingBlockBlueScore,
+		Index:                   transactionOutput.Index,
+		IsCoinbase:              &isCoinbase,
+		Confirmations:           &utxoConfirmations,
+	}
+
+	isSpendable := false
+	if !isSpent {
+		isSpendable = (!isCoinbase && utxoConfirmations > 0) ||
+			(isCoinbase && utxoConfirmations >= activeNetParams.BlockCoinbaseMaturity)
+	}
+	txOutRes.IsSpendable = &isSpendable
+	return txOutRes, nil
 }
