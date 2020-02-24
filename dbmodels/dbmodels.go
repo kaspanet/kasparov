@@ -87,7 +87,7 @@ type Transaction struct {
 	AcceptingBlock     *Block
 	TransactionHash    string
 	TransactionID      string
-	LockTime           uint64
+	LockTime           []byte
 	SubnetworkID       uint64
 	Subnetwork         Subnetwork
 	Gas                uint64

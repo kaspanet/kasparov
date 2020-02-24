@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 
 	"github.com/kaspanet/kaspad/blockdag"
@@ -105,10 +106,15 @@ func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, 
 		if !ok {
 			return nil, errors.Errorf("couldn't find ID for subnetwork %s", verboseTx.Subnetwork)
 		}
+
+		// Converting locktime to a byte array as we store in binary format since postgres does not support unsigned integers.
+		lockTime := make([]byte, 8)
+		binary.LittleEndian.PutUint64(lockTime, verboseTx.LockTime)
+
 		transactionsToAdd[i] = dbmodels.Transaction{
 			TransactionHash: verboseTx.Hash,
 			TransactionID:   verboseTx.TxID,
-			LockTime:        verboseTx.LockTime,
+			LockTime:        lockTime,
 			SubnetworkID:    subnetworkID,
 			Gas:             verboseTx.Gas,
 			PayloadHash:     verboseTx.PayloadHash,

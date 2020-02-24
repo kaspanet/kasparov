@@ -13,7 +13,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction) *TransactionResponse {
 		TransactionHash: tx.TransactionHash,
 		TransactionID:   tx.TransactionID,
 		SubnetworkID:    tx.Subnetwork.SubnetworkID,
-		LockTime:        tx.LockTime,
+		LockTime:        binary.LittleEndian.Uint64(tx.LockTime),
 		Gas:             tx.Gas,
 		PayloadHash:     tx.PayloadHash,
 		Payload:         hex.EncodeToString(tx.Payload),
