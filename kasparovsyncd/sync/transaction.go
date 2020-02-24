@@ -123,7 +123,7 @@ func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, 
 		return nil, err
 	}
 
-	dbNewTransactions, err := dbaccess.TransactionsByIDs(dbTx, newTransactionHashes)
+	dbNewTransactions, err := dbaccess.TransactionsByHashes(dbTx, newTransactionHashes)
 	if err != nil {
 		return nil, err
 	}
