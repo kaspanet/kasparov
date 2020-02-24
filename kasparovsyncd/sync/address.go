@@ -6,9 +6,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertAddresses(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) (map[string]uint64, error) {
+func insertAddresses(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) (map[string]uint64, error) {
 	addressSet := make(map[string]struct{})
-	for _, transaction := range transactionIDsToTxsWithMetadata {
+	for _, transaction := range transactionHashesToTxsWithMetadata {
 		if !transaction.isNew {
 			continue
 		}

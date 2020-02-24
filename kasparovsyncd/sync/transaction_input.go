@@ -10,11 +10,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 	outpointsSet := make(map[dbaccess.Outpoint]struct{})
 	newNonCoinbaseTransactions := make(map[string]*txWithMetadata)
 	inputsCount := 0
-	for transactionID, transaction := range transactionIDsToTxsWithMetadata {
+	for txHash, transaction := range transactionHashesToTxsWithMetadata {
 		if !transaction.isNew {
 			continue
 		}
@@ -26,7 +26,7 @@ func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMe
 			continue
 		}
 
-		newNonCoinbaseTransactions[transactionID] = transaction
+		newNonCoinbaseTransactions[txHash] = transaction
 		inputsCount += len(transaction.verboseTx.Vin)
 		for i := range transaction.verboseTx.Vin {
 			txIn := transaction.verboseTx.Vin[i]

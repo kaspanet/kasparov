@@ -320,7 +320,11 @@ func updateAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, ad
 		for i, acceptedTxID := range acceptedBlock.AcceptedTxIDs {
 			transactionIDsIn[i] = acceptedTxID
 		}
-		dbAcceptedTransactions, err := dbaccess.TransactionsByIDs(dbTx, transactionIDsIn,
+
+		// We filter transaction by dbAcceptedBlock.ID because transaction malleability
+		// can create a situation with multiple transactions on different blocks with
+		// same ID and different hashes.
+		dbAcceptedTransactions, err := dbaccess.TransactionsByIDsAndBlockID(dbTx, transactionIDsIn, dbAcceptedBlock.ID,
 			dbmodels.TransactionFieldNames.InputsPreviousTransactionOutputs)
 		if err != nil {
 			return err
@@ -686,27 +690,27 @@ func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *dbaccess.TxContext, bloc
 		return err
 	}
 
-	transactionIDsToTxsWithMetadata, err := insertTransactions(dbTx, blocks, subnetworkIDToID)
+	transactionHashesToTxsWithMetadata, err := insertTransactions(dbTx, blocks, subnetworkIDToID)
 	if err != nil {
 		return err
 	}
 
-	err = insertTransactionOutputs(dbTx, transactionIDsToTxsWithMetadata)
+	err = insertTransactionOutputs(dbTx, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
 
-	err = insertTransactionInputs(dbTx, transactionIDsToTxsWithMetadata)
+	err = insertTransactionInputs(dbTx, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
 
-	err = insertRawTransactions(dbTx, transactionIDsToTxsWithMetadata)
+	err = insertRawTransactions(dbTx, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
 
-	err = insertBlocks(dbTx, blocks, transactionIDsToTxsWithMetadata)
+	err = insertBlocks(dbTx, blocks, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
@@ -726,7 +730,7 @@ func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *dbaccess.TxContext, bloc
 		return err
 	}
 
-	err = insertTransactionBlocks(dbTx, blocks, blockHashesToIDs, transactionIDsToTxsWithMetadata)
+	err = insertTransactionBlocks(dbTx, blocks, blockHashesToIDs, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
