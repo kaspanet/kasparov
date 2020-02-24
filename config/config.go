@@ -55,6 +55,9 @@ func (kasparovFlags *KasparovFlags) ResolveKasparovFlags(parser *flags.Parser,
 
 	if kasparovFlags.DBHost == "" {
 		kasparovFlags.DBHost = defaultDBHost
+	}
+
+	if kasparovFlags.DBPort == "" {
 		kasparovFlags.DBPort = defaultDBPort
 	}
 
