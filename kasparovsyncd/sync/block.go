@@ -1,7 +1,8 @@
 package sync
 
 import (
-	"encoding/binary"
+	"github.com/kaspanet/kasparov/serializer"
+	"github.com/kaspanet/kasparov/util"
 	"strconv"
 	"time"
 
@@ -59,9 +60,6 @@ func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*db
 	if err != nil {
 		return nil, err
 	}
-	// Converting nonce to a byte array as we store in binary format since postgres does not support unsigned integers.
-	nonce := make([]byte, 8)
-	binary.LittleEndian.PutUint64(nonce, verboseBlock.Nonce)
 
 	dbBlock := dbmodels.Block{
 		BlockHash:            verboseBlock.Hash,
@@ -71,7 +69,7 @@ func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*db
 		UTXOCommitment:       verboseBlock.UTXOCommitment,
 		Timestamp:            time.Unix(verboseBlock.Time, 0),
 		Bits:                 uint32(bits),
-		Nonce:                nonce,
+		Nonce:                serializer.Uint64ToBytes(verboseBlock.Nonce),
 		BlueScore:            verboseBlock.BlueScore,
 		IsChainBlock:         false, // This must be false for updateSelectedParentChain to work properly
 		Mass:                 mass,

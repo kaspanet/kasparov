@@ -1,10 +1,10 @@
 package apimodels
 
 import (
-	"encoding/binary"
 	"encoding/hex"
 
 	"github.com/kaspanet/kasparov/dbmodels"
+	"github.com/kaspanet/kasparov/serializer"
 )
 
 // ConvertTxModelToTxResponse converts a transaction database object to a TransactionResponse
@@ -13,7 +13,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction) *TransactionResponse {
 		TransactionHash: tx.TransactionHash,
 		TransactionID:   tx.TransactionID,
 		SubnetworkID:    tx.Subnetwork.SubnetworkID,
-		LockTime:        binary.LittleEndian.Uint64(tx.LockTime),
+		LockTime:        serializer.BytesToUint64(tx.LockTime),
 		Gas:             tx.Gas,
 		PayloadHash:     tx.PayloadHash,
 		Payload:         hex.EncodeToString(tx.Payload),
@@ -61,7 +61,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block) *BlockResponse {
 		UTXOCommitment:       block.UTXOCommitment,
 		Timestamp:            uint64(block.Timestamp.Unix()),
 		Bits:                 block.Bits,
-		Nonce:                binary.LittleEndian.Uint64(block.Nonce),
+		Nonce:                serializer.BytesToUint64(block.Nonce),
 		ParentBlockHashes:    make([]string, len(block.ParentBlocks)),
 		BlueScore:            block.BlueScore,
 		IsChainBlock:         block.IsChainBlock,
