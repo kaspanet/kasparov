@@ -1,10 +1,10 @@
 CREATE TABLE transaction_inputs
 (
-    id                             SERIAL,
-    transaction_id                 BIGINT CHECK (transaction_id > 0) NULL,
-    previous_transaction_output_id BIGINT CHECK (previous_transaction_output_id >= 0) NOT NULL,
-    index                          INT CHECK (index >= 0)    NOT NULL,
-    signature_script               BYTEA            NOT NULL,
+    id                             BIGSERIAL,
+    transaction_id                 BIGINT NULL,
+    previous_transaction_output_id BIGINT NOT NULL,
+    index                          INT CHECK (index >= 0) NOT NULL,
+    signature_script               BYTEA NOT NULL,
     sequence                       BIGINT CHECK (sequence >= 0) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_transaction_inputs_transaction_id
