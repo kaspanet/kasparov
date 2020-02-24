@@ -24,7 +24,7 @@ type Block struct {
 	BlueScore            uint64
 	IsChainBlock         bool
 	Mass                 uint64
-	ParentBlocks         []Block `gorm:"many2many:parent_blocks;"`
+	ParentBlocks         []Block `gorm:"many2many:parent_blocks;association_jointable_foreignkey:parent_block_id;"`
 }
 
 // BlockFieldNames is a list of FieldNames for the 'Block' object
