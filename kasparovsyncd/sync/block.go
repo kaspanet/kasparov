@@ -2,7 +2,6 @@ package sync
 
 import (
 	"github.com/kaspanet/kasparov/serializer"
-	"github.com/kaspanet/kasparov/util"
 	"strconv"
 	"time"
 

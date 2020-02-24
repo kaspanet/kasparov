@@ -47,7 +47,8 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 
 	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
 	// fetch previous transaction outputs in chunks to prevent too-large SQL queries
-	for i, offset := 0, 0; offset < len(outpointTuples); i++ {
+	i := 0
+	for offset := 0; offset < len(outpointTuples); {
 		var chunk [][]interface{}
 		chunk, offset = outpointsChunk(outpointTuples, offset)
 		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
@@ -63,6 +64,7 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 		}
 
 		dbPreviousTransactionsOutputs = append(dbPreviousTransactionsOutputs, dbPreviousTransactionsOutputsChunk...)
+		i++
 	}
 
 	return dbPreviousTransactionsOutputs, nil
