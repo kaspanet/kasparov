@@ -93,6 +93,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block, selectedTipBlueScor
 // database object into a TransactionOutputResponse
 func ConvertTransactionOutputModelToTransactionOutputResponse(transactionOutput *dbmodels.TransactionOutput,
 	selectedTipBlueScore uint64, activeNetParams *dagconfig.Params, isSpent bool) (*TransactionOutputResponse, error) {
+
 	subnetworkID := &subnetworkid.SubnetworkID{}
 	err := subnetworkid.Decode(subnetworkID, transactionOutput.Transaction.Subnetwork.SubnetworkID)
 	if err != nil {
@@ -107,7 +108,13 @@ func ConvertTransactionOutputModelToTransactionOutputResponse(transactionOutput 
 	isCoinbase := subnetworkID.IsEqual(subnetworkid.SubnetworkIDCoinbase)
 	utxoConfirmations := confirmations(acceptingBlockBlueScore, selectedTipBlueScore)
 
-	txOutRes := &TransactionOutputResponse{
+	isSpendable := false
+	if !isSpent {
+		isSpendable = (!isCoinbase && utxoConfirmations > 0) ||
+			(isCoinbase && utxoConfirmations >= activeNetParams.BlockCoinbaseMaturity)
+	}
+
+	return &TransactionOutputResponse{
 		TransactionID:           transactionOutput.Transaction.TransactionID,
 		Value:                   transactionOutput.Value,
 		ScriptPubKey:            hex.EncodeToString(transactionOutput.ScriptPubKey),
@@ -116,13 +123,6 @@ func ConvertTransactionOutputModelToTransactionOutputResponse(transactionOutput 
 		Index:                   transactionOutput.Index,
 		IsCoinbase:              &isCoinbase,
 		Confirmations:           &utxoConfirmations,
-	}
-
-	isSpendable := false
-	if !isSpent {
-		isSpendable = (!isCoinbase && utxoConfirmations > 0) ||
-			(isCoinbase && utxoConfirmations >= activeNetParams.BlockCoinbaseMaturity)
-	}
-	txOutRes.IsSpendable = &isSpendable
-	return txOutRes, nil
+		IsSpendable:             &isSpendable,
+	}, nil
 }
