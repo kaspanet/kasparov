@@ -9,7 +9,7 @@ CREATE TABLE transactions
     gas                BIGINT CHECK (gas >= 0) NOT NULL,
     payload_hash       CHAR(64) NOT NULL,
     payload            BYTEA NOT NULL,
-    mass               BIGINT NOT NULL,
+    mass               BIGINT CHECK (mass >= 0) NOT NULL,
     version            INT NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT idx_transactions_transaction_hash UNIQUE (transaction_hash),

@@ -2,7 +2,7 @@ CREATE TABLE transactions_to_blocks
 (
     transaction_id BIGINT NOT NULL,
     block_id       BIGINT NOT NULL,
-    index INT CHECK (index >= 0) NOT NULL,
+    index BIGINT CHECK (index >= 0) NOT NULL,
     PRIMARY KEY (transaction_id, block_id),
     CONSTRAINT fk_transactions_to_blocks_block_id
         FOREIGN KEY (block_id)
