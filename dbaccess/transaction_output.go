@@ -47,14 +47,13 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 
 	var dbPreviousTransactionsOutputs []*dbmodels.TransactionOutput
 	// fetch previous transaction outputs in chunks to prevent too-large SQL queries
-	i := 0
 	for offset := 0; offset < len(outpointTuples); {
 		var chunk [][]interface{}
 		chunk, offset = outpointsChunk(outpointTuples, offset)
 		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
 		dbResult := db.
 			Joins("LEFT JOIN transactions ON transactions.id = transaction_outputs.transaction_id").
-			Where("transactions.transaction_id in (?) AND transaction_outputs.index IN (?)", chunk[i][0], chunk[i][1]).
+			Where("(transactions.transaction_id, transaction_outputs.index) in (?)", chunk).
 			Preload("Transaction").
 			Find(&dbPreviousTransactionsOutputsChunk)
 		dbErrors := dbResult.GetErrors()
@@ -64,7 +63,6 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 		}
 
 		dbPreviousTransactionsOutputs = append(dbPreviousTransactionsOutputs, dbPreviousTransactionsOutputsChunk...)
-		i++
 	}
 
 	return dbPreviousTransactionsOutputs, nil
