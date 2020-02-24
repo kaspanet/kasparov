@@ -209,7 +209,7 @@ func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID u
 	return txs, nil
 }
 
-// TransactionsByIDsAndBlockID retrieves all transactions in a
+// TransactionsByIDsAndBlockHash retrieves all transactions in a
 // block with the given hash by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
 func TransactionsByIDsAndBlockHash(ctx Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
