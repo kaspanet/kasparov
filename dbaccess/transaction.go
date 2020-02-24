@@ -163,7 +163,9 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields 
 
 // TransactionsByHashes retrieves all transactions by their `transactionHashes`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByHashes(ctx Context, transactionHashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+func TransactionsByHashes(ctx Context, transactionHashes []string,
+	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -186,7 +188,9 @@ func TransactionsByHashes(ctx Context, transactionHashes []string, preloadedFiel
 // TransactionsByIDsAndBlockID retrieves all transactions in a
 // block with the given ID by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID uint64,
+	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
