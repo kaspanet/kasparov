@@ -20,26 +20,11 @@ const (
 	UnacceptedTransactionsTopic = "transactions/unaccepted"
 )
 
-// PublishTransactionsNotifications publishes notification for each transaction of the given block
-func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) error {
-	if !isConnected() {
-		return nil
-	}
-
-	transactionHashes := make([]string, len(rawTransactions))
-	for i, tx := range rawTransactions {
-		transactionHashes[i] = tx.Hash
-	}
-
-	dbTransactions, err := dbaccess.TransactionsByHashes(dbaccess.NoTx(), transactionHashes,
-		dbmodels.TransactionRecommendedPreloadedFields...)
-	if err != nil {
-		return err
-	}
-
+// publishTransactionsNotifications publishes notifications for each transaction of the given transactions
+func publishTransactionsNotifications(dbTransactions []*dbmodels.Transaction) error {
 	for _, dbTransaction := range dbTransactions {
 		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
-		err = publishTransactionNotifications(transaction, TransactionsTopic)
+		err := publishTransactionNotifications(transaction, TransactionsTopic)
 		if err != nil {
 			return err
 		}
