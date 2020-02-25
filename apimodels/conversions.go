@@ -10,11 +10,11 @@ import (
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
-func confirmations(acceptingBlueScore *uint64, selectedTipBlueScore uint64) uint64 {
-	if acceptingBlueScore == nil {
+func confirmations(acceptingBlockBlueScore *uint64, selectedTipBlueScore uint64) uint64 {
+	if acceptingBlockBlueScore == nil {
 		return 0
 	}
-	return selectedTipBlueScore - *acceptingBlueScore + 1
+	return selectedTipBlueScore - *acceptingBlockBlueScore + 1
 }
 
 // ConvertTxModelToTxResponse converts a transaction database object to a TransactionResponse
