@@ -20,7 +20,7 @@ const maxGetBlocksLimit = 100
 func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 	if bytes, err := hex.DecodeString(blockHash); err != nil || len(bytes) != daghash.HashSize {
 		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
-			errors.Errorf("the given block hash is not a hex-encoded %d-byte hash.", daghash.HashSize))
+			errors.Errorf("the given block hash is not a hex-encoded %d-byte hash", daghash.HashSize))
 	}
 
 	block, err := dbaccess.BlockByHash(dbaccess.NoTx(), blockHash, dbmodels.BlockRecommendedPreloadedFields...)
@@ -38,7 +38,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{}, error) {
 	if limit > maxGetBlocksLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("limit higher than %d was requested.", maxGetBlocksLimit))
+			errors.Errorf("limit higher than %d was requested", maxGetBlocksLimit))
 	}
 
 	order, err := dbaccess.StringToOrder(orderString)
