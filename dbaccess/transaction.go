@@ -73,7 +73,8 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 		Where("`out_addresses`.`address` = ?", address).
 		Or("`in_addresses`.`address` = ?", address).
 		Limit(limit).
-		Offset(skip)
+		Offset(skip).
+		Group("transactions.id")
 
 	if order != OrderUnknown {
 		query = query.Order(fmt.Sprintf("`transactions`.`id` %s", order))
