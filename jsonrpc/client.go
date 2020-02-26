@@ -65,8 +65,9 @@ func Connect(cfg *config.KasparovFlags) error {
 		}
 	}
 
+	rpcServerAddress := cfg.NetParams().NormalizeRPCServerAddress(cfg.RPCServer)
 	connCfg := &rpcclient.ConnConfig{
-		Host:           cfg.RPCServer,
+		Host:           rpcServerAddress,
 		Endpoint:       "ws",
 		User:           cfg.RPCUser,
 		Pass:           cfg.RPCPassword,
@@ -81,7 +82,7 @@ func Connect(cfg *config.KasparovFlags) error {
 	var err error
 	client, err = newClient(connCfg)
 	if err != nil {
-		return errors.Errorf("Error connecting to address %s: %s", cfg.RPCServer, err)
+		return errors.Errorf("Error connecting to address %s: %s", rpcServerAddress, err)
 	}
 
 	return nil
