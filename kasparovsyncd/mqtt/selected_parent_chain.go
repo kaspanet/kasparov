@@ -16,8 +16,8 @@ func PublishSelectedParentChainNotifications(removedChainHashes []string, addedC
 	}
 
 	notificationData := &apimodels.SelectedParentChainNotification{
-		AddedBlockHashes:  make([]string, len(addedChainBlocks)),
-		RemoveBlockHashes: make([]string, len(removedChainHashes)),
+		AddedBlockHashes:   make([]string, len(addedChainBlocks)),
+		RemovedBlockHashes: make([]string, len(removedChainHashes)),
 	}
 
 	for i, block := range addedChainBlocks {
@@ -25,7 +25,7 @@ func PublishSelectedParentChainNotifications(removedChainHashes []string, addedC
 	}
 
 	for i, hash := range removedChainHashes {
-		notificationData.RemoveBlockHashes[i] = hash
+		notificationData.RemovedBlockHashes[i] = hash
 	}
 
 	return publish(SelectedParentChainTopic, notificationData)
