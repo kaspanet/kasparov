@@ -446,7 +446,9 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	return nil
 }
 
-func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blockHash *daghash.Hash) (addedBlockHashes []string, err error) {
+func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext,
+	blockHash *daghash.Hash) (addedBlockHashes []string, err error) {
+
 	block, err := fetchBlock(client, blockHash)
 	if err != nil {
 		return nil, err
