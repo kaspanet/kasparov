@@ -26,7 +26,7 @@ const maxGetTransactionsLimit = 1000
 func GetTransactionByIDHandler(txID string) (interface{}, error) {
 	if bytes, err := hex.DecodeString(txID); err != nil || len(bytes) != daghash.TxIDSize {
 		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
-			errors.Errorf("The given txid is not a hex-encoded %d-byte hash.", daghash.TxIDSize))
+			errors.Errorf("The given txid is not a hex-encoded %d-byte hash", daghash.TxIDSize))
 	}
 
 	tx, err := dbaccess.TransactionByID(dbaccess.NoTx(), txID, dbmodels.TransactionRecommendedPreloadedFields...)
@@ -51,7 +51,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 	if bytes, err := hex.DecodeString(txHash); err != nil || len(bytes) != daghash.HashSize {
 		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
-			errors.Errorf("The given txhash is not a hex-encoded %d-byte hash.", daghash.HashSize))
+			errors.Errorf("The given txhash is not a hex-encoded %d-byte hash", daghash.HashSize))
 	}
 
 	tx, err := dbaccess.TransactionByHash(dbaccess.NoTx(), txHash, dbmodels.TransactionRecommendedPreloadedFields...)
@@ -77,7 +77,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) (interface{}, error) {
 	if limit > maxGetTransactionsLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("limit higher than %d was requested.", maxGetTransactionsLimit))
+			errors.Errorf("limit higher than %d was requested", maxGetTransactionsLimit))
 	}
 
 	if err := validateAddress(address); err != nil {

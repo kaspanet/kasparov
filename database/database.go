@@ -50,7 +50,7 @@ func Connect(cfg *config.KasparovFlags) error {
 	}
 	if !isCurrent {
 		return errors.Errorf("Database is not current (version %d). Please migrate"+
-			" the database by running the server with --migrate flag and then run it again.", version)
+			" the database by running the server with --migrate flag and then run it again", version)
 	}
 
 	db, err = gorm.Open("mysql", connectionString)
