@@ -16,13 +16,8 @@ func PublishBlockAddedNotifications(hash string) error {
 		return nil
 	}
 
-	preloadedFields := make([]dbmodels.FieldName, len(dbmodels.TransactionRecommendedPreloadedFields)+1)
-
-	for i, fieldName := range dbmodels.TransactionRecommendedPreloadedFields {
-		preloadedFields[i] = dbmodels.BlockFieldNames.Transactions + dbmodels.FieldName(".") + fieldName
-	}
-
-	preloadedFields[len(dbmodels.TransactionRecommendedPreloadedFields)] = dbmodels.BlockFieldNames.ParentBlocks
+	preloadedFields := dbmodels.PrefixFieldNames(dbmodels.BlockFieldNames.Transactions, dbmodels.TransactionRecommendedPreloadedFields)
+	preloadedFields = append(preloadedFields, dbmodels.BlockFieldNames.ParentBlocks)
 
 	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), hash, preloadedFields...)
 	if err != nil {

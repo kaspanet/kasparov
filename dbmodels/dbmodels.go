@@ -230,3 +230,13 @@ var RawTransactionFieldNames = struct {
 }{
 	Transaction: "Transaction",
 }
+
+// PrefixFieldNames returns the given fields prefixed
+// with the given prefix and a dot.
+func PrefixFieldNames(prefix FieldName, fields []FieldName) []FieldName {
+	prefixedFields := make([]FieldName, len(fields))
+	for i, fieldName := range fields {
+		prefixedFields[i] = prefix + FieldName(".") + fieldName
+	}
+	return prefixedFields
+}
