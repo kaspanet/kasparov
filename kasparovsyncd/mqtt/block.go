@@ -34,5 +34,5 @@ func PublishBlockAddedNotifications(hash string) error {
 		return err
 	}
 
-	return publishTransactionsNotifications(dbBlock.Transactions)
+	return publishTransactionsNotifications(TransactionsTopic, dbBlock.Transactions)
 }
