@@ -23,10 +23,7 @@ func PublishSelectedParentChainNotifications(removedChainHashes []string, addedC
 	for i, block := range addedChainBlocks {
 		notificationData.AddedBlockHashes[i] = block.Hash
 	}
-
-	for i, hash := range removedChainHashes {
-		notificationData.RemovedBlockHashes[i] = hash
-	}
+	notificationData.RemovedBlockHashes = removedChainHashes
 
 	return publish(SelectedParentChainTopic, notificationData)
 }
