@@ -7,7 +7,7 @@ import (
 
 // SelectedParentChainTopic is an MQTT topic for changes in the
 // selected parent chain
-const SelectedParentChainTopic = "selected-parent-chain"
+const SelectedParentChainTopic = "dag/selected-parent-chain"
 
 // PublishSelectedParentChainNotifications publishes notifications for changes in the selected parent chain
 func PublishSelectedParentChainNotifications(removedChainHashes []string, addedChainBlocks []rpcmodel.ChainBlock) error {

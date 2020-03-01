@@ -6,8 +6,8 @@ import (
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
-// BlockAddedTopic is an MQTT topic for new blocks
-const BlockAddedTopic = "block-added"
+// BlocksTopic is an MQTT topic for new blocks
+const BlocksTopic = "dag/blocks"
 
 // PublishBlockAddedNotifications publishes notifications for the block
 // that was added, and notifications for its transactions.
@@ -24,7 +24,7 @@ func PublishBlockAddedNotifications(hash string) error {
 		return err
 	}
 
-	err = publish(BlockAddedTopic, apimodels.ConvertBlockModelToBlockResponse(dbBlock))
+	err = publish(BlocksTopic, apimodels.ConvertBlockModelToBlockResponse(dbBlock))
 	if err != nil {
 		return err
 	}
