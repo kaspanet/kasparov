@@ -45,19 +45,21 @@ type TransactionInputResponse struct {
 
 // BlockResponse is a json representation of a block
 type BlockResponse struct {
-	BlockHash            string   `json:"blockHash"`
-	Version              int32    `json:"version"`
-	HashMerkleRoot       string   `json:"hashMerkleRoot"`
-	AcceptedIDMerkleRoot string   `json:"acceptedIDMerkleRoot"`
-	UTXOCommitment       string   `json:"utxoCommitment"`
-	Timestamp            uint64   `json:"timestamp"`
-	Bits                 uint32   `json:"bits"`
-	Nonce                uint64   `json:"nonce"`
-	ParentBlockHashes    []string `json:"parentBlockHashes"`
-	AcceptingBlockHash   *string  `json:"acceptingBlockHash"`
-	BlueScore            uint64   `json:"blueScore"`
-	IsChainBlock         bool     `json:"isChainBlock"`
-	Mass                 uint64   `json:"mass"`
+	BlockHash               string   `json:"blockHash"`
+	Version                 int32    `json:"version"`
+	HashMerkleRoot          string   `json:"hashMerkleRoot"`
+	AcceptedIDMerkleRoot    string   `json:"acceptedIDMerkleRoot"`
+	UTXOCommitment          string   `json:"utxoCommitment"`
+	Timestamp               uint64   `json:"timestamp"`
+	Bits                    uint32   `json:"bits"`
+	Nonce                   uint64   `json:"nonce"`
+	ParentBlockHashes       []string `json:"parentBlockHashes"`
+	AcceptingBlockHash      *string  `json:"acceptingBlockHash"`
+	AcceptingBlockBlueScore *uint64  `json:"acceptingBlockBlueScore"`
+	BlueScore               uint64   `json:"blueScore"`
+	IsChainBlock            bool     `json:"isChainBlock"`
+	Mass                    uint64   `json:"mass"`
+	Confirmations           *uint64  `json:"confirmations,omitempty"`
 }
 
 // FeeEstimateResponse is a json representation of a fee estimate

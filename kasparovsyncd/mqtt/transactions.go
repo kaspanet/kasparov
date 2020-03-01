@@ -21,9 +21,9 @@ const (
 )
 
 // publishTransactionsNotifications publishes notifications for each transaction of the given transactions
-func publishTransactionsNotifications(topic string, dbTransactions []*dbmodels.Transaction) error {
+func publishTransactionsNotifications(topic string, dbTransactions []*dbmodels.Transaction, selectedTipBlueScore uint64) error {
 	for _, dbTransaction := range dbTransactions {
-		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
+		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction, selectedTipBlueScore)
 		addresses := uniqueAddressesForTransaction(transaction)
 		for _, address := range addresses {
 			err := publishTransactionNotificationForAddress(transaction, address, topic)
@@ -62,6 +62,12 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainB
 	if !isConnected() {
 		return nil
 	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return err
+	}
+
 	for _, addedChainBlock := range addedChainBlocks {
 		for _, acceptedBlock := range addedChainBlock.AcceptedBlocks {
 			dbTransactions, err := dbaccess.TransactionsByIDsAndBlockHash(dbaccess.NoTx(), acceptedBlock.AcceptedTxIDs, acceptedBlock.Hash,
@@ -70,7 +76,7 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainB
 				return err
 			}
 
-			err = publishTransactionsNotifications(AcceptedTransactionsTopic, dbTransactions)
+			err = publishTransactionsNotifications(AcceptedTransactionsTopic, dbTransactions, selectedTipBlueScore)
 			if err != nil {
 				return err
 			}
@@ -85,7 +91,12 @@ func PublishUnacceptedTransactionsNotifications(unacceptedTransactions []*dbmode
 		return nil
 	}
 
-	err := publishTransactionsNotifications(UnacceptedTransactionsTopic, unacceptedTransactions)
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return err
+	}
+
+	err = publishTransactionsNotifications(UnacceptedTransactionsTopic, unacceptedTransactions, selectedTipBlueScore)
 	if err != nil {
 		return err
 	}

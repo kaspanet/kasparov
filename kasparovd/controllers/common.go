@@ -19,10 +19,3 @@ func validateAddress(address string) error {
 
 	return nil
 }
-
-func confirmations(acceptingBlueScore *uint64, selectedTipBlueScore uint64) uint64 {
-	if acceptingBlueScore == nil {
-		return 0
-	}
-	return selectedTipBlueScore - *acceptingBlueScore + 1
-}

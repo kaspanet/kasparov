@@ -24,10 +24,15 @@ func PublishBlockAddedNotifications(hash string) error {
 		return err
 	}
 
-	err = publish(BlocksTopic, apimodels.ConvertBlockModelToBlockResponse(dbBlock))
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
 	if err != nil {
 		return err
 	}
 
-	return publishTransactionsNotifications(TransactionsTopic, dbBlock.Transactions)
+	err = publish(BlocksTopic, apimodels.ConvertBlockModelToBlockResponse(dbBlock, selectedTipBlueScore))
+	if err != nil {
+		return err
+	}
+
+	return publishTransactionsNotifications(TransactionsTopic, dbBlock.Transactions, selectedTipBlueScore)
 }
