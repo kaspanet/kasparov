@@ -24,16 +24,19 @@ type Block struct {
 	BlueScore            uint64
 	IsChainBlock         bool
 	Mass                 uint64
-	ParentBlocks         []Block `gorm:"many2many:parent_blocks;association_jointable_foreignkey:parent_block_id;"`
+	ParentBlocks         []*Block       `gorm:"many2many:parent_blocks;association_jointable_foreignkey:parent_block_id;"`
+	Transactions         []*Transaction `gorm:"many2many:transactions_to_blocks;association_jointable_foreignkey:transaction_id;"`
 }
 
 // BlockFieldNames is a list of FieldNames for the 'Block' object
 var BlockFieldNames = struct {
-	AcceptingBlock FieldName
-	ParentBlocks   FieldName
+	AcceptingBlock,
+	ParentBlocks,
+	Transactions FieldName
 }{
 	AcceptingBlock: "AcceptingBlock",
 	ParentBlocks:   "ParentBlocks",
+	Transactions:   "Transactions",
 }
 
 // BlockRecommendedPreloadedFields is a list of fields recommended to preload when getting blocks
@@ -226,4 +229,14 @@ var RawTransactionFieldNames = struct {
 	Transaction FieldName
 }{
 	Transaction: "Transaction",
+}
+
+// PrefixFieldNames returns the given fields prefixed
+// with the given prefix and a dot.
+func PrefixFieldNames(prefix FieldName, fields []FieldName) []FieldName {
+	prefixedFields := make([]FieldName, len(fields))
+	for i, fieldName := range fields {
+		prefixedFields[i] = prefix + FieldName(".") + fieldName
+	}
+	return prefixedFields
 }

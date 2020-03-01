@@ -20,39 +20,16 @@ const (
 	UnacceptedTransactionsTopic = "transactions/unaccepted"
 )
 
-// PublishTransactionsNotifications publishes notification for each transaction of the given block
-func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) error {
-	if !isConnected() {
-		return nil
-	}
-
-	transactionHashes := make([]string, len(rawTransactions))
-	for i, tx := range rawTransactions {
-		transactionHashes[i] = tx.Hash
-	}
-
-	dbTransactions, err := dbaccess.TransactionsByHashes(dbaccess.NoTx(), transactionHashes,
-		dbmodels.TransactionRecommendedPreloadedFields...)
-	if err != nil {
-		return err
-	}
-
+// publishTransactionsNotifications publishes notifications for each transaction of the given transactions
+func publishTransactionsNotifications(topic string, dbTransactions []*dbmodels.Transaction) error {
 	for _, dbTransaction := range dbTransactions {
 		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
-		err = publishTransactionNotifications(transaction, TransactionsTopic)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func publishTransactionNotifications(transaction *apimodels.TransactionResponse, topic string) error {
-	addresses := uniqueAddressesForTransaction(transaction)
-	for _, address := range addresses {
-		err := publishTransactionNotificationForAddress(transaction, address, topic)
-		if err != nil {
-			return err
+		addresses := uniqueAddressesForTransaction(transaction)
+		for _, address := range addresses {
+			err := publishTransactionNotificationForAddress(transaction, address, topic)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -93,12 +70,9 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainB
 				return err
 			}
 
-			for _, dbTransaction := range dbTransactions {
-				transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
-				err = publishTransactionNotifications(transaction, AcceptedTransactionsTopic)
-				if err != nil {
-					return err
-				}
+			err = publishTransactionsNotifications(AcceptedTransactionsTopic, dbTransactions)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -111,12 +85,9 @@ func PublishUnacceptedTransactionsNotifications(unacceptedTransactions []*dbmode
 		return nil
 	}
 
-	for _, dbTransaction := range unacceptedTransactions {
-		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
-		err := publishTransactionNotifications(transaction, UnacceptedTransactionsTopic)
-		if err != nil {
-			return err
-		}
+	err := publishTransactionsNotifications(UnacceptedTransactionsTopic, unacceptedTransactions)
+	if err != nil {
+		return err
 	}
 	return nil
 }
