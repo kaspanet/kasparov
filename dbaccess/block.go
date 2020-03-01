@@ -2,9 +2,9 @@ package dbaccess
 
 import (
 	"fmt"
+	"github.com/go-pg/pg/v9"
 
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // BlockByHash retrieves a block from the database according to its hash
@@ -15,19 +15,15 @@ func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.Fiel
 		return nil, err
 	}
 
-	query := db.Where(&dbmodels.Block{BlockHash: blockHash})
-	query = preloadFields(query, preloadedFields)
-
 	block := &dbmodels.Block{}
-	dbResult := query.First(block)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
+	query := db.Model(block).Where("block_hash = ?", blockHash)
+	query = preloadFields(query, preloadedFields)
+	err = query.First()
+	if err == pg.ErrNoRows {
 		return nil, nil
 	}
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading block from database:",
-			dbResult.GetErrors())
+	if err != nil {
+		return nil, err
 	}
 
 	return block, nil
@@ -35,21 +31,21 @@ func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.Fiel
 
 // BlocksByHashes retreives a list of blocks with the corresponding `hashes`
 func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
+	if len(hashes) == 0 { // TODO WHY GO-PG CAN'T TAKE EMPTY ARRAY FOR GOD'S SAKE
+		return nil, nil
+	}
+
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.Where("block_hash in (?)", hashes)
-	query = preloadFields(query, preloadedFields)
-
 	blocks := []*dbmodels.Block{}
-	dbResult := query.Find(&blocks)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading blocks from database:",
-			dbResult.GetErrors())
+	query := db.Model(&blocks).Where("block_hash in (?)", pg.In(hashes))
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return blocks, nil
@@ -57,13 +53,14 @@ func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.Fi
 
 // Blocks retrieves from the database up to `limit` blocks in the requested `order`, skipping the first `skip` blocks
 // If preloadedFields was provided - preloads the requested fields
-func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
+func Blocks(ctx Context, order Order, skip int, limit int, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.
+	blocks := []*dbmodels.Block{}
+	query := db.Model(&blocks).
 		Offset(skip).
 		Limit(limit)
 
@@ -73,13 +70,9 @@ func Blocks(ctx Context, order Order, skip uint64, limit uint64, preloadedFields
 
 	query = preloadFields(query, preloadedFields)
 
-	blocks := []*dbmodels.Block{}
-	dbResult := query.Find(&blocks)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading blocks from the database:",
-			dbResult.GetErrors())
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return blocks, nil
@@ -92,17 +85,13 @@ func SelectedTip(ctx Context) (*dbmodels.Block, error) {
 		return nil, err
 	}
 
-	block := &dbmodels.Block{}
-	dbResult := db.Order("blue_score DESC").
-		Where(&dbmodels.Block{IsChainBlock: true}).
-		First(block)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
+	block := &dbmodels.Block{IsChainBlock: true}
+	err = db.Model(block).Order("blue_score DESC").First()
+	if err == pg.ErrNoRows {
 		return nil, nil
 	}
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading selected tip from the database:", dbErrors)
+	if err != nil {
+		return nil, err
 	}
 
 	return block, nil
@@ -115,21 +104,13 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 		return 0, err
 	}
 
-	var blueScore []uint64
-	dbResult := db.Model(&dbmodels.Block{}).
-		Where(&dbmodels.Block{IsChainBlock: true}).
-		Select("MAX(blue_score) as blue_score").
-		Pluck("blue_score", &blueScore)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading selected tip blue score from the database:", dbErrors)
+	var blueScore uint64
+	err = db.Model((*dbmodels.Block)(nil)).Where("isChainBlock = ?", true).ColumnExpr("MAX(blue_score) as blue_score").Select(&blueScore)
+	if err != nil {
+		return 0, err
 	}
 
-	if len(blueScore) == 0 {
-		return 0, nil
-	}
-	return blueScore[0], nil
+	return blueScore, nil
 }
 
 // BluestBlock fetches the block with the highest blue score from the database
@@ -143,15 +124,13 @@ func BluestBlock(ctx Context) (*dbmodels.Block, error) {
 	}
 
 	block := &dbmodels.Block{}
-	dbResult := db.Order("blue_score DESC").
-		First(block)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
+	err = db.Model(block).Order("blue_score DESC").First()
+	if err == pg.ErrNoRows {
 		return nil, nil
 	}
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading bluest block from the database:", dbErrors)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return block, nil
@@ -166,14 +145,13 @@ func UpdateBlocksAcceptedByAcceptingBlock(ctx Context, currentAcceptingBlockID u
 		return err
 	}
 
-	dbResult := db.
+	_, err = db.
 		Model(&dbmodels.Block{}).
-		Where(&dbmodels.Block{AcceptingBlockID: &currentAcceptingBlockID}).
-		Update("accepting_block_id", newAcceptingBlockID)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to update blocks: ", dbErrors)
+		Where("accepting_block_id = ?", currentAcceptingBlockID).
+		Set("accepting_block_id = ?", newAcceptingBlockID).
+		Update()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -187,14 +165,13 @@ func UpdateBlockAcceptingBlockID(ctx Context, blockID uint64, acceptingBlockID *
 		return err
 	}
 
-	dbResult := db.
+	_, err = db.
 		Model(&dbmodels.Block{}).
-		Where(&dbmodels.Block{ID: blockID}).
-		Update("accepting_block_id", acceptingBlockID)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to update blocks: ", dbErrors)
+		Where("id = ?", blockID).
+		Set("accepting_block_id = ?", acceptingBlockID).
+		Update()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -207,14 +184,13 @@ func UpdateBlockIsChainBlock(ctx Context, blockID uint64, isChainBlock bool) err
 		return err
 	}
 
-	dbResult := db.
+	_, err = db.
 		Model(&dbmodels.Block{}).
 		Where("id = ?", blockID).
-		Update("is_chain_block", isChainBlock)
-	dbErrors := dbResult.GetErrors()
-
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to update block: ", dbErrors)
+		Set("is_chain_block = ?", isChainBlock).
+		Update()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -227,16 +203,13 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 		return false, err
 	}
 
-	var count uint64
-	dbResult := db.
-		Model(&dbmodels.Block{}).
-		Where(&dbmodels.Block{BlockHash: blockHash}).
-		Count(&count)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return false, httpserverutils.NewErrorFromDBErrors("some errors were encountered while checking if block exists: ", dbErrors)
+	count, err := db.
+		Model(&dbmodels.Block{BlockHash: blockHash}).
+		Count()
+	if err != nil {
+		return false, err
 	}
+
 	return count > 0, nil
 }
 
@@ -247,12 +220,10 @@ func BlocksCount(ctx Context) (uint64, error) {
 		return 0, err
 	}
 
-	var count uint64
-	dbResult := db.Model(dbmodels.Block{}).Count(&count)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("some errors were encountered when counting blocks:", dbErrors)
+	count, err := db.Model(&dbmodels.Block{}).Count()
+	if err != nil {
+		return 0, err
 	}
 
-	return count, nil
+	return uint64(count), nil
 }

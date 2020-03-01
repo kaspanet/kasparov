@@ -1,8 +1,8 @@
 package dbaccess
 
 import (
+	"github.com/go-pg/pg/v9"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // AddressesByAddressStrings retrieves all addresss by their address strings.
@@ -12,17 +12,16 @@ func AddressesByAddressStrings(ctx Context, addressStrings []string, preloadedFi
 	if err != nil {
 		return nil, err
 	}
-
-	query := db.
-		Where("addresses.address IN (?)", addressStrings)
-	query = preloadFields(query, preloadedFields)
-
+	if len(addressStrings) == 0 {
+		return nil, nil
+	}
 	var addresses []*dbmodels.Address
-	dbResult := query.Find(&addresses)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading addresses from the database:", dbErrors)
+	query := db.Model(&addresses).
+		Where("addresses.address IN (?)", pg.In(addressStrings))
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return addresses, nil

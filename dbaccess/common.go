@@ -1,16 +1,14 @@
 package dbaccess
 
 import (
-	"github.com/jinzhu/gorm"
+	"github.com/go-pg/pg/v9/orm"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
-	gormbulk "github.com/t-tiger/gorm-bulk-insert"
 )
 
-func preloadFields(query *gorm.DB, preloadedFields []dbmodels.FieldName) *gorm.DB {
-	for _, field := range preloadedFields {
-		query = query.Preload(string(field))
+func preloadFields(query *orm.Query, columns []dbmodels.FieldName) *orm.Query {
+	for _, field := range columns {
+		query = query.Relation(string(field))
 	}
 	return query
 }
@@ -25,10 +23,9 @@ func Save(ctx Context, value interface{}) error {
 		return err
 	}
 
-	dbResult := db.Save(value)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to save object: ", dbErrors)
+	err = db.Insert(value)
+	if err != nil {
+		return errors.WithMessage(err, "failed to save object: ")
 	}
 
 	return nil
@@ -39,10 +36,14 @@ const chunkSize = 3000
 // BulkInsert inserts a long list of objects into the database.
 // Utilizes bulk insertion for much faster times.
 func BulkInsert(ctx Context, objects []interface{}) error {
+	if len(objects) == 0 { //TODO CHECK WHY GO-PG CAN'T DEAL WITH EMPTY ARRAYS
+		return nil
+	}
+
 	db, err := ctx.db()
 	if err != nil {
 		return err
 	}
+	return db.Insert(&objects)
 
-	return errors.WithStack(gormbulk.BulkInsert(db, objects, chunkSize))
 }

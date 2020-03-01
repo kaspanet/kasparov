@@ -1,8 +1,8 @@
 package dbaccess
 
 import (
+	"github.com/go-pg/pg/v9"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // Outpoint represent an outpoint in a transaction input.
@@ -19,18 +19,18 @@ func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.Fie
 		return nil, err
 	}
 
-	query := db.
-		Joins("LEFT JOIN addresses ON addresses.id = transaction_outputs.address_id").
-		Joins("INNER JOIN transactions ON transaction_outputs.transaction_id = transactions.id").
-		Where("addresses.address = ? AND transaction_outputs.is_spent = false", address)
-	query = preloadFields(query, preloadedFields)
-
 	var transactionOutputs []*dbmodels.TransactionOutput
-	dbResult := query.Find(&transactionOutputs)
+	query := db.Model(&transactionOutputs).
+		Join("LEFT JOIN addresses").
+		JoinOn("addresses.id = transaction_output.address_id").
+		Join("INNER JOIN transactions").
+		JoinOn("transaction_output.transaction_id = transactions.id").
+		Where("addresses.address = ? AND transaction_outputs.is_spent = ?", address, false)
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
 
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading UTXOs from the database:", dbErrors)
+	if err != nil {
+		return nil, err
 	}
 
 	return transactionOutputs, nil
@@ -51,15 +51,15 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 		var chunk [][]interface{}
 		chunk, offset = outpointsChunk(outpointTuples, offset)
 		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
-		dbResult := db.
-			Joins("LEFT JOIN transactions ON transactions.id = transaction_outputs.transaction_id").
-			Where("(transactions.transaction_id, transaction_outputs.index) in (?)", chunk).
-			Preload("Transaction").
-			Find(&dbPreviousTransactionsOutputsChunk)
-		dbErrors := dbResult.GetErrors()
+		err = db.Model(&dbPreviousTransactionsOutputsChunk).
+			Join("LEFT JOIN transactions").
+			JoinOn("transactions.id = transaction_output.transaction_id").
+			Where("(transactions.transaction_id, transaction_output.index) in (?)", pg.In(chunk)).
+			Relation("Transaction").
+			Select()
 
-		if httpserverutils.HasDBError(dbErrors) {
-			return nil, httpserverutils.NewErrorFromDBErrors("failed to find previous transaction outputs: ", dbErrors)
+		if err != nil {
+			return nil, err
 		}
 
 		dbPreviousTransactionsOutputs = append(dbPreviousTransactionsOutputs, dbPreviousTransactionsOutputsChunk...)

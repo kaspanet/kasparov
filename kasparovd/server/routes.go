@@ -166,7 +166,7 @@ func getBlocksHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[s
 	if orderParamValue, ok := queryParams[queryParamOrder]; ok {
 		order = orderParamValue
 	}
-	return controllers.GetBlocksHandler(order, uint64(skip), uint64(limit))
+	return controllers.GetBlocksHandler(order, skip, limit)
 }
 
 func postTransactionHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[string]string, _ map[string]string,

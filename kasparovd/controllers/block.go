@@ -35,7 +35,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 }
 
 // GetBlocksHandler searches for all blocks
-func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{}, error) {
+func GetBlocksHandler(orderString string, skip int, limit int) (interface{}, error) {
 	if limit > maxGetBlocksLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
 			errors.Errorf("limit higher than %d was requested.", maxGetBlocksLimit))

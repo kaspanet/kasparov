@@ -3,10 +3,9 @@ package database
 import (
 	nativeerrors "errors"
 	"fmt"
+	"github.com/go-pg/pg/v9"
 	"github.com/golang-migrate/migrate/v4/source"
-	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kasparov/config"
-	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 	"os"
 
@@ -14,29 +13,21 @@ import (
 )
 
 // db is the Kasparov database.
-var db *gorm.DB
+var db *pg.DB
 
 const (
 	utcTimeZone = "UTC"
 )
 
 // DB returns a reference to the database connection
-func DB() (*gorm.DB, error) {
+func DB() (*pg.DB, error) {
 	if db == nil {
 		return nil, errors.New("Database is not connected")
 	}
 	return db, nil
 }
 
-type gormLogger struct{}
-
-func (l gormLogger) Print(v ...interface{}) {
-	str := fmt.Sprint(v...)
-	log.Errorf(str)
-}
-
-// Connect connects to the database mentioned in
-// config variable.
+// Connect connects to the database mentioned in config variable.
 func Connect(cfg *config.KasparovFlags) error {
 	migrator, driver, err := openMigrator(cfg)
 	if err != nil {
@@ -50,24 +41,23 @@ func Connect(cfg *config.KasparovFlags) error {
 		return errors.Errorf("Database is not current (version %d). Please migrate"+
 			" the database by running the server with --migrate flag and then run it again.", version)
 	}
-	db, err = gorm.Open("postgres", buildConnectionString(cfg))
-	if err != nil {
-		return err
-	}
-	db.SetLogger(gormLogger{})
+	db = pg.Connect(&pg.Options{
+		User:     cfg.DBUser,
+		Password: cfg.DBPassword,
+		Database: cfg.DBName,
+	})
 
 	return validateTimeZone(db)
 }
 
-func validateTimeZone(db *gorm.DB) error {
+func validateTimeZone(db *pg.DB) error {
 	var timeZone string
-	dbResult := db.
-		Raw("SELECT current_setting('TIMEZONE') as time_zone")
-	dbResult.Row().Scan(&timeZone)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when "+
-			"checking the database timezone:", dbErrors)
+	_, err := db.
+		QueryOne(pg.Scan(&timeZone), `SELECT current_setting('TIMEZONE') as time_zone`)
+
+	if err != nil {
+		return errors.WithMessage(err, "some errors were encountered when "+
+			"checking the database timezone:")
 	}
 
 	if timeZone != utcTimeZone {
@@ -90,11 +80,6 @@ func Close() error {
 func buildMigratorConnectionString(cfg *config.KasparovFlags) string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBSSLMode)
-}
-
-func buildConnectionString(cfg *config.KasparovFlags) string {
-	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBSSLMode)
 }
 
 // isCurrent resolves whether the database is on the latest

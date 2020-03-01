@@ -188,7 +188,7 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 	if err != nil {
 		return err
 	}
-	defer dbTx.RollbackUnlessCommitted()
+	// TODO use RunInTransaction (go-pg equivalent to rollback if Not committed)
 
 	for _, removedHash := range removedChainHashes {
 		err := updateRemovedChainHashes(dbTx, removedHash)
@@ -203,7 +203,6 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 		}
 	}
 
-	err = dbTx.Commit()
 	if err != nil {
 		return err
 	}
@@ -390,7 +389,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	if err != nil {
 		return err
 	}
-	defer dbTx.RollbackUnlessCommitted()
+	// TODO use RunInTransaction (go-pg equivalent to rollback if Not committed)
 
 	blockHash := blockAdded.Header.BlockHash()
 	blockExists, err := dbaccess.DoesBlockExist(dbaccess.NoTx(), blockHash.String())
@@ -405,7 +404,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	if err != nil {
 		return err
 	}
-	return dbTx.Commit()
+	return nil
 }
 
 func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blockHash *daghash.Hash) error {
@@ -635,7 +634,7 @@ func convertChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (
 // into the database.
 func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmodel.GetBlockVerboseResult) error {
 	dbTx, err := dbaccess.NewTx()
-	defer dbTx.RollbackUnlessCommitted()
+	// TODO use RunInTransaction (go-pg equivalent to rollback if Not committed)
 	if err != nil {
 		return err
 	}
@@ -675,7 +674,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 		return err
 	}
 
-	return dbTx.Commit()
+	return nil
 }
 
 // bulkInsertBlocksData inserts the given blocks and their data (transactions
