@@ -70,12 +70,11 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 	}
 
 	query := joinTxInputsTxOutputsAndAddresses(db).
+		Select("DISTINCT transactions.*").
 		Where("`out_addresses`.`address` = ?", address).
 		Or("`in_addresses`.`address` = ?", address).
 		Limit(limit).
-		Offset(skip).
-		Group("transactions.id")
-
+		Offset(skip)
 	if order != OrderUnknown {
 		query = query.Order(fmt.Sprintf("`transactions`.`id` %s", order))
 	}
