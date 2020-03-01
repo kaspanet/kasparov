@@ -26,6 +26,7 @@ func Start(listenAddr string) func() {
 		Handler: handlers.CORS()(router),
 	}
 	spawn(func() {
+		log.Infof("Kasparovd is listening on %s", listenAddr)
 		log.Errorf("%s", httpServer.ListenAndServe())
 	})
 

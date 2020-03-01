@@ -22,7 +22,8 @@ func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.Fie
 	query := db.
 		Joins("LEFT JOIN `addresses` ON `addresses`.`id` = `transaction_outputs`.`address_id`").
 		Joins("INNER JOIN `transactions` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
-		Where("`addresses`.`address` = ? AND `transaction_outputs`.`is_spent` = 0", address)
+		Where("`transactions`.`accepting_block_id` IS NOT NULL AND  `addresses`.`address` = ? "+
+			"AND `transaction_outputs`.`is_spent` = 0", address)
 	query = preloadFields(query, preloadedFields)
 
 	var transactionOutputs []*dbmodels.TransactionOutput
