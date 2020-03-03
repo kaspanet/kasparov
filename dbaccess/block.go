@@ -31,7 +31,7 @@ func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.Fiel
 
 // BlocksByHashes retreives a list of blocks with the corresponding `hashes`
 func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
-	if len(hashes) == 0 { // TODO WHY GO-PG CAN'T TAKE EMPTY ARRAY FOR GOD'S SAKE
+	if len(hashes) == 0 {
 		return nil, nil
 	}
 

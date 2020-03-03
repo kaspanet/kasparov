@@ -8,13 +8,13 @@ import (
 // SubnetworksByIDs retrieves all subnetworks by their `subnetworkIDs`.
 // If preloadedFields was provided - preloads the requested fields
 func SubnetworksByIDs(ctx Context, subnetworkIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Subnetwork, error) {
+	if len(subnetworkIDs) == 0 {
+		return nil, nil
+	}
+
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
-	}
-
-	if len(subnetworkIDs) == 0 { // TODO REMOVE
-		return nil, nil
 	}
 
 	var subnetworks []*dbmodels.Subnetwork

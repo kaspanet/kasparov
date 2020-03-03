@@ -36,7 +36,7 @@ const chunkSize = 3000
 // BulkInsert inserts a long list of objects into the database.
 // Utilizes bulk insertion for much faster times.
 func BulkInsert(ctx Context, objects []interface{}) error {
-	if len(objects) == 0 { //TODO CHECK WHY GO-PG CAN'T DEAL WITH EMPTY ARRAYS
+	if len(objects) == 0 {
 		return nil
 	}
 
@@ -45,5 +45,4 @@ func BulkInsert(ctx Context, objects []interface{}) error {
 		return err
 	}
 	return db.Insert(&objects)
-
 }

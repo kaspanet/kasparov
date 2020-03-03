@@ -188,35 +188,39 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 	if err != nil {
 		return err
 	}
-	// TODO use RunInTransaction (go-pg equivalent to rollback if Not committed)
-
 	for _, removedHash := range removedChainHashes {
 		err := updateRemovedChainHashes(dbTx, removedHash)
 		if err != nil {
+			dbTx.Rollback()
 			return err
 		}
 	}
 	for _, addedBlock := range addedChainBlocks {
 		err := updateAddedChainBlocks(client, dbTx, &addedBlock)
 		if err != nil {
+			dbTx.Rollback()
 			return err
 		}
 	}
 
 	if err != nil {
+		dbTx.Rollback()
 		return err
 	}
 
 	err = mqtt.PublishUnacceptedTransactionsNotifications(unacceptedTransactions)
 	if err != nil {
+		dbTx.Rollback()
 		return errors.Wrap(err, "Error while publishing unaccepted transactions notifications")
 	}
 
 	err = mqtt.PublishAcceptedTransactionsNotifications(addedChainBlocks)
 	if err != nil {
+		dbTx.Rollback()
 		return errors.Wrap(err, "Error while publishing accepted transactions notifications")
+
 	}
-	return nil
+	return dbTx.Commit()
 }
 
 // updateRemovedChainHashes "unaccepts" the block of the given removedHash.
@@ -385,12 +389,6 @@ func fetchMissingBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, addedBl
 }
 
 func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedMsg) error {
-	dbTx, err := dbaccess.NewTx()
-	if err != nil {
-		return err
-	}
-	// TODO use RunInTransaction (go-pg equivalent to rollback if Not committed)
-
 	blockHash := blockAdded.Header.BlockHash()
 	blockExists, err := dbaccess.DoesBlockExist(dbaccess.NoTx(), blockHash.String())
 	if err != nil {
@@ -400,11 +398,17 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 		return nil
 	}
 
-	err = fetchAndAddBlock(client, dbTx, blockHash)
+	dbTx, err := dbaccess.NewTx()
 	if err != nil {
 		return err
 	}
-	return nil
+
+	err = fetchAndAddBlock(client, dbTx, blockHash)
+	if err != nil {
+		dbTx.Rollback()
+		return err
+	}
+	return dbTx.Commit()
 }
 
 func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blockHash *daghash.Hash) error {

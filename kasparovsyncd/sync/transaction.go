@@ -107,7 +107,7 @@ func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, 
 			return nil, errors.Errorf("couldn't find ID for subnetwork %s", verboseTx.Subnetwork)
 		}
 
-		transactionsToAdd[i] = dbmodels.Transaction{
+		transactionsToAdd[i] = &dbmodels.Transaction{
 			TransactionHash: verboseTx.Hash,
 			TransactionID:   verboseTx.TxID,
 			LockTime:        serializer.Uint64ToBytes(verboseTx.LockTime),

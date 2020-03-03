@@ -170,7 +170,7 @@ type TransactionOutput struct {
 	Index         uint32 `pg:",use_zero"`
 	Value         uint64
 	ScriptPubKey  []byte
-	IsSpent       bool
+	IsSpent       bool `pg:",use_zero"`
 	AddressID     *uint64
 	Address       *Address
 }

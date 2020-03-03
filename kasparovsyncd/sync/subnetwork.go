@@ -44,7 +44,7 @@ func insertSubnetworks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blocks 
 		if err != nil {
 			return nil, err
 		}
-		subnetworksToAdd[i] = dbmodels.Subnetwork{
+		subnetworksToAdd[i] = &dbmodels.Subnetwork{
 			SubnetworkID: subnetworkID,
 			GasLimit:     subnetwork.GasLimit,
 		}
