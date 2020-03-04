@@ -18,7 +18,7 @@ import (
 var pendingChainChangedMsgs []*jsonrpc.ChainChangedMsg
 
 // StartSync keeps the node and the database in sync. On start, it downloads
-// all data that's missing from the dabase, and once it's done it keeps
+// all data that's missing from the database, and once it's done it keeps
 // sync with the node via notifications.
 func StartSync(doneChan chan struct{}) error {
 	client, err := jsonrpc.GetClient()
