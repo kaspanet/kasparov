@@ -109,7 +109,7 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 	}
 
 	var blueScore uint64
-	err = db.Model((*dbmodels.Block)(nil)).
+	err = db.Model(&dbmodels.Block{}).
 		Where("is_chain_Block = ?", true).
 		ColumnExpr("MAX(blue_score) as blue_score").
 		Select(&blueScore)
