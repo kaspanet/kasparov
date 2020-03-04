@@ -20,8 +20,10 @@ func TransactionByID(ctx Context, transactionID string, preloadedFields ...dbmod
 	query = preloadFields(query, preloadedFields)
 	err = query.First()
 
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
-		// TODO CHECK IF NOT FOUND ERROR, AS WE DON'T WANT TO RETURN ERROR IN THAT CASE
 		return nil, err
 	}
 
@@ -41,8 +43,10 @@ func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...d
 	query = preloadFields(query, preloadedFields)
 	err = query.First()
 
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
-		// TODO CHECK IF NOT FOUND ERROR, AS WE DON'T WANT TO RETURN ERROR IN THAT CASE
 		return nil, err
 	}
 
@@ -236,12 +240,13 @@ func TransactionsByIDsAndBlockHash(ctx Context, transactionIDs []string, blockHa
 // TransactionsByIDs retrieves all transactions by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
 func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	if len(transactionIDs) == 0 {
+		return nil, nil
+	}
+
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
-	}
-	if len(transactionIDs) == 0 { // TODO REMOVE
-		return nil, nil
 	}
 
 	var transactions []*dbmodels.Transaction
