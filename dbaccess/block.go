@@ -85,8 +85,12 @@ func SelectedTip(ctx Context) (*dbmodels.Block, error) {
 		return nil, err
 	}
 
-	block := &dbmodels.Block{IsChainBlock: true}
-	err = db.Model(block).Order("blue_score DESC").First()
+	block := &dbmodels.Block{}
+	err = db.Model(block).
+		Where("is_chain_block = ?", true).
+		Order("blue_score DESC").
+		First()
+
 	if err == pg.ErrNoRows {
 		return nil, nil
 	}
