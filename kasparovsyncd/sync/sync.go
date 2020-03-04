@@ -195,8 +195,14 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 			return err
 		}
 	}
+
+	missingBlockHashes, err := fetchAndAddMissingAddedChainBlocks(client, dbTx, addedChainBlocks)
+	if err != nil {
+		return err
+	}
+
 	for _, addedBlock := range addedChainBlocks {
-		err := updateAddedChainBlocks(client, dbTx, &addedBlock)
+		err := updateAddedChainBlocks(dbTx, &addedBlock)
 		if err != nil {
 			dbTx.Rollback()
 			return err
@@ -220,7 +226,50 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 		return errors.Wrap(err, "Error while publishing accepted transactions notifications")
 
 	}
+
+	err = mqtt.PublishSelectedParentChainNotifications(removedChainHashes, addedChainBlocks)
+	if err != nil {
+		return errors.Wrap(err, "Error while publishing chain changes notifications")
+	}
+
+	for _, hash := range missingBlockHashes {
+		err := mqtt.PublishBlockAddedNotifications(hash)
+		if err != nil {
+			return err
+		}
+	}
+
 	return dbTx.Commit()
+}
+
+// fetchAndAddMissingAddedChainBlocks takes cares of cases where a block referenced in a selectedParent-chain
+// have not yet been added to the database. In that case - it fetches it and its missing ancestors and add them
+// to the database.
+func fetchAndAddMissingAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, addedChainBlocks []rpcmodel.ChainBlock) (missingBlockHashes []string, err error) {
+	missingBlockHashes = make([]string, 0)
+	for _, block := range addedChainBlocks {
+		dbBlock, err := dbaccess.BlockByHash(dbTx, block.Hash)
+		if err != nil {
+			return nil, err
+		}
+
+		if dbBlock != nil {
+			continue
+		}
+
+		log.Debugf("Block %s not found in the database - fetching from node", block.Hash)
+		blockHash, err := daghash.NewHashFromStr(block.Hash)
+		if err != nil {
+			return nil, err
+		}
+
+		addedBlockHashes, err := fetchAndAddBlock(client, dbTx, blockHash)
+		if err != nil {
+			return nil, err
+		}
+		missingBlockHashes = append(missingBlockHashes, addedBlockHashes...)
+	}
+	return missingBlockHashes, nil
 }
 
 // updateRemovedChainHashes "unaccepts" the block of the given removedHash.
@@ -290,18 +339,13 @@ func updateRemovedChainHashes(dbTx *dbaccess.TxContext, removedHash string) erro
 // * All its Transactions are set AcceptingBlockID = addedBlock
 // * The block is set IsChainBlock = true
 // This function will return an error if any of the above are in an unexpected state
-func updateAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) error {
+func updateAddedChainBlocks(dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) error {
 	dbAddedBlock, err := dbaccess.BlockByHash(dbTx, addedBlock.Hash)
 	if err != nil {
 		return err
 	}
 	if dbAddedBlock == nil {
-		// Sometime it happens that block referenced in a selectedParent-chain have not yet been added to the
-		// database. In that case - fetch it, and add it to the database
-		dbAddedBlock, err = fetchMissingBlock(client, dbTx, addedBlock)
-		if err != nil {
-			return err
-		}
+		return errors.Errorf("missing block for hash %s", addedBlock.Hash)
 	}
 	if dbAddedBlock.IsChainBlock {
 		return errors.Errorf("block erroneously marked as a chain block: %s", addedBlock.Hash)
@@ -323,7 +367,11 @@ func updateAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, ad
 		for i, acceptedTxID := range acceptedBlock.AcceptedTxIDs {
 			transactionIDsIn[i] = acceptedTxID
 		}
-		dbAcceptedTransactions, err := dbaccess.TransactionsByIDs(dbTx, transactionIDsIn,
+
+		// We filter transaction by dbAcceptedBlock.ID because transaction malleability
+		// can create a situation with multiple transactions on different blocks with
+		// same ID and different hashes.
+		dbAcceptedTransactions, err := dbaccess.TransactionsByIDsAndBlockID(dbTx, transactionIDsIn, dbAcceptedBlock.ID,
 			dbmodels.TransactionFieldNames.InputsPreviousTransactionOutputs)
 		if err != nil {
 			return err
@@ -367,27 +415,6 @@ func updateAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, ad
 	return nil
 }
 
-func fetchMissingBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) (*dbmodels.Block, error) {
-	log.Debugf("Block %s not found in the database - fetching from node", addedBlock.Hash)
-	blockHash, err := daghash.NewHashFromStr(addedBlock.Hash)
-	if err != nil {
-		return nil, err
-	}
-	err = fetchAndAddBlock(client, dbTx, blockHash)
-	if err != nil {
-		return nil, err
-	}
-	// Now get block from database again - this time it has to be there
-	dbAddedBlock, err := dbaccess.BlockByHash(dbTx, addedBlock.Hash)
-	if err != nil {
-		return nil, err
-	}
-	if dbAddedBlock == nil {
-		return nil, errors.Errorf("missing block for hash %s, even after it was explicitly fetched", addedBlock.Hash)
-	}
-	return dbAddedBlock, nil
-}
-
 func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedMsg) error {
 	blockHash := blockAdded.Header.BlockHash()
 	blockExists, err := dbaccess.DoesBlockExist(dbaccess.NoTx(), blockHash.String())
@@ -403,39 +430,51 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 		return err
 	}
 
-	err = fetchAndAddBlock(client, dbTx, blockHash)
+	addedBlockHashes, err := fetchAndAddBlock(client, dbTx, blockHash)
 	if err != nil {
 		dbTx.Rollback()
 		return err
 	}
-	return dbTx.Commit()
-}
 
-func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blockHash *daghash.Hash) error {
-	block, err := fetchBlock(client, blockHash)
+	err = dbTx.Commit()
 	if err != nil {
 		return err
 	}
 
+	for _, hash := range addedBlockHashes {
+		err := mqtt.PublishBlockAddedNotifications(hash)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext,
+	blockHash *daghash.Hash) (addedBlockHashes []string, err error) {
+
+	block, err := fetchBlock(client, blockHash)
+	if err != nil {
+		return nil, err
+	}
+
 	missingAncestors, err := fetchMissingAncestors(client, dbTx, block, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	blocks := append([]*rawAndVerboseBlock{block}, missingAncestors...)
 	err = bulkInsertBlocksData(client, dbTx, blocks)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, block := range blocks {
-		err := mqtt.PublishTransactionsNotifications(block.Verbose.RawTx)
-		if err != nil {
-			return err
-		}
+	addedBlockHashes = make([]string, len(blocks))
+	for i, block := range blocks {
+		addedBlockHashes[i] = block.hash()
 	}
 
-	return nil
+	return addedBlockHashes, nil
 }
 
 func fetchMissingAncestors(client *jsonrpc.Client, dbTx *dbaccess.TxContext, block *rawAndVerboseBlock,
@@ -690,27 +729,27 @@ func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *dbaccess.TxContext, bloc
 		return err
 	}
 
-	transactionIDsToTxsWithMetadata, err := insertTransactions(dbTx, blocks, subnetworkIDToID)
+	transactionHashesToTxsWithMetadata, err := insertTransactions(dbTx, blocks, subnetworkIDToID)
 	if err != nil {
 		return err
 	}
 
-	err = insertTransactionOutputs(dbTx, transactionIDsToTxsWithMetadata)
+	err = insertTransactionOutputs(dbTx, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
 
-	err = insertTransactionInputs(dbTx, transactionIDsToTxsWithMetadata)
+	err = insertTransactionInputs(dbTx, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
 
-	err = insertRawTransactions(dbTx, transactionIDsToTxsWithMetadata)
+	err = insertRawTransactions(dbTx, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
 
-	err = insertBlocks(dbTx, blocks, transactionIDsToTxsWithMetadata)
+	err = insertBlocks(dbTx, blocks, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
@@ -730,7 +769,7 @@ func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *dbaccess.TxContext, bloc
 		return err
 	}
 
-	err = insertTransactionBlocks(dbTx, blocks, blockHashesToIDs, transactionIDsToTxsWithMetadata)
+	err = insertTransactionBlocks(dbTx, blocks, blockHashesToIDs, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}

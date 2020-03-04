@@ -23,19 +23,19 @@ type txWithMetadata struct {
 	mass      uint64
 }
 
-func transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMetadata map[string]*txWithMetadata) []string {
-	transactionIDs := make([]string, len(transactionIDsToTxsWithMetadata))
+func transactionHashesToTxsWithMetadataToTransactionHashes(transactionHashesToTxsWithMetadata map[string]*txWithMetadata) []string {
+	hashes := make([]string, len(transactionHashesToTxsWithMetadata))
 	i := 0
-	for txID := range transactionIDsToTxsWithMetadata {
-		transactionIDs[i] = txID
+	for hash := range transactionHashesToTxsWithMetadata {
+		hashes[i] = hash
 		i++
 	}
-	return transactionIDs
+	return hashes
 }
 
-func insertRawTransactions(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertRawTransactions(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 	rawTransactionsToAdd := make([]interface{}, 0)
-	for _, transaction := range transactionIDsToTxsWithMetadata {
+	for _, transaction := range transactionHashesToTxsWithMetadata {
 		if !transaction.isNew {
 			continue
 		}
@@ -56,46 +56,46 @@ func insertRawTransactions(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMeta
 func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (
 	map[string]*txWithMetadata, error) {
 
-	transactionIDsToTxsWithMetadata := make(map[string]*txWithMetadata)
+	transactionHashesToTxsWithMetadata := make(map[string]*txWithMetadata)
 	for _, block := range blocks {
 		// We do not directly iterate over block.Verbose.RawTx because it is a slice of values, and iterating
 		// over such will re-use the same address, making all pointers pointing into it point to the same address
 		for i := range block.Verbose.RawTx {
 			transaction := &block.Verbose.RawTx[i]
-			transactionIDsToTxsWithMetadata[transaction.TxID] = &txWithMetadata{
+			transactionHashesToTxsWithMetadata[transaction.Hash] = &txWithMetadata{
 				verboseTx: transaction,
 			}
 		}
 	}
 
-	transactionIDs := transactionIDsToTxsWithMetadataToTransactionIDs(transactionIDsToTxsWithMetadata)
+	transactionHashes := transactionHashesToTxsWithMetadataToTransactionHashes(transactionHashesToTxsWithMetadata)
 
-	dbTransactions, err := dbaccess.TransactionsByIDs(dbTx, transactionIDs)
+	dbTransactions, err := dbaccess.TransactionsByHashes(dbTx, transactionHashes)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, dbTransaction := range dbTransactions {
-		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].id = dbTransaction.ID
-		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].mass = dbTransaction.Mass
+		transactionHashesToTxsWithMetadata[dbTransaction.TransactionHash].id = dbTransaction.ID
+		transactionHashesToTxsWithMetadata[dbTransaction.TransactionHash].mass = dbTransaction.Mass
 	}
 
-	newTransactionIDs := make([]string, 0)
-	for txID, transaction := range transactionIDsToTxsWithMetadata {
+	newTransactionHashes := make([]string, 0)
+	for hash, transaction := range transactionHashesToTxsWithMetadata {
 		if transaction.id != 0 {
 			continue
 		}
-		newTransactionIDs = append(newTransactionIDs, txID)
+		newTransactionHashes = append(newTransactionHashes, hash)
 	}
 
-	transactionsToAdd := make([]interface{}, len(newTransactionIDs))
-	for i, id := range newTransactionIDs {
-		verboseTx := transactionIDsToTxsWithMetadata[id].verboseTx
+	transactionsToAdd := make([]interface{}, len(newTransactionHashes))
+	for i, hash := range newTransactionHashes {
+		verboseTx := transactionHashesToTxsWithMetadata[hash].verboseTx
 		mass, err := calcTxMass(dbTx, verboseTx)
 		if err != nil {
 			return nil, err
 		}
-		transactionIDsToTxsWithMetadata[id].mass = mass
+		transactionHashesToTxsWithMetadata[hash].mass = mass
 
 		payload, err := hex.DecodeString(verboseTx.Payload)
 		if err != nil {
@@ -125,21 +125,21 @@ func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, 
 		return nil, err
 	}
 
-	dbNewTransactions, err := dbaccess.TransactionsByIDs(dbTx, newTransactionIDs)
+	dbNewTransactions, err := dbaccess.TransactionsByHashes(dbTx, newTransactionHashes)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(dbNewTransactions) != len(newTransactionIDs) {
+	if len(dbNewTransactions) != len(newTransactionHashes) {
 		return nil, errors.New("couldn't add all new transactions")
 	}
 
 	for _, dbTransaction := range dbNewTransactions {
-		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].id = dbTransaction.ID
-		transactionIDsToTxsWithMetadata[dbTransaction.TransactionID].isNew = true
+		transactionHashesToTxsWithMetadata[dbTransaction.TransactionHash].id = dbTransaction.ID
+		transactionHashesToTxsWithMetadata[dbTransaction.TransactionHash].isNew = true
 	}
 
-	return transactionIDsToTxsWithMetadata, nil
+	return transactionHashesToTxsWithMetadata, nil
 }
 
 func calcTxMass(dbTx *dbaccess.TxContext, transaction *rpcmodel.TxRawResult) (uint64, error) {

@@ -72,7 +72,7 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 		query = query.Order(fmt.Sprintf("id %s", order))
 	}
 	query = preloadFields(query, preloadedFields)
-	err = query.Select()
+	err = query.Select("DISTINCT transactions.*")
 
 	if err != nil {
 		return nil, err
@@ -98,19 +98,19 @@ func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
 		return 0, err
 	}
 
-	// TODO CHANGE TO INT
 	return uint64(count), nil
 }
 
 // AcceptedTransactionsByBlockHashes retrieves a list of transactions that were accepted
 // by blocks with the given `blockHashes`
 func AcceptedTransactionsByBlockHashes(ctx Context, blockHashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	if len(blockHashes) == 0 {
+		return nil, nil
+	}
+
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
-	}
-	if len(blockHashes) == 0 { //TODO REMOVE
-		return nil, nil
 	}
 	var transactions []*dbmodels.Transaction
 	query := db.Model(&transactions).
@@ -147,6 +147,82 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields 
 	}
 
 	return transactions, nil
+}
+
+// TransactionsByHashes retrieves all transactions by their `transactionHashes`.
+// If preloadedFields was provided - preloads the requested fields
+func TransactionsByHashes(ctx Context, transactionHashes []string,
+	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+
+	db, err := ctx.db()
+	if err != nil {
+		return nil, err
+	}
+
+	var txs []*dbmodels.Transaction
+	query := db.Model(&txs).Where("transaction_hash IN (?)", pg.In(transactionHashes))
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
+	}
+
+	return txs, nil
+}
+
+// TransactionsByIDsAndBlockID retrieves all transactions in a
+// block with the given ID by their `transactionIDs`.
+// If preloadedFields was provided - preloads the requested fields
+func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID uint64,
+	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+
+	db, err := ctx.db()
+	if err != nil {
+		return nil, err
+	}
+
+	var txs []*dbmodels.Transaction
+	query := db.
+		Model(&txs).
+		Join("INNER JOIN transactions_to_blocks").
+		JoinOn("transaction.id = transactions_to_blocks.transaction_id").
+		Where("transaction.transaction_id IN (?)", pg.In(transactionIDs)).
+		Where("transactions_to_blocks.block_id = ?", blockID)
+	query = preloadFields(query, preloadedFields)
+
+	err = query.Select()
+	if err != nil {
+		return nil, err
+	}
+
+	return txs, nil
+}
+
+// TransactionsByIDsAndBlockHash retrieves all transactions in a
+// block with the given hash by their `transactionIDs`.
+// If preloadedFields was provided - preloads the requested fields
+func TransactionsByIDsAndBlockHash(ctx Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.db()
+	if err != nil {
+		return nil, err
+	}
+
+	var txs []*dbmodels.Transaction
+	query := db.
+		Model(&txs).
+		Join("INNER JOIN transactions_to_blocks").
+		JoinOn("transaction.id = transactions_to_blocks.transaction_id").
+		Join("INNER JOIN blocks").
+		JoinOn("blocks.id = transactions_to_blocks.block_id").
+		Where("transaction.transaction_id IN (?)", pg.In(transactionIDs)).
+		Where("blocks.block_hash = ?", blockHash)
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
+	}
+
+	return txs, nil
 }
 
 // TransactionsByIDs retrieves all transactions by their `transactionIDs`.

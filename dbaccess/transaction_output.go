@@ -18,17 +18,17 @@ func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.Fie
 	if err != nil {
 		return nil, err
 	}
-
 	var transactionOutputs []*dbmodels.TransactionOutput
 	query := db.Model(&transactionOutputs).
 		Join("LEFT JOIN addresses").
 		JoinOn("addresses.id = transaction_output.address_id").
 		Join("INNER JOIN transactions").
 		JoinOn("transaction_output.transaction_id = transactions.id").
-		Where("addresses.address = ? AND transaction_output.is_spent = ?", address, false)
+		Where("addresses.address = ?", address).
+		Where("transaction_output.is_spent = ?", false).
+		Where("transactions.accepting_block_id IS NOT NULL")
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
-
 	if err != nil {
 		return nil, err
 	}

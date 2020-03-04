@@ -20,39 +20,16 @@ const (
 	UnacceptedTransactionsTopic = "transactions/unaccepted"
 )
 
-// PublishTransactionsNotifications publishes notification for each transaction of the given block
-func PublishTransactionsNotifications(rawTransactions []rpcmodel.TxRawResult) error {
-	if !isConnected() {
-		return nil
-	}
-
-	transactionIDs := make([]string, len(rawTransactions))
-	for i, tx := range rawTransactions {
-		transactionIDs[i] = tx.TxID
-	}
-
-	dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), transactionIDs,
-		dbmodels.TransactionRecommendedPreloadedFields...)
-	if err != nil {
-		return err
-	}
-
+// publishTransactionsNotifications publishes notifications for each transaction of the given transactions
+func publishTransactionsNotifications(topic string, dbTransactions []*dbmodels.Transaction, selectedTipBlueScore uint64) error {
 	for _, dbTransaction := range dbTransactions {
-		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
-		err = publishTransactionNotifications(transaction, TransactionsTopic)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func publishTransactionNotifications(transaction *apimodels.TransactionResponse, topic string) error {
-	addresses := uniqueAddressesForTransaction(transaction)
-	for _, address := range addresses {
-		err := publishTransactionNotificationForAddress(transaction, address, topic)
-		if err != nil {
-			return err
+		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction, selectedTipBlueScore)
+		addresses := uniqueAddressesForTransaction(transaction)
+		for _, address := range addresses {
+			err := publishTransactionNotificationForAddress(transaction, address, topic)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -85,20 +62,23 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainB
 	if !isConnected() {
 		return nil
 	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return err
+	}
+
 	for _, addedChainBlock := range addedChainBlocks {
 		for _, acceptedBlock := range addedChainBlock.AcceptedBlocks {
-			dbTransactions, err := dbaccess.TransactionsByIDs(dbaccess.NoTx(), acceptedBlock.AcceptedTxIDs,
+			dbTransactions, err := dbaccess.TransactionsByIDsAndBlockHash(dbaccess.NoTx(), acceptedBlock.AcceptedTxIDs, acceptedBlock.Hash,
 				dbmodels.TransactionRecommendedPreloadedFields...)
 			if err != nil {
 				return err
 			}
 
-			for _, dbTransaction := range dbTransactions {
-				transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
-				err = publishTransactionNotifications(transaction, AcceptedTransactionsTopic)
-				if err != nil {
-					return err
-				}
+			err = publishTransactionsNotifications(AcceptedTransactionsTopic, dbTransactions, selectedTipBlueScore)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -111,12 +91,14 @@ func PublishUnacceptedTransactionsNotifications(unacceptedTransactions []*dbmode
 		return nil
 	}
 
-	for _, dbTransaction := range unacceptedTransactions {
-		transaction := apimodels.ConvertTxModelToTxResponse(dbTransaction)
-		err := publishTransactionNotifications(transaction, UnacceptedTransactionsTopic)
-		if err != nil {
-			return err
-		}
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return err
+	}
+
+	err = publishTransactionsNotifications(UnacceptedTransactionsTopic, unacceptedTransactions, selectedTipBlueScore)
+	if err != nil {
+		return err
 	}
 	return nil
 }

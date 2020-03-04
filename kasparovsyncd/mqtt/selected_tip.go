@@ -21,6 +21,6 @@ func PublishSelectedTipNotification(selectedTipHash string) error {
 		return err
 	}
 
-	block := apimodels.ConvertBlockModelToBlockResponse(dbBlock)
+	block := apimodels.ConvertBlockModelToBlockResponse(dbBlock, dbBlock.BlueScore)
 	return publish(SelectedTipTopic, block)
 }

@@ -20,7 +20,7 @@ const maxGetBlocksLimit = 100
 func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 	if bytes, err := hex.DecodeString(blockHash); err != nil || len(bytes) != daghash.HashSize {
 		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
-			errors.Errorf("the given block hash is not a hex-encoded %d-byte hash.", daghash.HashSize))
+			errors.Errorf("the given block hash is not a hex-encoded %d-byte hash", daghash.HashSize))
 	}
 
 	block, err := dbaccess.BlockByHash(dbaccess.NoTx(), blockHash, dbmodels.BlockRecommendedPreloadedFields...)
@@ -31,14 +31,20 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no block with the given block hash was found"))
 	}
 
-	return apimodels.ConvertBlockModelToBlockResponse(block), nil
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	blockRes := apimodels.ConvertBlockModelToBlockResponse(block, selectedTipBlueScore)
+	return blockRes, nil
 }
 
 // GetBlocksHandler searches for all blocks
 func GetBlocksHandler(orderString string, skip int, limit int) (interface{}, error) {
 	if limit > maxGetBlocksLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("limit higher than %d was requested.", maxGetBlocksLimit))
+			errors.Errorf("limit higher than %d was requested", maxGetBlocksLimit))
 	}
 
 	order, err := dbaccess.StringToOrder(orderString)
@@ -51,9 +57,14 @@ func GetBlocksHandler(orderString string, skip int, limit int) (interface{}, err
 		return nil, err
 	}
 
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
 	blockResponses := make([]*apimodels.BlockResponse, len(blocks))
 	for i, block := range blocks {
-		blockResponses[i] = apimodels.ConvertBlockModelToBlockResponse(block)
+		blockResponses[i] = apimodels.ConvertBlockModelToBlockResponse(block, selectedTipBlueScore)
 	}
 
 	total, err := dbaccess.BlocksCount(dbaccess.NoTx())

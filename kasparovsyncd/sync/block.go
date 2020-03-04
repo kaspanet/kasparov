@@ -11,12 +11,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockMass := uint64(0)
 		for _, tx := range block.Verbose.RawTx {
-			blockMass += transactionIDsToTxsWithMetadata[tx.TxID].mass
+			blockMass += transactionHashesToTxsWithMetadata[tx.Hash].mass
 		}
 		var err error
 		blocksToAdd[i], err = makeDBBlock(block.Verbose, blockMass)

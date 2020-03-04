@@ -9,14 +9,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertTransactionOutputs(dbTx *dbaccess.TxContext, transactionIDsToTxsWithMetadata map[string]*txWithMetadata) error {
-	addressesToAddressIDs, err := insertAddresses(dbTx, transactionIDsToTxsWithMetadata)
+func insertTransactionOutputs(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
+	addressesToAddressIDs, err := insertAddresses(dbTx, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err
 	}
 
 	outputsToAdd := make([]interface{}, 0)
-	for _, transaction := range transactionIDsToTxsWithMetadata {
+	for _, transaction := range transactionHashesToTxsWithMetadata {
 		if !transaction.isNew {
 			continue
 		}

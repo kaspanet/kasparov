@@ -14,15 +14,8 @@ func validateAddress(address string) error {
 	if err != nil {
 		return httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,
 			errors.Wrap(err, "error decoding address"),
-			"The given address is not a well-formatted P2PKH or P2SH address.")
+			"The given address is not a well-formatted P2PKH or P2SH address")
 	}
 
 	return nil
-}
-
-func confirmations(acceptingBlueScore *uint64, selectedTipBlueScore uint64) uint64 {
-	if acceptingBlueScore == nil {
-		return 0
-	}
-	return selectedTipBlueScore - *acceptingBlueScore + 1
 }
