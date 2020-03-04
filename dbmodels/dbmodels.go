@@ -24,8 +24,8 @@ type Block struct {
 	BlueScore            uint64 `pg:",use_zero"`
 	IsChainBlock         bool   `pg:",use_zero"`
 	Mass                 uint64
-	ParentBlocks         []*Block       `pg:"many2many:parent_blocks,joinFK:parent_block_id;"`
-	Transactions         []*Transaction `pg:"many2many:transactions_to_blocks,joinFK:transaction_id;"`
+	ParentBlocks         []*Block       `pg:"many2many:parent_blocks,joinFK:parent_block_id"`
+	Transactions         []*Transaction `pg:"many2many:transactions_to_blocks,joinFK:transaction_id"`
 }
 
 // BlockFieldNames is a list of FieldNames for the 'Block' object
@@ -200,7 +200,7 @@ type TransactionInput struct {
 	PreviousTransactionOutput   TransactionOutput
 	Index                       uint32 `pg:",use_zero"`
 	SignatureScript             []byte
-	Sequence                    uint64
+	Sequence                    []byte
 }
 
 // TransactionInputFieldNames is a list of FieldNames for the 'TransactionInput' object

@@ -2,6 +2,7 @@ package sync
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kasparov/serializer"
 
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
@@ -86,7 +87,7 @@ func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionHashesToTxsWit
 				PreviousTransactionOutputID: prevOutputID,
 				Index:                       uint32(i),
 				SignatureScript:             scriptSig,
-				Sequence:                    txIn.Sequence,
+				Sequence:                    serializer.Uint64ToBytes(txIn.Sequence),
 			}
 			inputIndex++
 		}

@@ -54,7 +54,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction, selectedTipBlueScore u
 			PreviousTransactionID:          txIn.PreviousTransactionOutput.Transaction.TransactionID,
 			PreviousTransactionOutputIndex: txIn.PreviousTransactionOutput.Index,
 			SignatureScript:                hex.EncodeToString(txIn.SignatureScript),
-			Sequence:                       txIn.Sequence,
+			Sequence:                       serializer.BytesToUint64(txIn.Sequence),
 		}
 		if txIn.PreviousTransactionOutput.Address != nil {
 			txRes.Inputs[i].Address = txIn.PreviousTransactionOutput.Address.Address
