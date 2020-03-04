@@ -105,7 +105,10 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 	}
 
 	var blueScore uint64
-	err = db.Model((*dbmodels.Block)(nil)).Where("isChainBlock = ?", true).ColumnExpr("MAX(blue_score) as blue_score").Select(&blueScore)
+	err = db.Model((*dbmodels.Block)(nil)).
+		Where("is_chain_Block = ?", true).
+		ColumnExpr("MAX(blue_score) as blue_score").
+		Select(&blueScore)
 	if err != nil {
 		return 0, err
 	}
@@ -204,7 +207,8 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 	}
 
 	count, err := db.
-		Model(&dbmodels.Block{BlockHash: blockHash}).
+		Model(&dbmodels.Block{}).
+		Where("block_hash = ?", blockHash).
 		Count()
 	if err != nil {
 		return false, err

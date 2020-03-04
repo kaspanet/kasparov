@@ -69,7 +69,7 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 		Offset(int(skip))
 
 	if order != OrderUnknown {
-		query = query.Order(fmt.Sprintf("transactions.id %s", order))
+		query = query.Order(fmt.Sprintf("id %s", order))
 	}
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
@@ -191,9 +191,9 @@ func UpdateTransactionAcceptingBlockID(ctx Context, transactionID uint64, accept
 
 func joinTxInputsTxOutputsAndAddresses(query *orm.Query) *orm.Query {
 	return query.
-		Join("LEFT JOIN transaction_outputs ON transaction_outputs.transaction_id = transactions.id").
+		Join("LEFT JOIN transaction_outputs ON transaction_outputs.transaction_id = transaction.id").
 		Join("LEFT JOIN addresses AS out_addresses ON out_addresses.id = transaction_outputs.address_id").
-		Join("LEFT JOIN transaction_inputs ON transaction_inputs.transaction_id = transactions.id").
+		Join("LEFT JOIN transaction_inputs ON transaction_inputs.transaction_id = transaction.id").
 		Join("LEFT JOIN transaction_outputs AS inputs_outs ON inputs_outs.id = transaction_inputs.previous_transaction_output_id").
 		Join("LEFT JOIN addresses AS in_addresses ON in_addresses.id = inputs_outs.address_id")
 }

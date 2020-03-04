@@ -638,7 +638,6 @@ func convertChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (
 // into the database.
 func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmodel.GetBlockVerboseResult) error {
 	dbTx, err := dbaccess.NewTx()
-	// TODO use RunInTransaction (go-pg equivalent to rollback if Not committed)
 	if err != nil {
 		return err
 	}
@@ -647,6 +646,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 	for i, rawBlock := range rawBlocks {
 		blockExists, err := dbaccess.DoesBlockExist(dbTx, verboseBlocks[i].Hash)
 		if err != nil {
+			dbTx.Rollback()
 			return err
 		}
 		if blockExists {
@@ -662,6 +662,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			Verbose: &verboseBlocks[i],
 		}, blockHashesToRawAndVerboseBlock)
 		if err != nil {
+			dbTx.Rollback()
 			return err
 		}
 
@@ -675,10 +676,10 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 	}
 	err = bulkInsertBlocksData(client, dbTx, blocks)
 	if err != nil {
+		dbTx.Rollback()
 		return err
 	}
-
-	return nil
+	return dbTx.Commit()
 }
 
 // bulkInsertBlocksData inserts the given blocks and their data (transactions
