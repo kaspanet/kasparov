@@ -99,7 +99,7 @@ type Transaction struct {
 	Mass               uint64
 	Version            int32
 	RawTransaction     *RawTransaction
-	Blocks             []Block `pg:"many2many:transactions_to_blocks;"`
+	Blocks             []Block `pg:"many2many:transactions_to_blocks"`
 	TransactionOutputs []TransactionOutput
 	TransactionInputs  []TransactionInput
 }

@@ -15,8 +15,8 @@ func TransactionByID(ctx Context, transactionID string, preloadedFields ...dbmod
 		return nil, err
 	}
 
-	tx := &dbmodels.Transaction{TransactionID: transactionID}
-	query := db.Model(tx)
+	tx := &dbmodels.Transaction{}
+	query := db.Model(tx).Where("transaction_id = ?", transactionID)
 	query = preloadFields(query, preloadedFields)
 	err = query.First()
 
@@ -38,8 +38,8 @@ func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...d
 		return nil, err
 	}
 
-	tx := &dbmodels.Transaction{TransactionHash: transactionHash}
-	query := db.Model(tx)
+	tx := &dbmodels.Transaction{}
+	query := db.Model(tx).Where("transaction_hash = ?", transactionHash)
 	query = preloadFields(query, preloadedFields)
 	err = query.First()
 
