@@ -25,7 +25,7 @@ func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.Fie
 		JoinOn("addresses.id = transaction_output.address_id").
 		Join("INNER JOIN transactions").
 		JoinOn("transaction_output.transaction_id = transactions.id").
-		Where("addresses.address = ? AND transaction_outputs.is_spent = ?", address, false)
+		Where("addresses.address = ? AND transaction_output.is_spent = ?", address, false)
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
 

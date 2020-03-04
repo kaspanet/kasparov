@@ -161,7 +161,7 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...
 	}
 
 	var transactions []*dbmodels.Transaction
-	query := db.Model(&transactions).Where("transaction_id IN (?)", pg.In(transactionIDs))
+	query := db.Model(&transactions).Where("transaction.transaction_id IN (?)", pg.In(transactionIDs))
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
 	if err != nil {

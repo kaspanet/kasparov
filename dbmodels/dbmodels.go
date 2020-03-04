@@ -91,8 +91,8 @@ type Transaction struct {
 	SubnetworkID       uint64
 	Subnetwork         Subnetwork
 	Gas                uint64 `pg:",use_zero"`
-	PayloadHash        string
-	Payload            []byte
+	PayloadHash        string `pg:",use_zero"`
+	Payload            []byte `pg:",use_zero"`
 	Mass               uint64
 	Version            int32
 	RawTransaction     *RawTransaction

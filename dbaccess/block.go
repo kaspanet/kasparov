@@ -16,7 +16,7 @@ func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.Fiel
 	}
 
 	block := &dbmodels.Block{}
-	query := db.Model(block).Where("block_hash = ?", blockHash)
+	query := db.Model(block).Where("block.block_hash = ?", blockHash)
 	query = preloadFields(query, preloadedFields)
 	err = query.First()
 	if err == pg.ErrNoRows {
@@ -41,7 +41,7 @@ func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.Fi
 	}
 
 	blocks := []*dbmodels.Block{}
-	query := db.Model(&blocks).Where("block_hash in (?)", pg.In(hashes))
+	query := db.Model(&blocks).Where("block.block_hash in (?)", pg.In(hashes))
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
 	if err != nil {
@@ -65,7 +65,7 @@ func Blocks(ctx Context, order Order, skip int, limit int, preloadedFields ...db
 		Limit(limit)
 
 	if order != OrderUnknown {
-		query = query.Order(fmt.Sprintf("id %s", order))
+		query = query.Order(fmt.Sprintf("block.id %s", order))
 	}
 
 	query = preloadFields(query, preloadedFields)
