@@ -308,9 +308,7 @@ func updateRemovedChainHashes(dbTx *database.TxContext, removedHash string) erro
 				return errors.Errorf("cannot de-spend an unspent transaction output: %s index: %d",
 					dbTransaction.TransactionID, dbTransactionInput.Index)
 			}
-			dbPreviousTransactionOutput.IsSpent = false
-
-			err := dbaccess.Save(dbTx, &dbPreviousTransactionOutput)
+			err := dbaccess.UpdateTransactionOutputIsSpent(dbTx, dbPreviousTransactionOutput.ID, false)
 			if err != nil {
 				return err
 			}
@@ -391,8 +389,7 @@ func updateAddedChainBlocks(dbTx *database.TxContext, addedBlock *rpcmodel.Chain
 					return errors.Errorf("cannot spend an already spent transaction output: %s index: %d",
 						dbAcceptedTransaction.TransactionID, dbTransactionInput.Index)
 				}
-				dbPreviousTransactionOutput.IsSpent = true
-				err = dbaccess.Save(dbTx, &dbPreviousTransactionOutput)
+				dbaccess.UpdateTransactionOutputIsSpent(dbTx, dbPreviousTransactionOutput.ID, true)
 				if err != nil {
 					return err
 				}

@@ -69,6 +69,25 @@ func TransactionOutputsByOutpoints(ctx database.Context, outpoints []*Outpoint) 
 	return dbPreviousTransactionsOutputs, nil
 }
 
+// UpdateTransactionOutputIsSpent updates transaction-output `txOutID` by setting its IsSpent field to `isSpent`
+func UpdateTransactionOutputIsSpent(ctx database.Context, txOutID uint64, isSpent bool) error {
+	db, err := ctx.Db()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.
+		Model(&dbmodels.TransactionOutput{}).
+		Where("id = ?", txOutID).
+		Set("is_spent = ?", isSpent).
+		Update()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func outpointsToSQLTuples(outpoints []*Outpoint) [][]interface{} {
 	tuples := make([][]interface{}, len(outpoints))
 	i := 0
