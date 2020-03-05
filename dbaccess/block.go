@@ -16,7 +16,8 @@ func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.Fiel
 	}
 
 	block := &dbmodels.Block{}
-	query := db.Model(block).Where("block.block_hash = ?", blockHash)
+	query := db.Model(block).
+		Where("block.block_hash = ?", blockHash)
 	query = preloadFields(query, preloadedFields)
 	err = query.First()
 	if err == pg.ErrNoRows {

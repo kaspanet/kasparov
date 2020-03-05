@@ -39,7 +39,8 @@ func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...d
 	}
 
 	tx := &dbmodels.Transaction{}
-	query := db.Model(tx).Where("transaction_hash = ?", transactionHash)
+	query := db.Model(tx).
+		Where("transaction_hash = ?", transactionHash)
 	query = preloadFields(query, preloadedFields)
 	err = query.First()
 
@@ -64,9 +65,10 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 		return nil, err
 	}
 
-	txs := []*dbmodels.Transaction{}
+	var txs []*dbmodels.Transaction
 	query := db.Model(&txs)
 	query = joinTxInputsTxOutputsAndAddresses(query).
+		ColumnExpr("DISTINCT transaction.*").
 		Where("out_addresses.address = ?", address).
 		WhereOr("in_addresses.address = ?", address).
 		Limit(int(limit)).
@@ -76,7 +78,7 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 		query = query.Order(fmt.Sprintf("id %s", order))
 	}
 	query = preloadFields(query, preloadedFields)
-	err = query.Select("DISTINCT transactions.*")
+	err = query.Select()
 
 	if err != nil {
 		return nil, err
@@ -168,7 +170,8 @@ func TransactionsByHashes(ctx Context, transactionHashes []string,
 	}
 
 	var txs []*dbmodels.Transaction
-	query := db.Model(&txs).Where("transaction_hash IN (?)", pg.In(transactionHashes))
+	query := db.Model(&txs).
+		Where("transaction_hash IN (?)", pg.In(transactionHashes))
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
 	if err != nil {
@@ -250,7 +253,8 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...
 	}
 
 	var transactions []*dbmodels.Transaction
-	query := db.Model(&transactions).Where("transaction.transaction_id IN (?)", pg.In(transactionIDs))
+	query := db.Model(&transactions).
+		Where("transaction.transaction_id IN (?)", pg.In(transactionIDs))
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
 	if err != nil {
@@ -280,9 +284,14 @@ func UpdateTransactionAcceptingBlockID(ctx Context, transactionID uint64, accept
 
 func joinTxInputsTxOutputsAndAddresses(query *orm.Query) *orm.Query {
 	return query.
-		Join("LEFT JOIN transaction_outputs ON transaction_outputs.transaction_id = transaction.id").
-		Join("LEFT JOIN addresses AS out_addresses ON out_addresses.id = transaction_outputs.address_id").
-		Join("LEFT JOIN transaction_inputs ON transaction_inputs.transaction_id = transaction.id").
-		Join("LEFT JOIN transaction_outputs AS inputs_outs ON inputs_outs.id = transaction_inputs.previous_transaction_output_id").
-		Join("LEFT JOIN addresses AS in_addresses ON in_addresses.id = inputs_outs.address_id")
+		Join("LEFT JOIN transaction_outputs").
+		JoinOn("transaction_outputs.transaction_id = transaction.id").
+		Join("LEFT JOIN addresses AS out_addresses").
+		JoinOn("out_addresses.id = transaction_outputs.address_id").
+		Join("LEFT JOIN transaction_inputs").
+		JoinOn("transaction_inputs.transaction_id = transaction.id").
+		Join("LEFT JOIN transaction_outputs AS inputs_outs").
+		JoinOn("inputs_outs.id = transaction_inputs.previous_transaction_output_id").
+		Join("LEFT JOIN addresses AS in_addresses").
+		JoinOn("in_addresses.id = inputs_outs.address_id")
 }
