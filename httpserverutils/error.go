@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
@@ -57,16 +56,6 @@ func NewErrorFromDBErrors(prefix string, dbErrors []error) error {
 		dbErrorsStrings[i] = fmt.Sprintf("\"%s\"", dbErr)
 	}
 	return errors.Errorf("%s [%s]", prefix, strings.Join(dbErrorsStrings, ","))
-}
-
-// IsDBRecordNotFoundError returns true if the given dbErrors contains only a RecordNotFound error
-func IsDBRecordNotFoundError(dbErrors []error) bool {
-	return len(dbErrors) == 1 && gorm.IsRecordNotFoundError(dbErrors[0])
-}
-
-// HasDBError returns true if the given dbErrors contain any errors that aren't RecordNotFound
-func HasDBError(dbErrors []error) bool {
-	return !IsDBRecordNotFoundError(dbErrors) && len(dbErrors) > 0
 }
 
 // ClientError is the http response that is sent to the
