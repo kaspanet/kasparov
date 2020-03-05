@@ -218,6 +218,10 @@ func TransactionsByIDsAndBlockID(ctx database.Context, transactionIDs []string, 
 // block with the given hash by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
 func TransactionsByIDsAndBlockHash(ctx database.Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	if len(transactionIDs) == 0 {
+		return nil, nil
+	}
+
 	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
