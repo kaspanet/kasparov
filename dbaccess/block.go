@@ -11,7 +11,7 @@ import (
 // BlockByHash retrieves a block from the database according to its hash
 // If preloadedFields was provided - preloads the requested fields
 func BlockByHash(ctx database.Context, blockHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Block, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func BlocksByHashes(ctx database.Context, hashes []string, preloadedFields ...db
 		return nil, nil
 	}
 
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func BlocksByHashes(ctx database.Context, hashes []string, preloadedFields ...db
 // Blocks retrieves from the database up to `limit` blocks in the requested `order`, skipping the first `skip` blocks
 // If preloadedFields was provided - preloads the requested fields
 func Blocks(ctx database.Context, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func Blocks(ctx database.Context, order Order, skip uint64, limit uint64, preloa
 
 // SelectedTip fetches the selected tip from the database
 func SelectedTip(ctx database.Context) (*dbmodels.Block, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func SelectedTip(ctx database.Context) (*dbmodels.Block, error) {
 
 // SelectedTipBlueScore returns the blue score of the selected tip
 func SelectedTipBlueScore(ctx database.Context) (uint64, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return 0, err
 	}
@@ -127,7 +127,7 @@ func SelectedTipBlueScore(ctx database.Context) (uint64, error) {
 // Kasparov - chain is still partial, and therefore SelectedTip() returns a lower
 // block.
 func BluestBlock(ctx database.Context) (*dbmodels.Block, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func BluestBlock(ctx database.Context) (*dbmodels.Block, error) {
 // to be accepted by `newAcceptingBlockID`.
 // `newAcceptingBlockID` can be set nil.
 func UpdateBlocksAcceptedByAcceptingBlock(ctx database.Context, currentAcceptingBlockID uint64, newAcceptingBlockID *uint64) error {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func UpdateBlocksAcceptedByAcceptingBlock(ctx database.Context, currentAccepting
 // UpdateBlockAcceptingBlockID updates blocks with `blockID` to be accepted by `acceptingBlockID `.
 // `acceptingBlockID` can be set nil.
 func UpdateBlockAcceptingBlockID(ctx database.Context, blockID uint64, acceptingBlockID *uint64) error {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func UpdateBlockAcceptingBlockID(ctx database.Context, blockID uint64, accepting
 
 // UpdateBlockIsChainBlock updates the block `blockID` by setting its isChainBlock field to `isChainBlock`
 func UpdateBlockIsChainBlock(ctx database.Context, blockID uint64, isChainBlock bool) error {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func UpdateBlockIsChainBlock(ctx database.Context, blockID uint64, isChainBlock 
 
 // DoesBlockExist checks in the database whether a block with `blockHash` exists.
 func DoesBlockExist(ctx database.Context, blockHash string) (bool, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return false, err
 	}
@@ -225,7 +225,7 @@ func DoesBlockExist(ctx database.Context, blockHash string) (bool, error) {
 
 // BlocksCount returns the total number of blocks stored in the database
 func BlocksCount(ctx database.Context) (uint64, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return 0, err
 	}

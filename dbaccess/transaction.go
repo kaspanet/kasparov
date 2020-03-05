@@ -11,7 +11,7 @@ import (
 // TransactionByID retrieves a transaction from the database that has the provided ID
 // If preloadedFields was provided - preloads the requested fields
 func TransactionByID(ctx database.Context, transactionID string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func TransactionByID(ctx database.Context, transactionID string, preloadedFields
 // TransactionByHash retrieves a transaction from the database that has the provided hash
 // If preloadedFields was provided - preloads the requested fields
 func TransactionByHash(ctx database.Context, transactionHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func TransactionByHash(ctx database.Context, transactionHash string, preloadedFi
 func TransactionsByAddress(ctx database.Context, address string, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) (
 	[]*dbmodels.Transaction, error) {
 
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func TransactionsByAddress(ctx database.Context, address string, order Order, sk
 		Offset(int(skip))
 
 	if order != OrderUnknown {
-		query = query.Order(fmt.Sprintf("id %s", order))
+		query = query.Order(fmt.Sprintf("transaction.id %s", order))
 	}
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
@@ -90,7 +90,7 @@ func TransactionsByAddress(ctx database.Context, address string, order Order, sk
 
 // TransactionsByAddressCount returns the total number of transactions sent to or from `address`
 func TransactionsByAddressCount(ctx database.Context, address string) (uint64, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return 0, err
 	}
@@ -115,7 +115,7 @@ func AcceptedTransactionsByBlockHashes(ctx database.Context, blockHashes []strin
 		return nil, nil
 	}
 
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func AcceptedTransactionsByBlockHashes(ctx database.Context, blockHashes []strin
 // by block with ID equal to `blockID`
 // If preloadedFields was provided - preloads the requested fields
 func AcceptedTransactionsByBlockID(ctx database.Context, blockID uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func TransactionsByHashes(ctx database.Context, transactionHashes []string,
 		return nil, nil
 	}
 
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func TransactionsByIDsAndBlockID(ctx database.Context, transactionIDs []string, 
 		return nil, nil
 	}
 
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func TransactionsByIDsAndBlockID(ctx database.Context, transactionIDs []string, 
 // block with the given hash by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
 func TransactionsByIDsAndBlockHash(ctx database.Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func TransactionsByIDs(ctx database.Context, transactionIDs []string, preloadedF
 		return nil, nil
 	}
 
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func TransactionsByIDs(ctx database.Context, transactionIDs []string, preloadedF
 
 // UpdateTransactionAcceptingBlockID updates the transaction with given `transactionID` to have given `acceptingBlockID`
 func UpdateTransactionAcceptingBlockID(ctx database.Context, transactionID uint64, acceptingBlockID *uint64) error {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return err
 	}

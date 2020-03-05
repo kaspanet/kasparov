@@ -9,7 +9,7 @@ import (
 // AddressesByAddressStrings retrieves all addresss by their address strings.
 // If preloadedFields was provided - preloads the requested fields
 func AddressesByAddressStrings(ctx database.Context, addressStrings []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Address, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}

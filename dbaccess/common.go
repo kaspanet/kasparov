@@ -19,7 +19,7 @@ func preloadFields(query *orm.Query, columns []dbmodels.FieldName) *orm.Query {
 // Don't use this method - it saves all the object graph whether you want it or not. Kept until all usages
 // of save are converted to updates.
 func Save(ctx database.Context, value interface{}) error {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func BulkInsert(ctx database.Context, objects []interface{}) error {
 		return nil
 	}
 
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return err
 	}

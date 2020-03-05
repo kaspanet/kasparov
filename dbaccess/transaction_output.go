@@ -15,7 +15,7 @@ type Outpoint struct {
 // UTXOsByAddress retrieves all transaction outputs incoming to `address`.
 // If preloadedFields was provided - preloads the requested fields
 func UTXOsByAddress(ctx database.Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func UTXOsByAddress(ctx database.Context, address string, preloadedFields ...dbm
 // TransactionOutputsByOutpoints retrieves all transaction outputs referenced by `outpoints`.
 // If preloadedFields was provided - preloads the requested fields
 func TransactionOutputsByOutpoints(ctx database.Context, outpoints []*Outpoint) ([]*dbmodels.TransactionOutput, error) {
-	db, err := ctx.db()
+	db, err := ctx.Db()
 	if err != nil {
 		return nil, err
 	}

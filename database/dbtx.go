@@ -19,12 +19,13 @@ type DbTx interface {
 // existence or non-existence of a database transaction
 // Call `.NoTx()` or `.NewTx()` to acquire a Context
 type Context interface {
-	db() (DbTx, error)
+	Db() (DbTx, error)
 }
 
 type noTxContext struct{}
 
-func (*noTxContext) db() (DbTx, error) {
+// Db returns a db instance
+func (*noTxContext) Db() (DbTx, error) {
 	return DB()
 }
 
@@ -34,7 +35,8 @@ type TxContext struct {
 	Commited bool
 }
 
-func (ctx *TxContext) db() (DbTx, error) {
+// Db returns a db instance
+func (ctx *TxContext) Db() (DbTx, error) {
 	return ctx.tx, nil
 }
 
