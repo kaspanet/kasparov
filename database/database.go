@@ -45,6 +45,7 @@ func Connect(cfg *config.KasparovFlags) error {
 		User:     cfg.DBUser,
 		Password: cfg.DBPassword,
 		Database: cfg.DBName,
+		Addr:     fmt.Sprintf("%s:%s", cfg.DBHost, cfg.DBPort),
 	})
 
 	return validateTimeZone(db)
