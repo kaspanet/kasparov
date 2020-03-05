@@ -189,10 +189,16 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 	if err != nil {
 		return err
 	}
+
+	defer func(dbTx *database.TxContext) {
+		if !dbTx.Commited {
+			dbTx.Rollback()
+		}
+	}(dbTx)
+
 	for _, removedHash := range removedChainHashes {
 		err := updateRemovedChainHashes(dbTx, removedHash)
 		if err != nil {
-			dbTx.Rollback()
 			return err
 		}
 	}
@@ -205,25 +211,21 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 	for _, addedBlock := range addedChainBlocks {
 		err := updateAddedChainBlocks(dbTx, &addedBlock)
 		if err != nil {
-			dbTx.Rollback()
 			return err
 		}
 	}
 
 	if err != nil {
-		dbTx.Rollback()
 		return err
 	}
 
 	err = mqtt.PublishUnacceptedTransactionsNotifications(unacceptedTransactions)
 	if err != nil {
-		dbTx.Rollback()
 		return errors.Wrap(err, "Error while publishing unaccepted transactions notifications")
 	}
 
 	err = mqtt.PublishAcceptedTransactionsNotifications(addedChainBlocks)
 	if err != nil {
-		dbTx.Rollback()
 		return errors.Wrap(err, "Error while publishing accepted transactions notifications")
 
 	}
@@ -431,9 +433,14 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 		return err
 	}
 
+	defer func(dbTx *database.TxContext) {
+		if !dbTx.Commited {
+			dbTx.Rollback()
+		}
+	}(dbTx)
+
 	addedBlockHashes, err := fetchAndAddBlock(client, dbTx, blockHash)
 	if err != nil {
-		dbTx.Rollback()
 		return err
 	}
 
@@ -681,12 +688,17 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 	if err != nil {
 		return err
 	}
+	defer func(dbTx *database.TxContext) {
+		if !dbTx.Commited {
+			dbTx.Rollback()
+		}
+	}(dbTx)
+
 	blocks := make([]*rawAndVerboseBlock, 0)
 	blockHashesToRawAndVerboseBlock := make(map[string]*rawAndVerboseBlock)
 	for i, rawBlock := range rawBlocks {
 		blockExists, err := dbaccess.DoesBlockExist(dbTx, verboseBlocks[i].Hash)
 		if err != nil {
-			dbTx.Rollback()
 			return err
 		}
 		if blockExists {
@@ -702,7 +714,6 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 			Verbose: &verboseBlocks[i],
 		}, blockHashesToRawAndVerboseBlock)
 		if err != nil {
-			dbTx.Rollback()
 			return err
 		}
 
@@ -716,7 +727,6 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 	}
 	err = bulkInsertBlocksData(client, dbTx, blocks)
 	if err != nil {
-		dbTx.Rollback()
 		return err
 	}
 	return dbTx.Commit()

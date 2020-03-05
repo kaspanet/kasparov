@@ -29,7 +29,10 @@ func (*noTxContext) db() (DbTx, error) {
 }
 
 // TxContext represents a database context with an attached database transaction
-type TxContext struct{ tx *pg.Tx }
+type TxContext struct {
+	tx       *pg.Tx
+	Commited bool
+}
 
 func (ctx *TxContext) db() (DbTx, error) {
 	return ctx.tx, nil
@@ -37,6 +40,7 @@ func (ctx *TxContext) db() (DbTx, error) {
 
 // Commit commits the transaction attached to this TxContext
 func (ctx *TxContext) Commit() error {
+	ctx.Commited = true
 	return ctx.tx.Commit()
 }
 
