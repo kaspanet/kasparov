@@ -3,13 +3,14 @@ package dbaccess
 import (
 	"fmt"
 	"github.com/go-pg/pg/v9"
+	"github.com/kaspanet/kasparov/database"
 
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
 // BlockByHash retrieves a block from the database according to its hash
 // If preloadedFields was provided - preloads the requested fields
-func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Block, error) {
+func BlockByHash(ctx database.Context, blockHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -31,7 +32,7 @@ func BlockByHash(ctx Context, blockHash string, preloadedFields ...dbmodels.Fiel
 }
 
 // BlocksByHashes retreives a list of blocks with the corresponding `hashes`
-func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
+func BlocksByHashes(ctx database.Context, hashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
 	if len(hashes) == 0 {
 		return nil, nil
 	}
@@ -54,16 +55,16 @@ func BlocksByHashes(ctx Context, hashes []string, preloadedFields ...dbmodels.Fi
 
 // Blocks retrieves from the database up to `limit` blocks in the requested `order`, skipping the first `skip` blocks
 // If preloadedFields was provided - preloads the requested fields
-func Blocks(ctx Context, order Order, skip int, limit int, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
+func Blocks(ctx database.Context, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
 	}
 
-	blocks := []*dbmodels.Block{}
+	var blocks []*dbmodels.Block
 	query := db.Model(&blocks).
-		Offset(skip).
-		Limit(limit)
+		Offset(int(skip)).
+		Limit(int(limit))
 
 	if order != OrderUnknown {
 		query = query.Order(fmt.Sprintf("block.id %s", order))
@@ -80,7 +81,7 @@ func Blocks(ctx Context, order Order, skip int, limit int, preloadedFields ...db
 }
 
 // SelectedTip fetches the selected tip from the database
-func SelectedTip(ctx Context) (*dbmodels.Block, error) {
+func SelectedTip(ctx database.Context) (*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -103,7 +104,7 @@ func SelectedTip(ctx Context) (*dbmodels.Block, error) {
 }
 
 // SelectedTipBlueScore returns the blue score of the selected tip
-func SelectedTipBlueScore(ctx Context) (uint64, error) {
+func SelectedTipBlueScore(ctx database.Context) (uint64, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return 0, err
@@ -125,7 +126,7 @@ func SelectedTipBlueScore(ctx Context) (uint64, error) {
 // Note: this is not necessarily the same as SelectedTip(): In a non-fully synced
 // Kasparov - chain is still partial, and therefore SelectedTip() returns a lower
 // block.
-func BluestBlock(ctx Context) (*dbmodels.Block, error) {
+func BluestBlock(ctx database.Context) (*dbmodels.Block, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -147,7 +148,7 @@ func BluestBlock(ctx Context) (*dbmodels.Block, error) {
 // UpdateBlocksAcceptedByAcceptingBlock updates all blocks which are currently accepted by `currentAcceptingBlockID`
 // to be accepted by `newAcceptingBlockID`.
 // `newAcceptingBlockID` can be set nil.
-func UpdateBlocksAcceptedByAcceptingBlock(ctx Context, currentAcceptingBlockID uint64, newAcceptingBlockID *uint64) error {
+func UpdateBlocksAcceptedByAcceptingBlock(ctx database.Context, currentAcceptingBlockID uint64, newAcceptingBlockID *uint64) error {
 	db, err := ctx.db()
 	if err != nil {
 		return err
@@ -167,7 +168,7 @@ func UpdateBlocksAcceptedByAcceptingBlock(ctx Context, currentAcceptingBlockID u
 
 // UpdateBlockAcceptingBlockID updates blocks with `blockID` to be accepted by `acceptingBlockID `.
 // `acceptingBlockID` can be set nil.
-func UpdateBlockAcceptingBlockID(ctx Context, blockID uint64, acceptingBlockID *uint64) error {
+func UpdateBlockAcceptingBlockID(ctx database.Context, blockID uint64, acceptingBlockID *uint64) error {
 	db, err := ctx.db()
 	if err != nil {
 		return err
@@ -186,7 +187,7 @@ func UpdateBlockAcceptingBlockID(ctx Context, blockID uint64, acceptingBlockID *
 }
 
 // UpdateBlockIsChainBlock updates the block `blockID` by setting its isChainBlock field to `isChainBlock`
-func UpdateBlockIsChainBlock(ctx Context, blockID uint64, isChainBlock bool) error {
+func UpdateBlockIsChainBlock(ctx database.Context, blockID uint64, isChainBlock bool) error {
 	db, err := ctx.db()
 	if err != nil {
 		return err
@@ -205,7 +206,7 @@ func UpdateBlockIsChainBlock(ctx Context, blockID uint64, isChainBlock bool) err
 }
 
 // DoesBlockExist checks in the database whether a block with `blockHash` exists.
-func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
+func DoesBlockExist(ctx database.Context, blockHash string) (bool, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return false, err
@@ -223,7 +224,7 @@ func DoesBlockExist(ctx Context, blockHash string) (bool, error) {
 }
 
 // BlocksCount returns the total number of blocks stored in the database
-func BlocksCount(ctx Context) (uint64, error) {
+func BlocksCount(ctx database.Context) (uint64, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return 0, err

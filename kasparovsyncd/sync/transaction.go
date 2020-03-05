@@ -2,6 +2,7 @@ package sync
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 
 	"github.com/kaspanet/kaspad/blockdag"
@@ -33,7 +34,7 @@ func transactionHashesToTxsWithMetadataToTransactionHashes(transactionHashesToTx
 	return hashes
 }
 
-func insertRawTransactions(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertRawTransactions(dbTx *database.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 	rawTransactionsToAdd := make([]interface{}, 0)
 	for _, transaction := range transactionHashesToTxsWithMetadata {
 		if !transaction.isNew {
@@ -53,7 +54,7 @@ func insertRawTransactions(dbTx *dbaccess.TxContext, transactionHashesToTxsWithM
 	return dbaccess.BulkInsert(dbTx, rawTransactionsToAdd)
 }
 
-func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (
+func insertTransactions(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, subnetworkIDsToIDs map[string]uint64) (
 	map[string]*txWithMetadata, error) {
 
 	transactionHashesToTxsWithMetadata := make(map[string]*txWithMetadata)
@@ -142,7 +143,7 @@ func insertTransactions(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, 
 	return transactionHashesToTxsWithMetadata, nil
 }
 
-func calcTxMass(dbTx *dbaccess.TxContext, transaction *rpcmodel.TxRawResult) (uint64, error) {
+func calcTxMass(dbTx *database.TxContext, transaction *rpcmodel.TxRawResult) (uint64, error) {
 	msgTx, err := convertTxRawResultToMsgTx(transaction)
 	if err != nil {
 		return 0, err

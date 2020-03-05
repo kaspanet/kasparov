@@ -3,13 +3,14 @@ package sync
 import (
 	"encoding/hex"
 	"github.com/kaspanet/kaspad/util/pointers"
+	"github.com/kaspanet/kasparov/database"
 
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/pkg/errors"
 )
 
-func insertTransactionOutputs(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertTransactionOutputs(dbTx *database.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 	addressesToAddressIDs, err := insertAddresses(dbTx, transactionHashesToTxsWithMetadata)
 	if err != nil {
 		return err

@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/jsonrpc"
@@ -8,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertSubnetworks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock) (
+func insertSubnetworks(client *jsonrpc.Client, dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (
 	subnetworkIDsToIDs map[string]uint64, err error) {
 
 	subnetworkSet := make(map[string]struct{})

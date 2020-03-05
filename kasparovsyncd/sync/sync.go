@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/kaspanet/kasparov/database"
 
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
@@ -82,7 +83,7 @@ func syncBlocks(client *jsonrpc.Client) error {
 	// Start syncing from the bluest block hash. We use blue score to
 	// simulate the "last" block we have because blue-block order is
 	// the order that the node uses in the various JSONRPC calls.
-	startBlock, err := dbaccess.BluestBlock(dbaccess.NoTx())
+	startBlock, err := dbaccess.BluestBlock(database.NoTx())
 	if err != nil {
 		return err
 	}
@@ -121,7 +122,7 @@ func syncBlocks(client *jsonrpc.Client) error {
 // database accordingly.
 func syncSelectedParentChain(client *jsonrpc.Client) error {
 	// Start syncing from the selected tip hash
-	startBlock, err := dbaccess.SelectedTip(dbaccess.NoTx())
+	startBlock, err := dbaccess.SelectedTip(database.NoTx())
 	if err != nil {
 		return err
 	}
@@ -179,12 +180,12 @@ func fetchBlock(client *jsonrpc.Client, blockHash *daghash.Hash) (
 // Note that if this function may take a nil dbTx, in which case it would start
 // a database transaction by itself and commit it before returning.
 func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []string, addedChainBlocks []rpcmodel.ChainBlock) error {
-	unacceptedTransactions, err := dbaccess.AcceptedTransactionsByBlockHashes(dbaccess.NoTx(), removedChainHashes, dbmodels.TransactionRecommendedPreloadedFields...)
+	unacceptedTransactions, err := dbaccess.AcceptedTransactionsByBlockHashes(database.NoTx(), removedChainHashes, dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return err
 	}
 
-	dbTx, err := dbaccess.NewTx()
+	dbTx, err := database.NewTx()
 	if err != nil {
 		return err
 	}
@@ -245,7 +246,7 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 // fetchAndAddMissingAddedChainBlocks takes cares of cases where a block referenced in a selectedParent-chain
 // have not yet been added to the database. In that case - it fetches it and its missing ancestors and add them
 // to the database.
-func fetchAndAddMissingAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.TxContext, addedChainBlocks []rpcmodel.ChainBlock) (missingBlockHashes []string, err error) {
+func fetchAndAddMissingAddedChainBlocks(client *jsonrpc.Client, dbTx *database.TxContext, addedChainBlocks []rpcmodel.ChainBlock) (missingBlockHashes []string, err error) {
 	missingBlockHashes = make([]string, 0)
 	for _, block := range addedChainBlocks {
 		dbBlock, err := dbaccess.BlockByHash(dbTx, block.Hash)
@@ -279,7 +280,7 @@ func fetchAndAddMissingAddedChainBlocks(client *jsonrpc.Client, dbTx *dbaccess.T
 // * All its Transactions are set AcceptingBlockID = nil
 // * The block is set IsChainBlock = false
 // This function will return an error if any of the above are in an unexpected state
-func updateRemovedChainHashes(dbTx *dbaccess.TxContext, removedHash string) error {
+func updateRemovedChainHashes(dbTx *database.TxContext, removedHash string) error {
 	dbBlock, err := dbaccess.BlockByHash(dbTx, removedHash)
 	if err != nil {
 		return err
@@ -339,7 +340,7 @@ func updateRemovedChainHashes(dbTx *dbaccess.TxContext, removedHash string) erro
 // * All its Transactions are set AcceptingBlockID = addedBlock
 // * The block is set IsChainBlock = true
 // This function will return an error if any of the above are in an unexpected state
-func updateAddedChainBlocks(dbTx *dbaccess.TxContext, addedBlock *rpcmodel.ChainBlock) error {
+func updateAddedChainBlocks(dbTx *database.TxContext, addedBlock *rpcmodel.ChainBlock) error {
 	dbAddedBlock, err := dbaccess.BlockByHash(dbTx, addedBlock.Hash)
 	if err != nil {
 		return err
@@ -417,7 +418,7 @@ func updateAddedChainBlocks(dbTx *dbaccess.TxContext, addedBlock *rpcmodel.Chain
 
 func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedMsg) error {
 	blockHash := blockAdded.Header.BlockHash()
-	blockExists, err := dbaccess.DoesBlockExist(dbaccess.NoTx(), blockHash.String())
+	blockExists, err := dbaccess.DoesBlockExist(database.NoTx(), blockHash.String())
 	if err != nil {
 		return err
 	}
@@ -425,7 +426,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 		return nil
 	}
 
-	dbTx, err := dbaccess.NewTx()
+	dbTx, err := database.NewTx()
 	if err != nil {
 		return err
 	}
@@ -450,7 +451,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	return nil
 }
 
-func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext,
+func fetchAndAddBlock(client *jsonrpc.Client, dbTx *database.TxContext,
 	blockHash *daghash.Hash) (addedBlockHashes []string, err error) {
 
 	block, err := fetchBlock(client, blockHash)
@@ -477,7 +478,7 @@ func fetchAndAddBlock(client *jsonrpc.Client, dbTx *dbaccess.TxContext,
 	return addedBlockHashes, nil
 }
 
-func fetchMissingAncestors(client *jsonrpc.Client, dbTx *dbaccess.TxContext, block *rawAndVerboseBlock,
+func fetchMissingAncestors(client *jsonrpc.Client, dbTx *database.TxContext, block *rawAndVerboseBlock,
 	blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
 
 	pendingBlocks := []*rawAndVerboseBlock{block}
@@ -522,7 +523,7 @@ func fetchMissingAncestors(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blo
 // missingBlockHashes takes a slice of block hashes and returns
 // a slice that contains all the block hashes that do not exist
 // in the database or in the given blocksExistingInMemory map.
-func missingBlockHashes(dbTx *dbaccess.TxContext, blockHashes []string,
+func missingBlockHashes(dbTx *database.TxContext, blockHashes []string,
 	blocksExistingInMemory map[string]*rawAndVerboseBlock) ([]string, error) {
 
 	// filter out all the hashes that exist in blocksExistingInMemory
@@ -612,7 +613,7 @@ func canHandleChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (bool, erro
 		hashesIn = append(hashesIn, block.Hash.String())
 	}
 
-	dbBlocks, err := dbaccess.BlocksByHashes(dbaccess.NoTx(), hashesIn)
+	dbBlocks, err := dbaccess.BlocksByHashes(database.NoTx(), hashesIn)
 	if err != nil {
 		return false, err
 	}
@@ -676,7 +677,7 @@ func convertChainChangedMsg(chainChanged *jsonrpc.ChainChangedMsg) (
 // addBlocks inserts data in the given rawBlocks and verboseBlocks pairwise
 // into the database.
 func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmodel.GetBlockVerboseResult) error {
-	dbTx, err := dbaccess.NewTx()
+	dbTx, err := database.NewTx()
 	if err != nil {
 		return err
 	}
@@ -723,7 +724,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 
 // bulkInsertBlocksData inserts the given blocks and their data (transactions
 // and new subnetworks data) to the database in chunks.
-func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock) error {
+func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *database.TxContext, blocks []*rawAndVerboseBlock) error {
 	subnetworkIDToID, err := insertSubnetworks(client, dbTx, blocks)
 	if err != nil {
 		return err

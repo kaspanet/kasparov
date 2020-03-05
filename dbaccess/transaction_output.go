@@ -2,6 +2,7 @@ package dbaccess
 
 import (
 	"github.com/go-pg/pg/v9"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
@@ -13,7 +14,7 @@ type Outpoint struct {
 
 // UTXOsByAddress retrieves all transaction outputs incoming to `address`.
 // If preloadedFields was provided - preloads the requested fields
-func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
+func UTXOsByAddress(ctx database.Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -38,7 +39,7 @@ func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.Fie
 
 // TransactionOutputsByOutpoints retrieves all transaction outputs referenced by `outpoints`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmodels.TransactionOutput, error) {
+func TransactionOutputsByOutpoints(ctx database.Context, outpoints []*Outpoint) ([]*dbmodels.TransactionOutput, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err

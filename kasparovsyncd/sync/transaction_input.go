@@ -2,6 +2,7 @@ package sync
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 
 	"github.com/kaspanet/kaspad/rpcmodel"
@@ -11,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertTransactionInputs(dbTx *database.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 	outpointsSet := make(map[dbaccess.Outpoint]struct{})
 	newNonCoinbaseTransactions := make(map[string]*txWithMetadata)
 	inputsCount := 0

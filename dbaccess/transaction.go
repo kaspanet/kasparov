@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"github.com/go-pg/pg/v9"
 	"github.com/go-pg/pg/v9/orm"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
 // TransactionByID retrieves a transaction from the database that has the provided ID
 // If preloadedFields was provided - preloads the requested fields
-func TransactionByID(ctx Context, transactionID string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
+func TransactionByID(ctx database.Context, transactionID string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -32,7 +33,7 @@ func TransactionByID(ctx Context, transactionID string, preloadedFields ...dbmod
 
 // TransactionByHash retrieves a transaction from the database that has the provided hash
 // If preloadedFields was provided - preloads the requested fields
-func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
+func TransactionByHash(ctx database.Context, transactionHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -57,7 +58,7 @@ func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...d
 // TransactionsByAddress retrieves up to `limit` transactions sent to or from `address`,
 // in the requested `order`, skipping the first `skip` blocks
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByAddress(ctx Context, address string, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) (
+func TransactionsByAddress(ctx database.Context, address string, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) (
 	[]*dbmodels.Transaction, error) {
 
 	db, err := ctx.db()
@@ -88,7 +89,7 @@ func TransactionsByAddress(ctx Context, address string, order Order, skip uint64
 }
 
 // TransactionsByAddressCount returns the total number of transactions sent to or from `address`
-func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
+func TransactionsByAddressCount(ctx database.Context, address string) (uint64, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return 0, err
@@ -109,7 +110,7 @@ func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
 
 // AcceptedTransactionsByBlockHashes retrieves a list of transactions that were accepted
 // by blocks with the given `blockHashes`
-func AcceptedTransactionsByBlockHashes(ctx Context, blockHashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+func AcceptedTransactionsByBlockHashes(ctx database.Context, blockHashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	if len(blockHashes) == 0 {
 		return nil, nil
 	}
@@ -137,7 +138,7 @@ func AcceptedTransactionsByBlockHashes(ctx Context, blockHashes []string, preloa
 // AcceptedTransactionsByBlockID retrieves a list of transactions that were accepted
 // by block with ID equal to `blockID`
 // If preloadedFields was provided - preloads the requested fields
-func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+func AcceptedTransactionsByBlockID(ctx database.Context, blockID uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -157,7 +158,7 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields 
 
 // TransactionsByHashes retrieves all transactions by their `transactionHashes`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByHashes(ctx Context, transactionHashes []string,
+func TransactionsByHashes(ctx database.Context, transactionHashes []string,
 	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 
 	if len(transactionHashes) == 0 {
@@ -184,7 +185,7 @@ func TransactionsByHashes(ctx Context, transactionHashes []string,
 // TransactionsByIDsAndBlockID retrieves all transactions in a
 // block with the given ID by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID uint64,
+func TransactionsByIDsAndBlockID(ctx database.Context, transactionIDs []string, blockID uint64,
 	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 
 	if len(transactionIDs) == 0 {
@@ -216,7 +217,7 @@ func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID u
 // TransactionsByIDsAndBlockHash retrieves all transactions in a
 // block with the given hash by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByIDsAndBlockHash(ctx Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+func TransactionsByIDsAndBlockHash(ctx database.Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	db, err := ctx.db()
 	if err != nil {
 		return nil, err
@@ -242,7 +243,7 @@ func TransactionsByIDsAndBlockHash(ctx Context, transactionIDs []string, blockHa
 
 // TransactionsByIDs retrieves all transactions by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+func TransactionsByIDs(ctx database.Context, transactionIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	if len(transactionIDs) == 0 {
 		return nil, nil
 	}
@@ -265,7 +266,7 @@ func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...
 }
 
 // UpdateTransactionAcceptingBlockID updates the transaction with given `transactionID` to have given `acceptingBlockID`
-func UpdateTransactionAcceptingBlockID(ctx Context, transactionID uint64, acceptingBlockID *uint64) error {
+func UpdateTransactionAcceptingBlockID(ctx database.Context, transactionID uint64, acceptingBlockID *uint64) error {
 	db, err := ctx.db()
 	if err != nil {
 		return err

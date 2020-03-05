@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"github.com/kaspanet/kasparov/apimodels"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 )
@@ -16,7 +17,7 @@ func PublishSelectedTipNotification(selectedTipHash string) error {
 	if !isConnected() {
 		return nil
 	}
-	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), selectedTipHash, dbmodels.BlockRecommendedPreloadedFields...)
+	dbBlock, err := dbaccess.BlockByHash(database.NoTx(), selectedTipHash, dbmodels.BlockRecommendedPreloadedFields...)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 	"strconv"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockMass := uint64(0)
@@ -27,7 +28,7 @@ func insertBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, transa
 	return dbaccess.BulkInsert(dbTx, blocksToAdd)
 }
 
-func getBlocksAndParentIDs(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
+func getBlocksAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
 	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
 		blockSet[block.hash()] = struct{}{}

@@ -1,12 +1,13 @@
 package sync
 
 import (
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/pkg/errors"
 )
 
-func insertAddresses(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) (map[string]uint64, error) {
+func insertAddresses(dbTx *database.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) (map[string]uint64, error) {
 	addressSet := make(map[string]struct{})
 	for _, transaction := range transactionHashesToTxsWithMetadata {
 		if !transaction.isNew {

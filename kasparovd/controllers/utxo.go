@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/kaspanet/kasparov/apimodels"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/kasparovd/config"
@@ -13,14 +14,14 @@ func GetUTXOsByAddressHandler(address string) (interface{}, error) {
 		return nil, err
 	}
 
-	transactionOutputs, err := dbaccess.UTXOsByAddress(dbaccess.NoTx(), address,
+	transactionOutputs, err := dbaccess.UTXOsByAddress(database.NoTx(), address,
 		dbmodels.TransactionOutputFieldNames.TransactionAcceptingBlock,
 		dbmodels.TransactionOutputFieldNames.TransactionSubnetwork)
 	if err != nil {
 		return nil, err
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return nil, err
 	}

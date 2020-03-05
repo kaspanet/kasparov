@@ -2,12 +2,13 @@ package dbaccess
 
 import (
 	"github.com/go-pg/pg/v9"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
 )
 
 // SubnetworksByIDs retrieves all subnetworks by their `subnetworkIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func SubnetworksByIDs(ctx Context, subnetworkIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Subnetwork, error) {
+func SubnetworksByIDs(ctx database.Context, subnetworkIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Subnetwork, error) {
 	if len(subnetworkIDs) == 0 {
 		return nil, nil
 	}

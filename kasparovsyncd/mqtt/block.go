@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"github.com/kaspanet/kasparov/apimodels"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 )
@@ -19,12 +20,12 @@ func PublishBlockAddedNotifications(hash string) error {
 	preloadedFields := dbmodels.PrefixFieldNames(dbmodels.BlockFieldNames.Transactions, dbmodels.TransactionRecommendedPreloadedFields)
 	preloadedFields = append(preloadedFields, dbmodels.BlockFieldNames.ParentBlocks)
 
-	dbBlock, err := dbaccess.BlockByHash(dbaccess.NoTx(), hash, preloadedFields...)
+	dbBlock, err := dbaccess.BlockByHash(database.NoTx(), hash, preloadedFields...)
 	if err != nil {
 		return err
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return err
 	}
