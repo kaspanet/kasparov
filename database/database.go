@@ -41,12 +41,13 @@ func Connect(cfg *config.KasparovFlags) error {
 		return errors.Errorf("Database is not current (version %d). Please migrate"+
 			" the database by running the server with --migrate flag and then run it again", version)
 	}
-	db = pg.Connect(&pg.Options{
-		User:     cfg.DBUser,
-		Password: cfg.DBPassword,
-		Database: cfg.DBName,
-		Addr:     fmt.Sprintf("%s:%s", cfg.DBHost, cfg.DBPort),
-	})
+
+	connectionOptions, err := pg.ParseURL(buildConnectionString(cfg))
+	if err != nil {
+		return err
+	}
+
+	db = pg.Connect(connectionOptions)
 
 	return validateTimeZone(db)
 }
@@ -78,7 +79,7 @@ func Close() error {
 	return err
 }
 
-func buildMigratorConnectionString(cfg *config.KasparovFlags) string {
+func buildConnectionString(cfg *config.KasparovFlags) string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBSSLMode)
 }
@@ -115,7 +116,7 @@ func openMigrator(cfg *config.KasparovFlags) (*migrate.Migrate, source.Driver, e
 		return nil, nil, err
 	}
 	migrator, err := migrate.NewWithSourceInstance(
-		"migrations", driver, buildMigratorConnectionString(cfg))
+		"migrations", driver, buildConnectionString(cfg))
 	if err != nil {
 		return nil, nil, err
 	}
