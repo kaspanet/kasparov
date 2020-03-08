@@ -8,7 +8,7 @@ CREATE TABLE blocks
     accepted_id_merkle_root CHAR(64) NOT NULL,
     utxo_commitment         CHAR(64) NOT NULL,
     timestamp               TIMESTAMP(0) NOT NULL,
-    bits                    BIGINT CHECK (bits >= 0) NOT NULL,
+    bits                    BIGINT CHECK (bits >= 0 and bits <= 4294967295) NOT NULL, -- bits should be in range of uint32
     nonce                   BYTEA,
     blue_score              BIGINT CHECK (blue_score >= 0) NOT NULL,
     is_chain_block          BOOLEAN NOT NULL,
