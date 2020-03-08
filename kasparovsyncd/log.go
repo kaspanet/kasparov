@@ -7,5 +7,5 @@ import (
 
 var (
 	log   = logger.Logger("KVSD")
-	spawn = panics.GoroutineWrapperFunc(&log)
+	spawn = panics.GoroutineWrapperFunc(log)
 )
