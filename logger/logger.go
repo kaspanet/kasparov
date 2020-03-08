@@ -30,8 +30,8 @@ func InitLog(logFile, errLogFile string) {
 // later and change its log level
 func Logger(subsystemTag string) logs.Logger {
 	logger := BackendLog.Logger(subsystemTag)
-	loggers = append(loggers, logger)
-	return logger
+	loggers = append(loggers, *logger)
+	return *logger
 }
 
 // SetLogLevels sets the logging level for all of the subsystems in Kasparov.

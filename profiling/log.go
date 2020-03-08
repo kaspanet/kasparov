@@ -7,5 +7,5 @@ import (
 
 var (
 	log   = logger.Logger("PROF")
-	spawn = panics.GoroutineWrapperFunc(log)
+	spawn = panics.GoroutineWrapperFunc(&log)
 )
