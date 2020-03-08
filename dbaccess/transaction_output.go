@@ -15,7 +15,7 @@ type Outpoint struct {
 // UTXOsByAddress retrieves all transaction outputs incoming to `address`.
 // If preloadedFields was provided - preloads the requested fields
 func UTXOsByAddress(ctx database.Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
-	db, err := ctx.Db()
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func UTXOsByAddress(ctx database.Context, address string, preloadedFields ...dbm
 // TransactionOutputsByOutpoints retrieves all transaction outputs referenced by `outpoints`.
 // If preloadedFields was provided - preloads the requested fields
 func TransactionOutputsByOutpoints(ctx database.Context, outpoints []*Outpoint) ([]*dbmodels.TransactionOutput, error) {
-	db, err := ctx.Db()
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func TransactionOutputsByOutpoints(ctx database.Context, outpoints []*Outpoint) 
 			Join("LEFT JOIN transactions").
 			JoinOn("transactions.id = transaction_output.transaction_id").
 			Where("(transactions.transaction_id, transaction_output.index) in (?)", pg.In(chunk)).
-			Relation("Transaction").
+			Relation(string(dbmodels.TransactionOutputFieldNames.Transaction)).
 			Select()
 
 		if err != nil {
@@ -71,7 +71,7 @@ func TransactionOutputsByOutpoints(ctx database.Context, outpoints []*Outpoint) 
 
 // UpdateTransactionOutputIsSpent updates transaction-output `txOutID` by setting its IsSpent field to `isSpent`
 func UpdateTransactionOutputIsSpent(ctx database.Context, txOutID uint64, isSpent bool) error {
-	db, err := ctx.Db()
+	db, err := ctx.DB()
 	if err != nil {
 		return err
 	}

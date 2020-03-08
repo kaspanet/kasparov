@@ -13,7 +13,7 @@ func SubnetworksByIDs(ctx database.Context, subnetworkIDs []string, preloadedFie
 		return nil, nil
 	}
 
-	db, err := ctx.Db()
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}

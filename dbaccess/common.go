@@ -22,7 +22,7 @@ func BulkInsert(ctx database.Context, objects []interface{}) error {
 		return nil
 	}
 
-	db, err := ctx.Db()
+	db, err := ctx.DB()
 	if err != nil {
 		return err
 	}

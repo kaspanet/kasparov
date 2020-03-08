@@ -21,9 +21,9 @@ type Block struct {
 	Timestamp            time.Time
 	Bits                 uint32
 	Nonce                []byte
-	BlueScore            uint64         `pg:",use_zero"`
-	IsChainBlock         bool           `pg:",use_zero"`
-	Mass                 uint64         `pg:",use_zero"`
+	BlueScore            uint64 `pg:",use_zero"`
+	IsChainBlock         bool   `pg:",use_zero"`
+	Mass                 uint64
 	ParentBlocks         []*Block       `pg:"many2many:parent_blocks,joinFK:parent_block_id"`
 	Transactions         []*Transaction `pg:"many2many:transactions_to_blocks,joinFK:transaction_id"`
 }

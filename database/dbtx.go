@@ -5,9 +5,9 @@ import (
 	"github.com/go-pg/pg/v9/orm"
 )
 
-// DbTx is an interface type implemented both by pg.DB and pg.Tx.
-// We use DbTX to execute db operations with or without transaction context.
-type DbTx interface {
+// DBTx is an interface type implemented both by pg.DB and pg.Tx.
+// We use DBTx to execute db operations with or without transaction context.
+type DBTx interface {
 	Model(model ...interface{}) *orm.Query
 	Select(model interface{}) error
 	Insert(model ...interface{}) error
@@ -19,36 +19,43 @@ type DbTx interface {
 // existence or non-existence of a database transaction
 // Call `.NoTx()` or `.NewTx()` to acquire a Context
 type Context interface {
-	Db() (DbTx, error)
+	DB() (DBTx, error)
 }
 
 type noTxContext struct{}
 
 // Db returns a db instance
-func (*noTxContext) Db() (DbTx, error) {
+func (*noTxContext) DB() (DBTx, error) {
 	return DB()
 }
 
 // TxContext represents a database context with an attached database transaction
 type TxContext struct {
-	tx       *pg.Tx
-	Commited bool
+	tx        *pg.Tx
+	committed bool
 }
 
 // Db returns a db instance
-func (ctx *TxContext) Db() (DbTx, error) {
+func (ctx *TxContext) DB() (DBTx, error) {
 	return ctx.tx, nil
 }
 
 // Commit commits the transaction attached to this TxContext
 func (ctx *TxContext) Commit() error {
-	ctx.Commited = true
+	ctx.committed = true
 	return ctx.tx.Commit()
 }
 
 // Rollback rolls-back the transaction attached to this TxContext
 func (ctx *TxContext) Rollback() error {
 	return ctx.tx.Rollback()
+}
+
+func (ctx *TxContext) RollbackUnlessCommitted() error {
+	if !ctx.committed {
+		return ctx.Rollback()
+	}
+	return nil
 }
 
 var noTxContextSingleton = &noTxContext{}

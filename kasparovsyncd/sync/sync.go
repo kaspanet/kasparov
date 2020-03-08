@@ -191,9 +191,7 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 	}
 
 	defer func(dbTx *database.TxContext) {
-		if !dbTx.Commited {
-			dbTx.Rollback()
-		}
+		dbTx.RollbackUnlessCommitted()
 	}(dbTx)
 
 	for _, removedHash := range removedChainHashes {
@@ -431,9 +429,7 @@ func handleBlockAddedMsg(client *jsonrpc.Client, blockAdded *jsonrpc.BlockAddedM
 	}
 
 	defer func(dbTx *database.TxContext) {
-		if !dbTx.Commited {
-			dbTx.Rollback()
-		}
+		dbTx.RollbackUnlessCommitted()
 	}(dbTx)
 
 	addedBlockHashes, err := fetchAndAddBlock(client, dbTx, blockHash)
@@ -686,9 +682,7 @@ func addBlocks(client *jsonrpc.Client, rawBlocks []string, verboseBlocks []rpcmo
 		return err
 	}
 	defer func(dbTx *database.TxContext) {
-		if !dbTx.Commited {
-			dbTx.Rollback()
-		}
+		dbTx.RollbackUnlessCommitted()
 	}(dbTx)
 
 	blocks := make([]*rawAndVerboseBlock, 0)
