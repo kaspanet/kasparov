@@ -17,7 +17,7 @@ func TransactionByID(ctx database.Context, transactionID string, preloadedFields
 	}
 
 	tx := &dbmodels.Transaction{}
-	query := db.Model(tx).Where("transaction_id = ?", transactionID)
+	query := db.Model(tx).Where("transaction.transaction_id = ?", transactionID)
 	query = preloadFields(query, preloadedFields)
 	err = query.First()
 
