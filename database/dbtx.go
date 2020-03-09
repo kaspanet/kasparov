@@ -25,7 +25,7 @@ type Context interface {
 
 type noTxContext struct{}
 
-// Db returns a db instance
+// DB returns a db instance
 func (*noTxContext) DB() (DBTx, error) {
 	return DB()
 }
@@ -36,7 +36,7 @@ type TxContext struct {
 	committed bool
 }
 
-// Db returns a db instance
+// DB returns a db instance
 func (ctx *TxContext) DB() (DBTx, error) {
 	return ctx.tx, nil
 }
