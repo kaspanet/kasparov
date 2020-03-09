@@ -19,8 +19,8 @@ const (
 	utcTimeZone = "UTC"
 )
 
-// DB returns a reference to the database connection
-func DB() (*pg.DB, error) {
+// DBInstance returns a reference to the database connection
+func DBInstance() (*pg.DB, error) {
 	if db == nil {
 		return nil, errors.New("Database is not connected")
 	}

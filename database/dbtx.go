@@ -6,9 +6,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DBTx is an interface type implemented both by pg.DB and pg.Tx.
-// We use DBTx to execute db operations with or without transaction context.
-type DBTx interface {
+// DB is an interface type implemented both by pg.DB and pg.Tx.
+// We use DB to execute db operations with or without transaction context.
+type DB interface {
 	Model(model ...interface{}) *orm.Query
 	Select(model interface{}) error
 	Insert(model ...interface{}) error
@@ -20,14 +20,14 @@ type DBTx interface {
 // existence or non-existence of a database transaction
 // Call `.NoTx()` or `.NewTx()` to acquire a Context
 type Context interface {
-	DB() (DBTx, error)
+	DB() (DB, error)
 }
 
 type noTxContext struct{}
 
 // DB returns a db instance
-func (*noTxContext) DB() (DBTx, error) {
-	return DB()
+func (*noTxContext) DB() (DB, error) {
+	return DBInstance()
 }
 
 // TxContext represents a database context with an attached database transaction
@@ -37,7 +37,7 @@ type TxContext struct {
 }
 
 // DB returns a db instance
-func (ctx *TxContext) DB() (DBTx, error) {
+func (ctx *TxContext) DB() (DB, error) {
 	return ctx.tx, nil
 }
 
@@ -72,7 +72,7 @@ func NoTx() Context {
 
 // NewTx returns an instance of TxContext with a new database transaction
 func NewTx() (*TxContext, error) {
-	db, err := DB()
+	db, err := DBInstance()
 	if err != nil {
 		return nil, err
 	}
