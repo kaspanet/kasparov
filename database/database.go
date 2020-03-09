@@ -27,7 +27,7 @@ func DB() (*pg.DB, error) {
 	return db, nil
 }
 
-// Connect connects to the database mentioned in config variable.
+// Connect connects to the database mentioned in the config variable.
 func Connect(cfg *config.KasparovFlags) error {
 	migrator, driver, err := openMigrator(cfg)
 	if err != nil {

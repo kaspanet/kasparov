@@ -3,6 +3,7 @@ package database
 import (
 	"github.com/go-pg/pg/v9"
 	"github.com/go-pg/pg/v9/orm"
+	"github.com/pkg/errors"
 )
 
 // DBTx is an interface type implemented both by pg.DB and pg.Tx.
@@ -46,11 +47,15 @@ func (ctx *TxContext) Commit() error {
 	return ctx.tx.Commit()
 }
 
-// Rollback rolls-back the transaction attached to this TxContext
+// Rollback rolls-back the transaction attached to this TxContext.
 func (ctx *TxContext) Rollback() error {
+	if ctx.committed {
+		return errors.Errorf("cannot rollback a committed transaction")
+	}
 	return ctx.tx.Rollback()
 }
 
+// RollbackUnlessCommitted rolls-back the transaction attached to this TxContext if the transaction was not committed.
 func (ctx *TxContext) RollbackUnlessCommitted() error {
 	if !ctx.committed {
 		return ctx.Rollback()
