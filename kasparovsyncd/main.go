@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	defer panics.HandlePanic(log, nil, nil)
+	defer panics.HandlePanic(log, nil)
 	interrupt := signal.InterruptListener()
 
 	err := config.Parse()
