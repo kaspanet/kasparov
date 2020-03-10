@@ -21,9 +21,9 @@ type KasparovFlags struct {
 	ShowVersion bool   `short:"V" long:"version" description:"Display version information and exit"`
 	LogDir      string `long:"logdir" description:"Directory to log output."`
 	DebugLevel  string `short:"d" long:"debuglevel" description:"Set log level {trace, debug, info, warn, error, critical}"`
-	DBHost      string `long:"dbhost" description:"Database host [default: localhost]"`
-	DBPort      string `long:"dbport" description:"Database port [default: 5432]"`
-	DBSSLMode   string `long:"dbsslmode" description:"Database SSL mode {disable, allow, prefer, require, verify-ca, verify-full} [default: disable]"`
+	DBHost      string `long:"dbhost" description:"Database host" default:"localhost"`
+	DBPort      string `long:"dbport" description:"Database port" default:"5432"`
+	DBSSLMode   string `long:"dbsslmode" description:"Database SSL mode" choice:"disable" choice:"allow" choice:"prefer" choice:"require" choice:"verify-ca" choice:"verify-full" default:"disable"`
 	DBUser      string `long:"dbuser" description:"Database user" required:"true"`
 	DBPassword  string `long:"dbpass" description:"Database password" required:"true"`
 	DBName      string `long:"dbname" description:"Database name" required:"true"`
