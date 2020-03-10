@@ -3,7 +3,7 @@ CREATE TABLE transaction_inputs
     id                             BIGSERIAL,
     transaction_id                 BIGINT NULL,
     previous_transaction_output_id BIGINT NOT NULL,
-    index                          BIGINT CHECK (index >= 0) NOT NULL,
+    index                          BIGINT CHECK (index >= 0 AND index <= 4294967295) NOT NULL, -- index should be in range of uint32,
     signature_script               BYTEA NOT NULL,
     sequence                       BYTEA NOT NULL,
     PRIMARY KEY (id),
