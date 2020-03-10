@@ -84,9 +84,9 @@ func addRoutes(router *mux.Router) {
 		Methods("POST")
 }
 
-func convertQueryParamToInt(queryParams map[string]string, param string, defaultValue int) (int, error) {
+func convertQueryParamToInt64(queryParams map[string]string, param string, defaultValue int64) (int64, error) {
 	if _, ok := queryParams[param]; ok {
-		intValue, err := strconv.Atoi(queryParams[param])
+		int64Value, err := strconv.ParseInt(queryParams[param], 10, 64)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Couldn't parse the '%s' query parameter", param)
 			return 0, httpserverutils.NewHandlerErrorWithCustomClientMessage(
@@ -94,7 +94,7 @@ func convertQueryParamToInt(queryParams map[string]string, param string, default
 				errors.Wrap(err, errorMessage),
 				errorMessage)
 		}
-		return intValue, nil
+		return int64Value, nil
 	}
 	return defaultValue, nil
 }
@@ -114,23 +114,15 @@ func getTransactionByHashHandler(_ *httpserverutils.ServerContext, _ *http.Reque
 func getTransactionsByAddressHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, queryParams map[string]string,
 	_ []byte) (interface{}, error) {
 
-	skip, err := convertQueryParamToInt(queryParams, queryParamSkip, 0)
+	skip, err := convertQueryParamToInt64(queryParams, queryParamSkip, 0)
 	if err != nil {
 		return nil, err
 	}
-	limit, err := convertQueryParamToInt(queryParams, queryParamLimit, defaultGetTransactionsLimit)
+	limit, err := convertQueryParamToInt64(queryParams, queryParamLimit, defaultGetTransactionsLimit)
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := queryParams[queryParamLimit]; ok {
-		var err error
-		limit, err = strconv.Atoi(queryParams[queryParamLimit])
-		if err != nil {
-			return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
-				errors.Wrap(err, fmt.Sprintf("Couldn't parse the '%s' query parameter", queryParamLimit)))
-		}
-	}
-	return controllers.GetTransactionsByAddressHandler(routeParams[routeParamAddress], uint64(skip), uint64(limit))
+	return controllers.GetTransactionsByAddressHandler(routeParams[routeParamAddress], skip, limit)
 }
 
 func getUTXOsByAddressHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
@@ -154,11 +146,11 @@ func getFeeEstimatesHandler(_ *httpserverutils.ServerContext, _ *http.Request, _
 func getBlocksHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[string]string, queryParams map[string]string,
 	_ []byte) (interface{}, error) {
 
-	skip, err := convertQueryParamToInt(queryParams, queryParamSkip, 0)
+	skip, err := convertQueryParamToInt64(queryParams, queryParamSkip, 0)
 	if err != nil {
 		return nil, err
 	}
-	limit, err := convertQueryParamToInt(queryParams, queryParamLimit, defaultGetBlocksLimit)
+	limit, err := convertQueryParamToInt64(queryParams, queryParamLimit, defaultGetBlocksLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +158,7 @@ func getBlocksHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[s
 	if orderParamValue, ok := queryParams[queryParamOrder]; ok {
 		order = orderParamValue
 	}
-	return controllers.GetBlocksHandler(order, uint64(skip), uint64(limit))
+	return controllers.GetBlocksHandler(order, skip, limit)
 }
 
 func postTransactionHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[string]string, _ map[string]string,
