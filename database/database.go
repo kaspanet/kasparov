@@ -80,8 +80,8 @@ func Close() error {
 }
 
 func buildConnectionString(cfg *config.KasparovFlags) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBSSLMode)
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+		cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName, cfg.DBSSLMode)
 }
 
 // isCurrent resolves whether the database is on the latest
