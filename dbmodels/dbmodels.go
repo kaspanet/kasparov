@@ -96,7 +96,7 @@ type Transaction struct {
 	Gas                uint64 `pg:",use_zero"`
 	PayloadHash        string `pg:",use_zero"`
 	Payload            []byte `pg:",use_zero"`
-	Mass               uint64 `pg:",use_zero"`
+	Mass               uint64
 	Version            int32
 	RawTransaction     *RawTransaction
 	Blocks             []Block `pg:"many2many:transactions_to_blocks"`

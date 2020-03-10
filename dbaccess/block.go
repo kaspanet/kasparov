@@ -72,9 +72,6 @@ func Blocks(ctx database.Context, order Order, skip uint64, limit uint64, preloa
 
 	query = preloadFields(query, preloadedFields)
 	err = query.Select()
-	if err == pg.ErrNoRows {
-		return nil, nil
-	}
 
 	if err != nil {
 		return nil, err
