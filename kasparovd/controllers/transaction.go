@@ -71,17 +71,22 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 
 // GetTransactionsByAddressHandler searches for all transactions
 // where the given address is either an input or an output.
-func GetTransactionsByAddressHandler(address string, skip uint64, limit uint64) (interface{}, error) {
+func GetTransactionsByAddressHandler(address string, skip, limit int64) (interface{}, error) {
 	if limit > maxGetTransactionsLimit {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("limit higher than %d was requested", maxGetTransactionsLimit))
+			errors.Errorf("limit higher than %d or lower than 0 was requested", maxGetTransactionsLimit))
+	}
+
+	if skip < 0 {
+		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
+			errors.New("skip lower than 0 was requested"))
 	}
 
 	if err := validateAddress(address); err != nil {
 		return nil, err
 	}
 
-	txs, err := dbaccess.TransactionsByAddress(dbaccess.NoTx(), address, dbaccess.OrderAscending, skip, limit,
+	txs, err := dbaccess.TransactionsByAddress(dbaccess.NoTx(), address, dbaccess.OrderAscending, uint64(skip), uint64(limit),
 		dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
