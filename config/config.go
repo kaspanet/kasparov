@@ -9,12 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Default configuration options
-	defaultDBAddress = "localhost:5432"
-	defaultDBSSLMode = "disable"
-)
-
 // KasparovFlags holds configuration common to both the Kasparov server and the Kasparov daemon.
 type KasparovFlags struct {
 	ShowVersion bool   `short:"V" long:"version" description:"Display version information and exit"`
@@ -51,13 +45,6 @@ func (kasparovFlags *KasparovFlags) ResolveKasparovFlags(parser *flags.Parser,
 		}
 	}
 
-	if kasparovFlags.DBAddress == "" {
-		kasparovFlags.DBAddress = defaultDBAddress
-	}
-
-	if kasparovFlags.DBSSLMode == "" {
-		kasparovFlags.DBSSLMode = defaultDBSSLMode
-	}
 	if kasparovFlags.RPCUser == "" && !isMigrate {
 		return errors.New("--rpcuser is required")
 	}
