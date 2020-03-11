@@ -42,10 +42,15 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 }
 
 // GetBlocksHandler searches for all blocks
-func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{}, error) {
-	if limit > maxGetBlocksLimit {
+func GetBlocksHandler(orderString string, skip, limit int64) (interface{}, error) {
+	if limit > maxGetBlocksLimit || limit < 0 {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("limit higher than %d was requested", maxGetBlocksLimit))
+			errors.Errorf("limit higher than %d or lower than 0 was requested", maxGetBlocksLimit))
+	}
+
+	if skip < 0 {
+		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
+			errors.New("skip lower than 0 was requested"))
 	}
 
 	order, err := dbaccess.StringToOrder(orderString)
@@ -53,7 +58,7 @@ func GetBlocksHandler(orderString string, skip uint64, limit uint64) (interface{
 		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, err)
 	}
 
-	blocks, err := dbaccess.Blocks(database.NoTx(), order, skip, limit, dbmodels.BlockRecommendedPreloadedFields...)
+	blocks, err := dbaccess.Blocks(database.NoTx(), order, uint64(skip), uint64(limit), dbmodels.BlockRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
