@@ -7,5 +7,5 @@ import (
 )
 
 func init() {
-	rpcclient.UseLogger(logger.BackendLog, logs.LevelTrace)
+	rpcclient.UseLogger(logger.BackendLog, logs.LevelInfo)
 }
