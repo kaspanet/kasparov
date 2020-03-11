@@ -4,6 +4,9 @@ import "encoding/binary"
 
 // BytesToUint64 converts the given byte array to uint64
 func BytesToUint64(toConvert []byte) uint64 {
+	if toConvert == nil {
+		return 0
+	}
 	return binary.LittleEndian.Uint64(toConvert)
 }
 
