@@ -121,7 +121,7 @@ func AcceptedTransactionsByBlockHashes(ctx database.Context, blockHashes []strin
 	}
 	var transactions []*dbmodels.Transaction
 	query := db.Model(&transactions).
-		ColumnExpr("DISTINCT(transaction.id)").
+		ColumnExpr("DISTINCT transaction.*").
 		Join("LEFT JOIN blocks").
 		JoinOn("blocks.id = transaction.accepting_block_id").
 		Where("blocks.block_hash in (?)", pg.In(blockHashes))
