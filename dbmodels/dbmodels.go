@@ -11,16 +11,16 @@ type FieldName string
 // Block is the gorm model for the 'blocks' table
 type Block struct {
 	ID                   uint64 `pg:",pk"`
-	BlockHash            string
+	BlockHash            string `pg:",use_zero"`
 	AcceptingBlockID     *uint64
 	AcceptingBlock       *Block
-	Version              int32
-	HashMerkleRoot       string
-	AcceptedIDMerkleRoot string
-	UTXOCommitment       string
-	Timestamp            time.Time
-	Bits                 uint32
-	Nonce                []byte
+	Version              int32          `pg:",use_zero"`
+	HashMerkleRoot       string         `pg:",use_zero"`
+	AcceptedIDMerkleRoot string         `pg:",use_zero"`
+	UTXOCommitment       string         `pg:",use_zero"`
+	Timestamp            time.Time      `pg:",use_zero"`
+	Bits                 uint32         `pg:",use_zero"`
+	Nonce                []byte         `pg:",use_zero"`
 	BlueScore            uint64         `pg:",use_zero"`
 	IsChainBlock         bool           `pg:",use_zero"`
 	Mass                 uint64         `pg:",use_zero"`
@@ -88,16 +88,16 @@ type Transaction struct {
 	ID                 uint64 `pg:",pk"`
 	AcceptingBlockID   *uint64
 	AcceptingBlock     *Block
-	TransactionHash    string
-	TransactionID      string
-	LockTime           []byte
+	TransactionHash    string `pg:",use_zero"`
+	TransactionID      string `pg:",use_zero"`
+	LockTime           []byte `pg:",use_zero"`
 	SubnetworkID       uint64
 	Subnetwork         Subnetwork
 	Gas                uint64 `pg:",use_zero"`
 	PayloadHash        string `pg:",use_zero"`
 	Payload            []byte `pg:",use_zero"`
 	Mass               uint64 `pg:",use_zero"`
-	Version            int32
+	Version            int32  `pg:",use_zero"`
 	RawTransaction     *RawTransaction
 	Blocks             []Block `pg:"many2many:transactions_to_blocks"`
 	TransactionOutputs []TransactionOutput
@@ -171,9 +171,9 @@ type TransactionOutput struct {
 	TransactionID uint64
 	Transaction   Transaction
 	Index         uint32 `pg:",use_zero"`
-	Value         uint64
-	ScriptPubKey  []byte
-	IsSpent       bool `pg:",use_zero"`
+	Value         uint64 `pg:",use_zero"`
+	ScriptPubKey  []byte `pg:",use_zero"`
+	IsSpent       bool   `pg:",use_zero"`
 	AddressID     *uint64
 	Address       *Address
 }
@@ -199,8 +199,8 @@ type TransactionInput struct {
 	PreviousTransactionOutputID uint64
 	PreviousTransactionOutput   TransactionOutput
 	Index                       uint32 `pg:",use_zero"`
-	SignatureScript             []byte
-	Sequence                    []byte
+	SignatureScript             []byte `pg:",use_zero"`
+	Sequence                    []byte `pg:",use_zero"`
 }
 
 // TransactionInputFieldNames is a list of FieldNames for the 'TransactionInput' object
@@ -215,14 +215,14 @@ var TransactionInputFieldNames = struct {
 // Address is the gorm model for the 'addresses' table
 type Address struct {
 	ID      uint64 `pg:",pk"`
-	Address string
+	Address string `pg:",use_zero"`
 }
 
 // RawTransaction is the gorm model for the 'raw_transactions' table
 type RawTransaction struct {
 	TransactionID   uint64
 	Transaction     Transaction
-	TransactionData []byte
+	TransactionData []byte `pg:",use_zero"`
 }
 
 // RawTransactionFieldNames is a list of FieldNames for the 'RawTransaction' object
