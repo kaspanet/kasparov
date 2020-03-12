@@ -79,7 +79,7 @@ var RawBlockFieldNames = struct {
 // Subnetwork is the gorm model for the 'subnetworks' table
 type Subnetwork struct {
 	ID           uint64 `pg:",pk"`
-	SubnetworkID string
+	SubnetworkID string `pg:",use_zero"`
 	GasLimit     *uint64
 }
 
@@ -91,7 +91,7 @@ type Transaction struct {
 	TransactionHash    string `pg:",use_zero"`
 	TransactionID      string `pg:",use_zero"`
 	LockTime           []byte `pg:",use_zero"`
-	SubnetworkID       uint64
+	SubnetworkID       uint64 `pg:",use_zero"`
 	Subnetwork         Subnetwork
 	Gas                uint64 `pg:",use_zero"`
 	PayloadHash        string `pg:",use_zero"`
@@ -143,9 +143,9 @@ var TransactionRecommendedPreloadedFields = []FieldName{
 // TransactionBlock is the gorm model for the 'transactions_to_blocks' table
 type TransactionBlock struct {
 	tableName     struct{} `pg:"transactions_to_blocks"`
-	TransactionID uint64
+	TransactionID uint64   `pg:",use_zero"`
 	Transaction   Transaction
-	BlockID       uint64
+	BlockID       uint64 `pg:",use_zero"`
 	Block         Block
 	Index         uint32 `pg:",use_zero"`
 }
@@ -168,7 +168,7 @@ var TransactionBlockFieldNames = struct {
 // TransactionOutput is the gorm model for the 'transaction_outputs' table
 type TransactionOutput struct {
 	ID            uint64 `pg:",pk"`
-	TransactionID uint64
+	TransactionID uint64 `pg:",use_zero"`
 	Transaction   Transaction
 	Index         uint32 `pg:",use_zero"`
 	Value         uint64 `pg:",use_zero"`
@@ -194,9 +194,9 @@ var TransactionOutputFieldNames = struct {
 // TransactionInput is the gorm model for the 'transaction_inputs' table
 type TransactionInput struct {
 	ID                          uint64 `pg:",pk"`
-	TransactionID               uint64
+	TransactionID               uint64 `pg:",use_zero"`
 	Transaction                 Transaction
-	PreviousTransactionOutputID uint64
+	PreviousTransactionOutputID uint64 `pg:",use_zero"`
 	PreviousTransactionOutput   TransactionOutput
 	Index                       uint32 `pg:",use_zero"`
 	SignatureScript             []byte `pg:",use_zero"`
@@ -220,7 +220,7 @@ type Address struct {
 
 // RawTransaction is the gorm model for the 'raw_transactions' table
 type RawTransaction struct {
-	TransactionID   uint64
+	TransactionID   uint64 `pg:",use_zero"`
 	Transaction     Transaction
 	TransactionData []byte `pg:",use_zero"`
 }
