@@ -211,6 +211,7 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 		}
 	}
 
+	err = dbTx.Commit()
 	if err != nil {
 		return err
 	}
@@ -238,7 +239,7 @@ func updateSelectedParentChain(client *jsonrpc.Client, removedChainHashes []stri
 		}
 	}
 
-	return dbTx.Commit()
+	return nil
 }
 
 // fetchAndAddMissingAddedChainBlocks takes cares of cases where a block referenced in a selectedParent-chain
