@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/kaspanet/kasparov/dbmodels"
+	"github.com/kaspanet/kasparov/serializer"
 )
 
 func confirmations(acceptingBlockBlueScore *uint64, selectedTipBlueScore uint64) uint64 {
@@ -23,7 +24,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction, selectedTipBlueScore u
 		TransactionHash: tx.TransactionHash,
 		TransactionID:   tx.TransactionID,
 		SubnetworkID:    tx.Subnetwork.SubnetworkID,
-		LockTime:        tx.LockTime,
+		LockTime:        serializer.BytesToUint64(tx.LockTime),
 		Gas:             tx.Gas,
 		PayloadHash:     tx.PayloadHash,
 		Payload:         hex.EncodeToString(tx.Payload),
@@ -53,7 +54,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction, selectedTipBlueScore u
 			PreviousTransactionID:          txIn.PreviousTransactionOutput.Transaction.TransactionID,
 			PreviousTransactionOutputIndex: txIn.PreviousTransactionOutput.Index,
 			SignatureScript:                hex.EncodeToString(txIn.SignatureScript),
-			Sequence:                       txIn.Sequence,
+			Sequence:                       serializer.BytesToUint64(txIn.Sequence),
 		}
 		if txIn.PreviousTransactionOutput.Address != nil {
 			txRes.Inputs[i].Address = txIn.PreviousTransactionOutput.Address.Address
@@ -72,7 +73,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block, selectedTipBlueScor
 		UTXOCommitment:       block.UTXOCommitment,
 		Timestamp:            uint64(block.Timestamp.Unix()),
 		Bits:                 block.Bits,
-		Nonce:                block.Nonce,
+		Nonce:                serializer.BytesToUint64(block.Nonce),
 		ParentBlockHashes:    make([]string, len(block.ParentBlocks)),
 		BlueScore:            block.BlueScore,
 		IsChainBlock:         block.IsChainBlock,

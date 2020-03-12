@@ -1,28 +1,30 @@
 package dbaccess
 
 import (
+	"github.com/go-pg/pg/v9"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // SubnetworksByIDs retrieves all subnetworks by their `subnetworkIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func SubnetworksByIDs(ctx Context, subnetworkIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Subnetwork, error) {
-	db, err := ctx.db()
+func SubnetworksByIDs(ctx database.Context, subnetworkIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Subnetwork, error) {
+	if len(subnetworkIDs) == 0 {
+		return nil, nil
+	}
+
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.
-		Where("`subnetworks`.`subnetwork_id` IN (?)", subnetworkIDs)
-	query = preloadFields(query, preloadedFields)
-
 	var subnetworks []*dbmodels.Subnetwork
-	dbResult := query.Find(&subnetworks)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading subnetworks from the database:", dbErrors)
+	query := db.Model(&subnetworks).
+		Where("subnetwork_id IN (?)", pg.In(subnetworkIDs))
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return subnetworks, nil

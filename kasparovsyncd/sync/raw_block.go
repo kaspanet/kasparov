@@ -2,6 +2,7 @@ package sync
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kasparov/database"
 
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
@@ -9,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertRawBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
+func insertRawBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
 	rawBlocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockID, ok := blockHashesToIDs[block.hash()]

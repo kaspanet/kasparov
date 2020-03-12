@@ -1,1 +1,1 @@
-DROP TABLE `parent_blocks`;
+DROP TABLE parent_blocks;

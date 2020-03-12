@@ -3,10 +3,9 @@ package database
 import (
 	nativeerrors "errors"
 	"fmt"
+	"github.com/go-pg/pg/v9"
 	"github.com/golang-migrate/migrate/v4/source"
-	"github.com/jinzhu/gorm"
 	"github.com/kaspanet/kasparov/config"
-	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 	"os"
 
@@ -14,33 +13,23 @@ import (
 )
 
 // db is the Kasparov database.
-var db *gorm.DB
+var db *pg.DB
 
 const (
-	systemTimeZone = "SYSTEM"
-	utcTimeZone    = "UTC"
+	utcTimeZone = "UTC"
 )
 
-// DB returns a reference to the database connection
-func DB() (*gorm.DB, error) {
+// DBInstance returns a reference to the database connection
+func DBInstance() (*pg.DB, error) {
 	if db == nil {
 		return nil, errors.New("Database is not connected")
 	}
 	return db, nil
 }
 
-type gormLogger struct{}
-
-func (l gormLogger) Print(v ...interface{}) {
-	str := fmt.Sprint(v...)
-	log.Errorf(str)
-}
-
-// Connect connects to the database mentioned in
-// config variable.
+// Connect connects to the database mentioned in the config variable.
 func Connect(cfg *config.KasparovFlags) error {
-	connectionString := buildConnectionString(cfg)
-	migrator, driver, err := openMigrator(connectionString)
+	migrator, driver, err := openMigrator(cfg)
 	if err != nil {
 		return err
 	}
@@ -53,32 +42,26 @@ func Connect(cfg *config.KasparovFlags) error {
 			" the database by running the server with --migrate flag and then run it again", version)
 	}
 
-	db, err = gorm.Open("mysql", connectionString)
+	connectionOptions, err := pg.ParseURL(buildConnectionString(cfg))
 	if err != nil {
 		return err
 	}
-	db.SetLogger(gormLogger{})
+
+	db = pg.Connect(connectionOptions)
 
 	return validateTimeZone(db)
 }
 
-func validateTimeZone(db *gorm.DB) error {
-	result := struct {
-		GlobalTimeZone, SystemTimeZone string
-	}{}
-	dbResult := db.
-		Raw("SELECT @@global.time_zone as global_time_zone, " +
-			"@@global.system_time_zone as system_time_zone").
-		Scan(&result)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("some errors were encountered when "+
-			"checking the database timezone:", dbErrors)
+func validateTimeZone(db *pg.DB) error {
+	var timeZone string
+	_, err := db.
+		QueryOne(pg.Scan(&timeZone), `SELECT current_setting('TIMEZONE') as time_zone`)
+
+	if err != nil {
+		return errors.WithMessage(err, "some errors were encountered when "+
+			"checking the database timezone:")
 	}
-	timeZone := result.GlobalTimeZone
-	if timeZone == systemTimeZone {
-		timeZone = result.SystemTimeZone
-	}
+
 	if timeZone != utcTimeZone {
 		return errors.Errorf("to prevent conversion errors - Kasparov should only run with "+
 			"a database configured to use the UTC timezone, currently configured timezone is %s", timeZone)
@@ -97,8 +80,8 @@ func Close() error {
 }
 
 func buildConnectionString(cfg *config.KasparovFlags) string {
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True",
-		cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName)
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+		cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName, cfg.DBSSLMode)
 }
 
 // isCurrent resolves whether the database is on the latest
@@ -127,13 +110,13 @@ func isCurrent(migrator *migrate.Migrate, driver source.Driver) (bool, uint, err
 	return false, version, err
 }
 
-func openMigrator(connectionString string) (*migrate.Migrate, source.Driver, error) {
+func openMigrator(cfg *config.KasparovFlags) (*migrate.Migrate, source.Driver, error) {
 	driver, err := source.Open("file://../database/migrations")
 	if err != nil {
 		return nil, nil, err
 	}
 	migrator, err := migrate.NewWithSourceInstance(
-		"migrations", driver, "mysql://"+connectionString)
+		"migrations", driver, buildConnectionString(cfg))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -142,8 +125,7 @@ func openMigrator(connectionString string) (*migrate.Migrate, source.Driver, err
 
 // Migrate database to the latest version.
 func Migrate(cfg *config.KasparovFlags) error {
-	connectionString := buildConnectionString(cfg)
-	migrator, driver, err := openMigrator(connectionString)
+	migrator, driver, err := openMigrator(cfg)
 	if err != nil {
 		return err
 	}

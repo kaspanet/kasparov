@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kasparov/database"
 	"net/http"
 
 	"github.com/kaspanet/kasparov/apimodels"
@@ -23,7 +24,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 			errors.Errorf("the given block hash is not a hex-encoded %d-byte hash", daghash.HashSize))
 	}
 
-	block, err := dbaccess.BlockByHash(dbaccess.NoTx(), blockHash, dbmodels.BlockRecommendedPreloadedFields...)
+	block, err := dbaccess.BlockByHash(database.NoTx(), blockHash, dbmodels.BlockRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +32,7 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no block with the given block hash was found"))
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return nil, err
 	}
@@ -57,12 +58,12 @@ func GetBlocksHandler(orderString string, skip, limit int64) (interface{}, error
 		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, err)
 	}
 
-	blocks, err := dbaccess.Blocks(dbaccess.NoTx(), order, uint64(skip), uint64(limit), dbmodels.BlockRecommendedPreloadedFields...)
+	blocks, err := dbaccess.Blocks(database.NoTx(), order, uint64(skip), uint64(limit), dbmodels.BlockRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +73,7 @@ func GetBlocksHandler(orderString string, skip, limit int64) (interface{}, error
 		blockResponses[i] = apimodels.ConvertBlockModelToBlockResponse(block, selectedTipBlueScore)
 	}
 
-	total, err := dbaccess.BlocksCount(dbaccess.NoTx())
+	total, err := dbaccess.BlocksCount(database.NoTx())
 	if err != nil {
 		return nil, err
 	}

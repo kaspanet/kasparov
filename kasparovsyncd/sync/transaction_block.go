@@ -1,13 +1,14 @@
 package sync
 
 import (
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 
 	"github.com/pkg/errors"
 )
 
-func insertTransactionBlocks(dbTx *dbaccess.TxContext, blocks []*rawAndVerboseBlock,
+func insertTransactionBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock,
 	blockHashesToIDs map[string]uint64, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 
 	transactionBlocksToAdd := make([]interface{}, 0)

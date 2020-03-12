@@ -2,6 +2,8 @@ package sync
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kasparov/database"
+	"github.com/kaspanet/kasparov/serializer"
 
 	"github.com/kaspanet/kaspad/rpcmodel"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
@@ -10,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
+func insertTransactionInputs(dbTx *database.TxContext, transactionHashesToTxsWithMetadata map[string]*txWithMetadata) error {
 	outpointsSet := make(map[dbaccess.Outpoint]struct{})
 	newNonCoinbaseTransactions := make(map[string]*txWithMetadata)
 	inputsCount := 0
@@ -86,7 +88,7 @@ func insertTransactionInputs(dbTx *dbaccess.TxContext, transactionHashesToTxsWit
 				PreviousTransactionOutputID: prevOutputID,
 				Index:                       uint32(i),
 				SignatureScript:             scriptSig,
-				Sequence:                    txIn.Sequence,
+				Sequence:                    serializer.Uint64ToBytes(txIn.Sequence),
 			}
 			inputIndex++
 		}

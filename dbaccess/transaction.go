@@ -2,32 +2,30 @@ package dbaccess
 
 import (
 	"fmt"
-
-	"github.com/jinzhu/gorm"
+	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v9/orm"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // TransactionByID retrieves a transaction from the database that has the provided ID
 // If preloadedFields was provided - preloads the requested fields
-func TransactionByID(ctx Context, transactionID string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+func TransactionByID(ctx database.Context, transactionID string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.Where(&dbmodels.Transaction{TransactionID: transactionID})
-	query = preloadFields(query, preloadedFields)
-
 	tx := &dbmodels.Transaction{}
-	dbResult := query.First(&tx)
+	query := db.Model(tx).Where("transaction.transaction_id = ?", transactionID)
+	query = preloadFields(query, preloadedFields)
+	err = query.First()
 
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
+	if err == pg.ErrNoRows {
 		return nil, nil
 	}
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transaction from the database:", dbErrors)
+	if err != nil {
+		return nil, err
 	}
 
 	return tx, nil
@@ -35,24 +33,23 @@ func TransactionByID(ctx Context, transactionID string, preloadedFields ...dbmod
 
 // TransactionByHash retrieves a transaction from the database that has the provided hash
 // If preloadedFields was provided - preloads the requested fields
-func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+func TransactionByHash(ctx database.Context, transactionHash string, preloadedFields ...dbmodels.FieldName) (*dbmodels.Transaction, error) {
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.Where(&dbmodels.Transaction{TransactionHash: transactionHash})
-	query = preloadFields(query, preloadedFields)
-
 	tx := &dbmodels.Transaction{}
-	dbResult := query.First(&tx)
+	query := db.Model(tx).
+		Where("transaction_hash = ?", transactionHash)
+	query = preloadFields(query, preloadedFields)
+	err = query.First()
 
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.IsDBRecordNotFoundError(dbErrors) {
+	if err == pg.ErrNoRows {
 		return nil, nil
 	}
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transaction from the database:", dbErrors)
+	if err != nil {
+		return nil, err
 	}
 
 	return tx, nil
@@ -61,77 +58,78 @@ func TransactionByHash(ctx Context, transactionHash string, preloadedFields ...d
 // TransactionsByAddress retrieves up to `limit` transactions sent to or from `address`,
 // in the requested `order`, skipping the first `skip` blocks
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByAddress(ctx Context, address string, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) (
+func TransactionsByAddress(ctx database.Context, address string, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) (
 	[]*dbmodels.Transaction, error) {
 
-	db, err := ctx.db()
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	query := joinTxInputsTxOutputsAndAddresses(db).
-		Select("DISTINCT transactions.*").
-		Where("`out_addresses`.`address` = ?", address).
-		Or("`in_addresses`.`address` = ?", address).
-		Limit(limit).
-		Offset(skip)
+	var txs []*dbmodels.Transaction
+	query := db.Model(&txs)
+	query = joinTxInputsTxOutputsAndAddresses(query).
+		ColumnExpr("DISTINCT transaction.*").
+		Where("out_addresses.address = ?", address).
+		WhereOr("in_addresses.address = ?", address).
+		Limit(int(limit)).
+		Offset(int(skip))
+
 	if order != OrderUnknown {
-		query = query.Order(fmt.Sprintf("`transactions`.`id` %s", order))
+		query = query.Order(fmt.Sprintf("transaction.id %s", order))
 	}
 	query = preloadFields(query, preloadedFields)
+	err = query.Select()
 
-	txs := []*dbmodels.Transaction{}
-	dbResult := query.Find(&txs)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
+	if err != nil {
+		return nil, err
 	}
 
 	return txs, nil
 }
 
 // TransactionsByAddressCount returns the total number of transactions sent to or from `address`
-func TransactionsByAddressCount(ctx Context, address string) (uint64, error) {
-	db, err := ctx.db()
+func TransactionsByAddressCount(ctx database.Context, address string) (uint64, error) {
+	db, err := ctx.DB()
 	if err != nil {
 		return 0, err
 	}
 
-	var count uint64
 	query := db.Model(&dbmodels.Transaction{})
-	dbResult := joinTxInputsTxOutputsAndAddresses(query).
-		Where("`out_addresses`.`address` = ?", address).
-		Or("`in_addresses`.`address` = ?", address).
-		Count(&count)
+	count, err := joinTxInputsTxOutputsAndAddresses(query).
+		Where("out_addresses.address = ?", address).
+		WhereOr("in_addresses.address = ?", address).
+		Count()
 
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return 0, httpserverutils.NewErrorFromDBErrors("some errors were encountered when counting transactions in the database:", dbErrors)
+	if err != nil {
+		return 0, err
 	}
 
-	return count, nil
+	return uint64(count), nil
 }
 
 // AcceptedTransactionsByBlockHashes retrieves a list of transactions that were accepted
 // by blocks with the given `blockHashes`
-func AcceptedTransactionsByBlockHashes(ctx Context, blockHashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+func AcceptedTransactionsByBlockHashes(ctx database.Context, blockHashes []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	if len(blockHashes) == 0 {
+		return nil, nil
+	}
+
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
-
-	query := db.
-		Select("DISTINCT(transactions.id)").
-		Joins("LEFT JOIN `blocks` ON `blocks`.`id` = `transactions`.`accepting_block_id`").
-		Where("`blocks`.`block_hash` in (?)", blockHashes)
-	query = preloadFields(query, preloadedFields)
-
 	var transactions []*dbmodels.Transaction
-	dbResult := query.Find(&transactions)
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
+	query := db.Model(&transactions).
+		ColumnExpr("DISTINCT transaction.*").
+		Join("LEFT JOIN blocks").
+		JoinOn("blocks.id = transaction.accepting_block_id").
+		Where("blocks.block_hash in (?)", pg.In(blockHashes))
+
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return transactions, nil
@@ -140,22 +138,19 @@ func AcceptedTransactionsByBlockHashes(ctx Context, blockHashes []string, preloa
 // AcceptedTransactionsByBlockID retrieves a list of transactions that were accepted
 // by block with ID equal to `blockID`
 // If preloadedFields was provided - preloads the requested fields
-func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+func AcceptedTransactionsByBlockID(ctx database.Context, blockID uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.Model(&dbmodels.Transaction{}).
-		Where("`transactions`.`accepting_block_id` = ?", blockID)
-	query = preloadFields(query, preloadedFields)
-
 	var transactions []*dbmodels.Transaction
-	dbResult := query.Find(&transactions)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("failed to find transactions: ", dbErrors)
+	query := db.Model(&transactions).
+		Where("transaction.accepting_block_id = ?", blockID)
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return transactions, nil
@@ -163,23 +158,25 @@ func AcceptedTransactionsByBlockID(ctx Context, blockID uint64, preloadedFields 
 
 // TransactionsByHashes retrieves all transactions by their `transactionHashes`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByHashes(ctx Context, transactionHashes []string,
+func TransactionsByHashes(ctx database.Context, transactionHashes []string,
 	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 
-	db, err := ctx.db()
+	if len(transactionHashes) == 0 {
+		return nil, nil
+	}
+
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.Where("`transactions`.`transaction_hash` IN (?)", transactionHashes)
-	query = preloadFields(query, preloadedFields)
-
 	var txs []*dbmodels.Transaction
-	dbResult := query.Find(&txs)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
+	query := db.Model(&txs).
+		Where("transaction_hash IN (?)", pg.In(transactionHashes))
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return txs, nil
@@ -188,26 +185,30 @@ func TransactionsByHashes(ctx Context, transactionHashes []string,
 // TransactionsByIDsAndBlockID retrieves all transactions in a
 // block with the given ID by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID uint64,
+func TransactionsByIDsAndBlockID(ctx database.Context, transactionIDs []string, blockID uint64,
 	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 
-	db, err := ctx.db()
+	if len(transactionIDs) == 0 {
+		return nil, nil
+	}
+
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
+	var txs []*dbmodels.Transaction
 	query := db.
-		Joins("INNER JOIN `transactions_to_blocks` ON `transactions`.`id` = `transactions_to_blocks`.`transaction_id`").
-		Where("`transactions`.`transaction_id` IN (?)", transactionIDs).
-		Where("`transactions_to_blocks`.`block_id` = ?", blockID)
+		Model(&txs).
+		Join("INNER JOIN transactions_to_blocks").
+		JoinOn("transaction.id = transactions_to_blocks.transaction_id").
+		Where("transaction.transaction_id IN (?)", pg.In(transactionIDs)).
+		Where("transactions_to_blocks.block_id = ?", blockID)
 	query = preloadFields(query, preloadedFields)
 
-	var txs []*dbmodels.Transaction
-	dbResult := query.Find(&txs)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return txs, nil
@@ -216,25 +217,29 @@ func TransactionsByIDsAndBlockID(ctx Context, transactionIDs []string, blockID u
 // TransactionsByIDsAndBlockHash retrieves all transactions in a
 // block with the given hash by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByIDsAndBlockHash(ctx Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+func TransactionsByIDsAndBlockHash(ctx database.Context, transactionIDs []string, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	if len(transactionIDs) == 0 {
+		return nil, nil
+	}
+
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.
-		Joins("INNER JOIN `transactions_to_blocks` ON `transactions`.`id` = `transactions_to_blocks`.`transaction_id`").
-		Joins("INNER JOIN `blocks` ON `blocks`.`id` = `transactions_to_blocks`.`block_id`").
-		Where("`transactions`.`transaction_id` IN (?)", transactionIDs).
-		Where("`blocks`.`block_hash` = ?", blockHash)
-	query = preloadFields(query, preloadedFields)
-
 	var txs []*dbmodels.Transaction
-	dbResult := query.Find(&txs)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
+	query := db.
+		Model(&txs).
+		Join("INNER JOIN transactions_to_blocks").
+		JoinOn("transaction.id = transactions_to_blocks.transaction_id").
+		Join("INNER JOIN blocks").
+		JoinOn("blocks.id = transactions_to_blocks.block_id").
+		Where("transaction.transaction_id IN (?)", pg.In(transactionIDs)).
+		Where("blocks.block_hash = ?", blockHash)
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return txs, nil
@@ -242,51 +247,56 @@ func TransactionsByIDsAndBlockHash(ctx Context, transactionIDs []string, blockHa
 
 // TransactionsByIDs retrieves all transactions by their `transactionIDs`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionsByIDs(ctx Context, transactionIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
-	db, err := ctx.db()
+func TransactionsByIDs(ctx database.Context, transactionIDs []string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	if len(transactionIDs) == 0 {
+		return nil, nil
+	}
+
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
 
-	query := db.Where("`transactions`.`transaction_id` IN (?)", transactionIDs)
+	var transactions []*dbmodels.Transaction
+	query := db.Model(&transactions).
+		Where("transaction.transaction_id IN (?)", pg.In(transactionIDs))
 	query = preloadFields(query, preloadedFields)
-
-	var txs []*dbmodels.Transaction
-	dbResult := query.Find(&txs)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading transactions from the database:", dbErrors)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
-	return txs, nil
+	return transactions, nil
 }
 
 // UpdateTransactionAcceptingBlockID updates the transaction with given `transactionID` to have given `acceptingBlockID`
-func UpdateTransactionAcceptingBlockID(ctx Context, transactionID uint64, acceptingBlockID *uint64) error {
-	db, err := ctx.db()
+func UpdateTransactionAcceptingBlockID(ctx database.Context, transactionID uint64, acceptingBlockID *uint64) error {
+	db, err := ctx.DB()
 	if err != nil {
 		return err
 	}
-
-	dbResult := db.
+	_, err = db.
 		Model(&dbmodels.Transaction{}).
 		Where("id = ?", transactionID).
-		Update("accepting_block_id", acceptingBlockID)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return httpserverutils.NewErrorFromDBErrors("failed to update transaction acceptingBlockID: ", dbErrors)
+		Set("accepting_block_id = ?", acceptingBlockID).
+		Update()
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func joinTxInputsTxOutputsAndAddresses(query *gorm.DB) *gorm.DB {
+func joinTxInputsTxOutputsAndAddresses(query *orm.Query) *orm.Query {
 	return query.
-		Joins("LEFT JOIN `transaction_outputs` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
-		Joins("LEFT JOIN `addresses` AS `out_addresses` ON `out_addresses`.`id` = `transaction_outputs`.`address_id`").
-		Joins("LEFT JOIN `transaction_inputs` ON `transaction_inputs`.`transaction_id` = `transactions`.`id`").
-		Joins("LEFT JOIN `transaction_outputs` AS `inputs_outs` ON `inputs_outs`.`id` = `transaction_inputs`.`previous_transaction_output_id`").
-		Joins("LEFT JOIN `addresses` AS `in_addresses` ON `in_addresses`.`id` = `inputs_outs`.`address_id`")
+		Join("LEFT JOIN transaction_outputs").
+		JoinOn("transaction_outputs.transaction_id = transaction.id").
+		Join("LEFT JOIN addresses AS out_addresses").
+		JoinOn("out_addresses.id = transaction_outputs.address_id").
+		Join("LEFT JOIN transaction_inputs").
+		JoinOn("transaction_inputs.transaction_id = transaction.id").
+		Join("LEFT JOIN transaction_outputs AS inputs_outs").
+		JoinOn("inputs_outs.id = transaction_inputs.previous_transaction_output_id").
+		Join("LEFT JOIN addresses AS in_addresses").
+		JoinOn("in_addresses.id = inputs_outs.address_id")
 }

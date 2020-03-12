@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/kaspanet/kasparov/database"
 	"net/http"
 
 	"github.com/kaspanet/kasparov/apimodels"
@@ -28,7 +29,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 			errors.Errorf("The given txid is not a hex-encoded %d-byte hash", daghash.TxIDSize))
 	}
 
-	tx, err := dbaccess.TransactionByID(dbaccess.NoTx(), txID, dbmodels.TransactionRecommendedPreloadedFields...)
+	tx, err := dbaccess.TransactionByID(database.NoTx(), txID, dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +37,7 @@ func GetTransactionByIDHandler(txID string) (interface{}, error) {
 		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no transaction with the given txid was found"))
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +53,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 			errors.Errorf("The given txhash is not a hex-encoded %d-byte hash", daghash.HashSize))
 	}
 
-	tx, err := dbaccess.TransactionByHash(dbaccess.NoTx(), txHash, dbmodels.TransactionRecommendedPreloadedFields...)
+	tx, err := dbaccess.TransactionByHash(database.NoTx(), txHash, dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +61,7 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no transaction with the given txhash was found"))
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +87,13 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 		return nil, err
 	}
 
-	txs, err := dbaccess.TransactionsByAddress(dbaccess.NoTx(), address, dbaccess.OrderAscending, uint64(skip), uint64(limit),
+	txs, err := dbaccess.TransactionsByAddress(database.NoTx(), address, dbaccess.OrderAscending, uint64(skip), uint64(limit),
 		dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return nil, err
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +103,7 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
 	}
 
-	total, err := dbaccess.TransactionsByAddressCount(dbaccess.NoTx(), address)
+	total, err := dbaccess.TransactionsByAddressCount(database.NoTx(), address)
 	if err != nil {
 		return nil, err
 	}

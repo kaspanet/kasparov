@@ -1,6 +1,7 @@
 package mqtt
 
 import (
+	"github.com/kaspanet/kasparov/database"
 	"path"
 
 	"github.com/kaspanet/kaspad/rpcmodel"
@@ -63,14 +64,14 @@ func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainB
 		return nil
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return err
 	}
 
 	for _, addedChainBlock := range addedChainBlocks {
 		for _, acceptedBlock := range addedChainBlock.AcceptedBlocks {
-			dbTransactions, err := dbaccess.TransactionsByIDsAndBlockHash(dbaccess.NoTx(), acceptedBlock.AcceptedTxIDs, acceptedBlock.Hash,
+			dbTransactions, err := dbaccess.TransactionsByIDsAndBlockHash(database.NoTx(), acceptedBlock.AcceptedTxIDs, acceptedBlock.Hash,
 				dbmodels.TransactionRecommendedPreloadedFields...)
 			if err != nil {
 				return err
@@ -91,7 +92,7 @@ func PublishUnacceptedTransactionsNotifications(unacceptedTransactions []*dbmode
 		return nil
 	}
 
-	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(dbaccess.NoTx())
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return err
 	}

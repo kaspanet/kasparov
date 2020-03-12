@@ -1,8 +1,9 @@
 package dbaccess
 
 import (
+	"github.com/go-pg/pg/v9"
+	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/httpserverutils"
 )
 
 // Outpoint represent an outpoint in a transaction input.
@@ -13,25 +14,24 @@ type Outpoint struct {
 
 // UTXOsByAddress retrieves all transaction outputs incoming to `address`.
 // If preloadedFields was provided - preloads the requested fields
-func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
-	db, err := ctx.db()
+func UTXOsByAddress(ctx database.Context, address string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.TransactionOutput, error) {
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
-
-	query := db.
-		Joins("LEFT JOIN `addresses` ON `addresses`.`id` = `transaction_outputs`.`address_id`").
-		Joins("INNER JOIN `transactions` ON `transaction_outputs`.`transaction_id` = `transactions`.`id`").
-		Where("`transactions`.`accepting_block_id` IS NOT NULL AND  `addresses`.`address` = ? "+
-			"AND `transaction_outputs`.`is_spent` = 0", address)
-	query = preloadFields(query, preloadedFields)
-
 	var transactionOutputs []*dbmodels.TransactionOutput
-	dbResult := query.Find(&transactionOutputs)
-
-	dbErrors := dbResult.GetErrors()
-	if httpserverutils.HasDBError(dbErrors) {
-		return nil, httpserverutils.NewErrorFromDBErrors("some errors were encountered when loading UTXOs from the database:", dbErrors)
+	query := db.Model(&transactionOutputs).
+		Join("LEFT JOIN addresses").
+		JoinOn("addresses.id = transaction_output.address_id").
+		Join("INNER JOIN transactions").
+		JoinOn("transaction_output.transaction_id = transactions.id").
+		Where("addresses.address = ?", address).
+		Where("transaction_output.is_spent = ?", false).
+		Where("transactions.accepting_block_id IS NOT NULL")
+	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
 	}
 
 	return transactionOutputs, nil
@@ -39,8 +39,8 @@ func UTXOsByAddress(ctx Context, address string, preloadedFields ...dbmodels.Fie
 
 // TransactionOutputsByOutpoints retrieves all transaction outputs referenced by `outpoints`.
 // If preloadedFields was provided - preloads the requested fields
-func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmodels.TransactionOutput, error) {
-	db, err := ctx.db()
+func TransactionOutputsByOutpoints(ctx database.Context, outpoints []*Outpoint) ([]*dbmodels.TransactionOutput, error) {
+	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
 	}
@@ -52,22 +52,40 @@ func TransactionOutputsByOutpoints(ctx Context, outpoints []*Outpoint) ([]*dbmod
 		var chunk [][]interface{}
 		chunk, offset = outpointsChunk(outpointTuples, offset)
 		var dbPreviousTransactionsOutputsChunk []*dbmodels.TransactionOutput
+		err = db.Model(&dbPreviousTransactionsOutputsChunk).
+			Join("LEFT JOIN transactions").
+			JoinOn("transactions.id = transaction_output.transaction_id").
+			Where("(transactions.transaction_id, transaction_output.index) in (?)", pg.In(chunk)).
+			Relation(string(dbmodels.TransactionOutputFieldNames.Transaction)).
+			Select()
 
-		dbResult := db.
-			Joins("LEFT JOIN `transactions` ON `transactions`.`id` = `transaction_outputs`.`transaction_id`").
-			Where("(`transactions`.`transaction_id`, `transaction_outputs`.`index`) IN (?)", chunk).
-			Preload("Transaction").
-			Find(&dbPreviousTransactionsOutputsChunk)
-		dbErrors := dbResult.GetErrors()
-
-		if httpserverutils.HasDBError(dbErrors) {
-			return nil, httpserverutils.NewErrorFromDBErrors("failed to find previous transaction outputs: ", dbErrors)
+		if err != nil {
+			return nil, err
 		}
 
 		dbPreviousTransactionsOutputs = append(dbPreviousTransactionsOutputs, dbPreviousTransactionsOutputsChunk...)
 	}
 
 	return dbPreviousTransactionsOutputs, nil
+}
+
+// UpdateTransactionOutputIsSpent updates transaction-output `txOutID` by setting its IsSpent field to `isSpent`
+func UpdateTransactionOutputIsSpent(ctx database.Context, txOutID uint64, isSpent bool) error {
+	db, err := ctx.DB()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.
+		Model(&dbmodels.TransactionOutput{}).
+		Where("id = ?", txOutID).
+		Set("is_spent = ?", isSpent).
+		Update()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func outpointsToSQLTuples(outpoints []*Outpoint) [][]interface{} {
