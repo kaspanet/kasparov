@@ -5,14 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/kaspanet/kaspad/ecc"
+	"net/http"
+
+	"github.com/kaspanet/go-secp256k1"
 	"github.com/kaspanet/kaspad/txscript"
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kaspad/wire"
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/pkg/errors"
-	"net/http"
 )
 
 const feeSompis uint64 = 1000
@@ -28,7 +29,11 @@ func send(conf *sendConfig) error {
 		return err
 	}
 
-	fromAddress, err := util.NewAddressPubKeyHashFromPublicKey(publicKey.SerializeCompressed(), toAddress.Prefix())
+	serializedPublicKey, err := publicKey.SerializeCompressed()
+	if err != nil {
+		return err
+	}
+	fromAddress, err := util.NewAddressPubKeyHashFromPublicKey(serializedPublicKey, toAddress.Prefix())
 	if err != nil {
 		return err
 	}
@@ -62,12 +67,19 @@ func send(conf *sendConfig) error {
 	return nil
 }
 
-func parsePrivateKey(privateKeyHex string) (*ecc.PrivateKey, *ecc.PublicKey, error) {
+func parsePrivateKey(privateKeyHex string) (*secp256k1.PrivateKey, *secp256k1.SchnorrPublicKey, error) {
 	privateKeyBytes, err := hex.DecodeString(privateKeyHex)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Error parsing private key hex")
 	}
-	privateKey, publicKey := ecc.PrivKeyFromBytes(ecc.S256(), privateKeyBytes)
+	privateKey, err := secp256k1.DeserializePrivateKeyFromSlice(privateKeyBytes)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Error deserializing private key")
+	}
+	publicKey, err := privateKey.SchnorrPublicKey()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Error generating public key")
+	}
 	return privateKey, publicKey, nil
 }
 
@@ -98,7 +110,7 @@ func selectUTXOs(utxos []*apimodels.TransactionOutputResponse, totalToSpend uint
 	return selectedUTXOs, totalValue - totalToSpend, nil
 }
 
-func generateTx(privateKey *ecc.PrivateKey, selectedUTXOs []*apimodels.TransactionOutputResponse, sompisToSend uint64, change uint64,
+func generateTx(privateKey *secp256k1.PrivateKey, selectedUTXOs []*apimodels.TransactionOutputResponse, sompisToSend uint64, change uint64,
 	toAddress util.Address, fromAddress util.Address) (*wire.MsgTx, error) {
 
 	txIns := make([]*wire.TxIn, len(selectedUTXOs))
