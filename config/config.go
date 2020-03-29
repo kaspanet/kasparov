@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"strconv"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/kaspanet/kaspad/config"
@@ -65,5 +66,13 @@ func (kasparovFlags *KasparovFlags) ResolveKasparovFlags(parser *flags.Parser,
 	if isMigrate {
 		return nil
 	}
+
+	if kasparovFlags.Profile != "" {
+		profilePort, err := strconv.Atoi(kasparovFlags.Profile)
+		if err != nil || profilePort < 1024 || profilePort > 65535 {
+			return errors.New("The profile port must be between 1024 and 65535")
+		}
+	}
+
 	return kasparovFlags.ResolveNetwork(parser)
 }

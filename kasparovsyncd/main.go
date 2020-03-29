@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/kaspanet/kasparov/kasparovsyncd/sync"
-	"github.com/kaspanet/kasparov/profiling"
 	"os"
+
+	"github.com/kaspanet/kaspad/util/profiling"
+	"github.com/kaspanet/kasparov/kasparovsyncd/sync"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"

@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/kaspanet/kasparov/profiling"
 	"os"
+
+	"github.com/kaspanet/kaspad/util/profiling"
 
 	"github.com/pkg/errors"
 
