@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/pkg/errors"
 )
 
@@ -13,7 +10,7 @@ func main() {
 	var err error
 	switch subCmd {
 	case createSubCmd:
-		create()
+		err = create()
 	case balanceSubCmd:
 		err = balance(config.(*balanceConfig))
 	case sendSubCmd:
@@ -23,7 +20,6 @@ func main() {
 	}
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		printErrorAndExit(err)
 	}
 }
