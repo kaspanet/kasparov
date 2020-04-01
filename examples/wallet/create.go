@@ -20,18 +20,18 @@ func create() {
 	fmt.Printf("Private key (hex):\t%x\n\n", privateKey.Serialize())
 
 	fmt.Println("These are your public addresses for each network, where money is to be sent.")
-	for _, netParams := range []*dagconfig.Params{&dagconfig.MainnetParams, &dagconfig.TestnetParams, &dagconfig.DevnetParams} {
-		publicKey, err := privateKey.SchnorrPublicKey()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to generate public key: %s", err)
-			os.Exit(1)
-		}
-		publicKeySerialized, err := publicKey.SerializeCompressed()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to generate public key: %s", err)
-			os.Exit(1)
-		}
+	publicKey, err := privateKey.SchnorrPublicKey()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to generate public key: %s", err)
+		os.Exit(1)
+	}
+	publicKeySerialized, err := publicKey.SerializeCompressed()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to generate public key: %s", err)
+		os.Exit(1)
+	}
 
+	for _, netParams := range []*dagconfig.Params{&dagconfig.MainnetParams, &dagconfig.TestnetParams, &dagconfig.DevnetParams} {
 		addr, err := util.NewAddressPubKeyHashFromPublicKey(publicKeySerialized, netParams.Prefix)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to generate p2pkh address: %s", err)
