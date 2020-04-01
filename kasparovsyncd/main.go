@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/kaspanet/kasparov/kasparovsyncd/sync"
-	"github.com/kaspanet/kasparov/profiling"
 	"os"
+
+	"github.com/kaspanet/kaspad/util/profiling"
+	"github.com/kaspanet/kasparov/kasparovsyncd/sync"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -37,7 +38,7 @@ func main() {
 
 	// Start the profiling server if required
 	if config.ActiveConfig().Profile != "" {
-		profiling.Start(config.ActiveConfig().Profile)
+		profiling.Start(config.ActiveConfig().Profile, log)
 	}
 
 	if config.ActiveConfig().Migrate {

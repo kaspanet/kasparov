@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/kaspanet/kasparov/profiling"
 	"os"
+
+	"github.com/kaspanet/kaspad/util/profiling"
 
 	"github.com/pkg/errors"
 
@@ -37,7 +38,7 @@ func main() {
 
 	// Start the profiling server if required
 	if config.ActiveConfig().Profile != "" {
-		profiling.Start(config.ActiveConfig().Profile)
+		profiling.Start(config.ActiveConfig().Profile, log)
 	}
 
 	err = database.Connect(&config.ActiveConfig().KasparovFlags)
