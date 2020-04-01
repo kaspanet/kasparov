@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 
 	"github.com/kaspanet/kasparov/apimodels"
@@ -65,4 +67,9 @@ func readResponse(response *http.Response) (body []byte, err error) {
 	}
 
 	return body, nil
+}
+
+func printErrorAndExit(err error) {
+	fmt.Fprintf(os.Stderr, "%s\n", err)
+	os.Exit(1)
 }
