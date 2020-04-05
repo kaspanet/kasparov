@@ -52,7 +52,7 @@ func main() {
 		}
 	}()
 
-	err = jsonrpc.Connect(&config.ActiveConfig().KasparovFlags)
+	err = jsonrpc.Connect(&config.ActiveConfig().KasparovFlags, false)
 	if err != nil {
 		panic(errors.Errorf("Error connecting to servers: %s", err))
 	}
