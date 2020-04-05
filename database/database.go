@@ -8,6 +8,7 @@ import (
 	"github.com/kaspanet/kasparov/config"
 	"github.com/pkg/errors"
 	"os"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 )
@@ -15,8 +16,11 @@ import (
 // db is the Kasparov database.
 var db *pg.DB
 
-const (
-	utcTimeZone = "UTC"
+var (
+	allowedTimeZones = map[string]struct{}{
+		"UTC":     {},
+		"Etc/UTC": {},
+	}
 )
 
 // DBInstance returns a reference to the database connection
@@ -62,11 +66,20 @@ func validateTimeZone(db *pg.DB) error {
 			"checking the database timezone:")
 	}
 
-	if timeZone != utcTimeZone {
+	if _, ok := allowedTimeZones[timeZone]; !ok {
 		return errors.Errorf("to prevent conversion errors - Kasparov should only run with "+
-			"a database configured to use the UTC timezone, currently configured timezone is %s", timeZone)
+			"a database configured to use one of the allowed timezone. Currently configured timezone "+
+			"is %s. Allowed time zones: %s", timeZone, buildAllowedTimezonesString())
 	}
 	return nil
+}
+
+func buildAllowedTimezonesString() string {
+	keys := make([]string, 0, len(allowedTimeZones))
+	for allowedTimeZone := range allowedTimeZones {
+		keys = append(keys, fmt.Sprintf("'%s'", allowedTimeZone))
+	}
+	return strings.Join(keys, ", ")
 }
 
 // Close closes the connection to the database
