@@ -55,7 +55,7 @@ func Close() {
 }
 
 // Connect initiates a connection to the JSON-RPC API Server
-func Connect(cfg *config.KasparovFlags) error {
+func Connect(cfg *config.KasparovFlags, subscribeToNotifications bool) error {
 	var cert []byte
 	if !cfg.DisableTLS {
 		var err error
@@ -83,7 +83,7 @@ func Connect(cfg *config.KasparovFlags) error {
 		connCfg.Certificates = cert
 	}
 
-	client, err = newClient(connCfg)
+	client, err = newClient(connCfg, subscribeToNotifications)
 	if err != nil {
 		return errors.Errorf("Error connecting to address %s: %s", rpcServerAddress, err)
 	}
@@ -91,31 +91,45 @@ func Connect(cfg *config.KasparovFlags) error {
 	return nil
 }
 
-func newClient(connCfg *rpcclient.ConnConfig) (*Client, error) {
+func newClient(connCfg *rpcclient.ConnConfig, subscribeToNotifications bool) (*Client, error) {
 	client = &Client{
 		OnBlockAdded:   make(chan *BlockAddedMsg),
 		OnChainChanged: make(chan *ChainChangedMsg),
 	}
-	notificationHandlers := &rpcclient.NotificationHandlers{
-		OnFilteredBlockAdded: func(height uint64, header *wire.BlockHeader,
-			txs []*util.Tx) {
-			client.OnBlockAdded <- &BlockAddedMsg{
-				ChainHeight: height,
-				Header:      header,
-			}
-		},
-		OnChainChanged: func(removedChainBlockHashes []*daghash.Hash,
-			addedChainBlocks []*rpcclient.ChainBlock) {
-			client.OnChainChanged <- &ChainChangedMsg{
-				RemovedChainBlockHashes: removedChainBlockHashes,
-				AddedChainBlocks:        addedChainBlocks,
-			}
-		},
+
+	var notificationHandlers *rpcclient.NotificationHandlers
+	if subscribeToNotifications {
+		notificationHandlers = &rpcclient.NotificationHandlers{
+			OnFilteredBlockAdded: func(height uint64, header *wire.BlockHeader,
+				txs []*util.Tx) {
+				client.OnBlockAdded <- &BlockAddedMsg{
+					ChainHeight: height,
+					Header:      header,
+				}
+			},
+			OnChainChanged: func(removedChainBlockHashes []*daghash.Hash,
+				addedChainBlocks []*rpcclient.ChainBlock) {
+				client.OnChainChanged <- &ChainChangedMsg{
+					RemovedChainBlockHashes: removedChainBlockHashes,
+					AddedChainBlocks:        addedChainBlocks,
+				}
+			},
+		}
 	}
+
 	var err error
 	client.Client, err = rpcclient.New(connCfg, notificationHandlers)
 	if err != nil {
 		return nil, errors.Errorf("Error connecting to address %s: %s", connCfg.Host, err)
+	}
+
+	if subscribeToNotifications {
+		if err = client.NotifyBlocks(); err != nil {
+			return nil, errors.Errorf("Error while registering client %s for block notifications: %s", client.Host(), err)
+		}
+		if err = client.NotifyChainChanges(); err != nil {
+			return nil, errors.Errorf("Error while registering client %s for chain changes notifications: %s", client.Host(), err)
+		}
 	}
 
 	return client, nil

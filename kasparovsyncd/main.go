@@ -66,7 +66,7 @@ func main() {
 	}
 	defer mqtt.Close()
 
-	err = jsonrpc.Connect(&config.ActiveConfig().KasparovFlags)
+	err = jsonrpc.Connect(&config.ActiveConfig().KasparovFlags, true)
 	if err != nil {
 		panic(errors.Errorf("Error connecting to servers: %s", err))
 	}
