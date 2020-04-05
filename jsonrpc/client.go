@@ -118,12 +118,5 @@ func newClient(connCfg *rpcclient.ConnConfig) (*Client, error) {
 		return nil, errors.Errorf("Error connecting to address %s: %s", connCfg.Host, err)
 	}
 
-	if err = client.NotifyBlocks(); err != nil {
-		return nil, errors.Errorf("Error while registering client %s for block notifications: %s", client.Host(), err)
-	}
-	if err = client.NotifyChainChanges(); err != nil {
-		return nil, errors.Errorf("Error while registering client %s for chain changes notifications: %s", client.Host(), err)
-	}
-
 	return client, nil
 }

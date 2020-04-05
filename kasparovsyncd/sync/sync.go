@@ -27,6 +27,13 @@ func StartSync(doneChan chan struct{}) error {
 		return err
 	}
 
+	if err = client.NotifyBlocks(); err != nil {
+		return errors.Errorf("Error while registering client %s for block notifications: %s", client.Host(), err)
+	}
+	if err = client.NotifyChainChanges(); err != nil {
+		return errors.Errorf("Error while registering client %s for chain changes notifications: %s", client.Host(), err)
+	}
+
 	// Mass download missing data
 	err = fetchInitialData(client)
 	if err != nil {
