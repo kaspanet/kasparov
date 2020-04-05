@@ -69,12 +69,12 @@ func validateTimeZone(db *pg.DB) error {
 	if _, ok := allowedTimeZones[timeZone]; !ok {
 		return errors.Errorf("to prevent conversion errors - Kasparov should only run with "+
 			"a database configured to use one of the allowed timezone. Currently configured timezone "+
-			"is %s. Allowed time zones: %s", timeZone, buildAllowedTimezonesString())
+			"is %s. Allowed time zones: %s", timeZone, allowedTimezonesString())
 	}
 	return nil
 }
 
-func buildAllowedTimezonesString() string {
+func allowedTimezonesString() string {
 	keys := make([]string, 0, len(allowedTimeZones))
 	for allowedTimeZone := range allowedTimeZones {
 		keys = append(keys, fmt.Sprintf("'%s'", allowedTimeZone))
