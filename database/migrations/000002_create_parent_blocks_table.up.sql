@@ -10,3 +10,6 @@ CREATE TABLE parent_blocks
         FOREIGN KEY (parent_block_id)
             REFERENCES blocks (id)
 );
+
+CREATE INDEX idx_parent_blocks_block_id ON parent_blocks (block_id);
+CREATE INDEX idx_parent_blocks_parent_block_id ON parent_blocks (parent_block_id);

@@ -13,3 +13,4 @@ CREATE TABLE transactions_to_blocks
 );
 
 CREATE INDEX idx_transactions_to_blocks_index ON transactions_to_blocks (index);
+CREATE INDEX idx_transactions_to_blocks_block_id ON transactions_to_blocks (block_id);

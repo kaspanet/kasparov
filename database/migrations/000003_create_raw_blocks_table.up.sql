@@ -7,3 +7,5 @@ CREATE TABLE raw_blocks
         FOREIGN KEY (block_id)
             REFERENCES blocks (id)
 );
+
+CREATE INDEX idx_raw_blocks_block_id ON raw_blocks (block_id);
