@@ -2,6 +2,7 @@ package dbaccess
 
 import (
 	"fmt"
+
 	"github.com/go-pg/pg/v9"
 	"github.com/go-pg/pg/v9/orm"
 	"github.com/kaspanet/kasparov/database"
@@ -69,7 +70,7 @@ func TransactionsByAddress(ctx database.Context, address string, order Order, sk
 	var txs []*dbmodels.Transaction
 	query := db.Model(&txs)
 	query = joinTxInputsTxOutputsAndAddresses(query).
-		ColumnExpr("DISTINCT transaction.*").
+		ColumnExpr("DISTINCT ON (transaction.id) transaction.*").
 		Where("out_addresses.address = ?", address).
 		WhereOr("in_addresses.address = ?", address).
 		Limit(int(limit)).
@@ -95,7 +96,8 @@ func TransactionsByAddressCount(ctx database.Context, address string) (uint64, e
 		return 0, err
 	}
 
-	query := db.Model(&dbmodels.Transaction{})
+	query := db.Model(&dbmodels.Transaction{}).
+		ColumnExpr("DISTINCT (transaction.id)")
 	count, err := joinTxInputsTxOutputsAndAddresses(query).
 		Where("out_addresses.address = ?", address).
 		WhereOr("in_addresses.address = ?", address).
