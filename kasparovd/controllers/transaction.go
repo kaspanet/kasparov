@@ -114,6 +114,49 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 	}, nil
 }
 
+// GetTransactionsByAddressHandler searches for all transactions
+// included by the block with the given blockHash.
+func GetTransactionsByBlockHashHandler(blockHash string, skip, limit int64) (interface{}, error) {
+	if limit > maxGetTransactionsLimit {
+		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
+			errors.Errorf("limit higher than %d or lower than 0 was requested", maxGetTransactionsLimit))
+	}
+
+	if skip < 0 {
+		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
+			errors.New("skip lower than 0 was requested"))
+	}
+
+	preloadedFields := dbmodels.BlockRecommendedPreloadedFields
+	preloadedFields = append(preloadedFields, dbmodels.BlockFieldNames.Transactions)
+
+	block, err := dbaccess.BlockByHash(database.NoTx(), blockHash, preloadedFields...)
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no block with the given block hash was found"))
+	}
+	txs := block.Transactions
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	txResponses := make([]*apimodels.TransactionResponse, len(txs))
+	for i, tx := range txs {
+		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
+	}
+
+	total := uint64(len(txs))
+
+	return apimodels.PaginatedTransactionsResponse{
+		Transactions: txResponses,
+		Total:        total,
+	}, nil
+}
+
 // PostTransaction forwards a raw transaction to the JSON-RPC API server
 func PostTransaction(requestBody []byte) error {
 	client, err := jsonrpc.GetClient()
