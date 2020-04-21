@@ -17,3 +17,4 @@ CREATE TABLE transaction_outputs
 );
 
 CREATE INDEX idx_transaction_outputs_transaction_id ON transaction_outputs (transaction_id);
+CREATE INDEX idx_transaction_outputs_address_id ON transaction_outputs (address_id);

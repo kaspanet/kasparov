@@ -22,3 +22,4 @@ CREATE TABLE blocks
 
 CREATE INDEX idx_blocks_timestamp ON blocks (timestamp);
 CREATE INDEX idx_blocks_is_chain_block ON blocks (is_chain_block);
+CREATE INDEX idx_blocks_accepting_block_id ON blocks (accepting_block_id);

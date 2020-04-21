@@ -23,3 +23,5 @@ CREATE TABLE transactions
 );
 
 CREATE INDEX idx_transactions_transaction_id ON transactions (transaction_id);
+CREATE INDEX idx_transactions_accepting_block_id ON transactions (accepting_block_id);
+CREATE INDEX idx_transactions_subnetwork_id ON transactions (subnetwork_id);
