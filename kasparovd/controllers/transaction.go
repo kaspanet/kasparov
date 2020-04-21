@@ -114,7 +114,7 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 	}, nil
 }
 
-// GetTransactionsByAddressHandler searches for all transactions
+// GetTransactionsByBlockHashHandler retrieves all transactions
 // included by the block with the given blockHash.
 func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
 	preloadedFields := dbmodels.PrefixFieldNames(dbmodels.BlockFieldNames.Transactions, dbmodels.TransactionRecommendedPreloadedFields)
