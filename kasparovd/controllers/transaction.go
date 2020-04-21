@@ -140,9 +140,8 @@ func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
 		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
 	}
 
-	return apimodels.PaginatedTransactionsResponse{
+	return apimodels.TransactionsResponse{
 		Transactions: txResponses,
-		Total:        uint64(len(txs)),
 	}, nil
 }
 
