@@ -116,17 +116,7 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 
 // GetTransactionsByAddressHandler searches for all transactions
 // included by the block with the given blockHash.
-func GetTransactionsByBlockHashHandler(blockHash string, skip, limit int64) (interface{}, error) {
-	if limit > maxGetTransactionsLimit {
-		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("limit higher than %d or lower than 0 was requested", maxGetTransactionsLimit))
-	}
-
-	if skip < 0 {
-		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.New("skip lower than 0 was requested"))
-	}
-
+func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
 	preloadedFields := dbmodels.BlockRecommendedPreloadedFields
 	preloadedFields = append(preloadedFields, dbmodels.BlockFieldNames.Transactions)
 
@@ -149,11 +139,9 @@ func GetTransactionsByBlockHashHandler(blockHash string, skip, limit int64) (int
 		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
 	}
 
-	total := uint64(len(txs))
-
 	return apimodels.PaginatedTransactionsResponse{
 		Transactions: txResponses,
-		Total:        total,
+		Total:        uint64(len(txs)),
 	}, nil
 }
 

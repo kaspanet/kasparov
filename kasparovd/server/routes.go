@@ -130,18 +130,10 @@ func getTransactionsByAddressHandler(_ *httpserverutils.ServerContext, _ *http.R
 	return controllers.GetTransactionsByAddressHandler(routeParams[routeParamAddress], skip, limit)
 }
 
-func getTransactionsByBlockHashHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, queryParams map[string]string,
+func getTransactionsByBlockHashHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
 	_ []byte) (interface{}, error) {
 
-	skip, err := convertQueryParamToInt64(queryParams, queryParamSkip, 0)
-	if err != nil {
-		return nil, err
-	}
-	limit, err := convertQueryParamToInt64(queryParams, queryParamLimit, defaultGetTransactionsLimit)
-	if err != nil {
-		return nil, err
-	}
-	return controllers.GetTransactionsByBlockHashHandler(routeParams[routeParamBlockHash], skip, limit)
+	return controllers.GetTransactionsByBlockHashHandler(routeParams[routeParamBlockHash])
 }
 
 func getUTXOsByAddressHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
