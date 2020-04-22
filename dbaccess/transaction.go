@@ -269,6 +269,30 @@ func TransactionsByIDs(ctx database.Context, transactionIDs []string, preloadedF
 	return transactions, nil
 }
 
+// TransactionsByBlockHash retrieves a list of transactions included by the block
+// with the given blockHash
+func TransactionsByBlockHash(ctx database.Context, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	var transactions []*dbmodels.Transaction
+	query := db.Model(&transactions).
+		Join("INNER JOIN transactions_to_blocks ON transactions_to_blocks.transaction_id = transaction.id").
+		Join("INNER JOIN blocks ON blocks.id = transactions_to_blocks.block_id").
+		Where("blocks.block_hash = ?", blockHash).
+		Order("transactions_to_blocks.index ASC")
+	query = preloadFields(query, preloadedFields)
+
+	err = query.Select()
+	if err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
+}
+
 // UpdateTransactionAcceptingBlockID updates the transaction with given `transactionID` to have given `acceptingBlockID`
 func UpdateTransactionAcceptingBlockID(ctx database.Context, transactionID uint64, acceptingBlockID *uint64) error {
 	db, err := ctx.DB()

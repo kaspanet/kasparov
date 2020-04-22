@@ -114,6 +114,32 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 	}, nil
 }
 
+// GetTransactionsByBlockHashHandler retrieves all transactions
+// included by the block with the given blockHash.
+func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
+	txs, err := dbaccess.TransactionsByBlockHash(database.NoTx(), blockHash, dbmodels.TransactionRecommendedPreloadedFields...)
+	if err != nil {
+		return nil, err
+	}
+	if len(txs) == 0 {
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no block with the given block hash was found"))
+	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	txResponses := make([]*apimodels.TransactionResponse, len(txs))
+	for i, tx := range txs {
+		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
+	}
+
+	return apimodels.TransactionsResponse{
+		Transactions: txResponses,
+	}, nil
+}
+
 // PostTransaction forwards a raw transaction to the JSON-RPC API server
 func PostTransaction(requestBody []byte) error {
 	client, err := jsonrpc.GetClient()

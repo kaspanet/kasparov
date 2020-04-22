@@ -43,6 +43,11 @@ type TransactionInputResponse struct {
 	Address                        string `json:"address"`
 }
 
+// TransactionsResponse is a json representation of a transactions response
+type TransactionsResponse struct {
+	Transactions []*TransactionResponse `json:"transactions"`
+}
+
 // BlockResponse is a json representation of a block
 type BlockResponse struct {
 	BlockHash               string   `json:"blockHash"`
