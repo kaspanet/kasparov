@@ -279,8 +279,8 @@ func TransactionsByBlockHash(ctx database.Context, blockHash string, preloadedFi
 
 	var transactions []*dbmodels.Transaction
 	query := db.Model(&transactions).
-		Join("JOIN transactions_to_blocks ON transactions_to_blocks.transaction_id = transaction.id").
-		Join("JOIN blocks ON blocks.id = transactions_to_blocks.block_id").
+		Join("INNER JOIN transactions_to_blocks ON transactions_to_blocks.transaction_id = transaction.id").
+		Join("INNER JOIN blocks ON blocks.id = transactions_to_blocks.block_id").
 		Where("blocks.block_hash = ?", blockHash).
 		Order("transactions_to_blocks.index ASC")
 	query = preloadFields(query, preloadedFields)
