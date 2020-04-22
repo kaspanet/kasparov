@@ -118,7 +118,6 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 // included by the block with the given blockHash.
 func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
 	preloadedFields := dbmodels.PrefixFieldNames(dbmodels.BlockFieldNames.Transactions, dbmodels.TransactionRecommendedPreloadedFields)
-	preloadedFields = append(preloadedFields, dbmodels.BlockRecommendedPreloadedFields...)
 	preloadedFields = append(preloadedFields, dbmodels.BlockFieldNames.Transactions)
 
 	block, err := dbaccess.BlockByHash(database.NoTx(), blockHash, preloadedFields...)
