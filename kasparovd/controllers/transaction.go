@@ -117,17 +117,18 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 // GetTransactionsByBlockHashHandler retrieves all transactions
 // included by the block with the given blockHash.
 func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
-	preloadedFields := dbmodels.PrefixFieldNames(dbmodels.BlockFieldNames.Transactions, dbmodels.TransactionRecommendedPreloadedFields)
-	preloadedFields = append(preloadedFields, dbmodels.BlockFieldNames.Transactions)
-
-	block, err := dbaccess.BlockByHash(database.NoTx(), blockHash, preloadedFields...)
+	exists, err := dbaccess.DoesBlockExist(database.NoTx(), blockHash)
 	if err != nil {
 		return nil, err
 	}
-	if block == nil {
+	if !exists {
 		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no block with the given block hash was found"))
 	}
-	txs := block.Transactions
+
+	txs, err := dbaccess.TransactionsByBlockHash(database.NoTx(), blockHash, dbmodels.TransactionRecommendedPreloadedFields...)
+	if err != nil {
+		return nil, err
+	}
 
 	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
