@@ -55,7 +55,12 @@ func BlocksByHashes(ctx database.Context, hashes []string, preloadedFields ...db
 
 // Blocks retrieves from the database up to `limit` blocks in the requested `order`, skipping the first `skip` blocks
 // If preloadedFields was provided - preloads the requested fields
-func Blocks(ctx database.Context, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
+func Blocks(ctx database.Context, order Order, skip uint64, limit uint64,
+	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
+
+	if limit == 0 {
+		return nil, nil
+	}
 	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
