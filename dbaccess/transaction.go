@@ -95,17 +95,38 @@ func TransactionsByAddressCount(ctx database.Context, address string) (uint64, e
 		return 0, err
 	}
 
-	query := db.Model(&dbmodels.Transaction{})
-	count, err := joinTxInputsTxOutputsAndAddresses(query).
-		Where("out_addresses.address = ?", address).
-		WhereOr("in_addresses.address = ?", address).
-		Count()
+	var res struct {
+		TransactionCount uint64
+	}
+	_, err = db.QueryOne(&res, `
+SELECT count(*) as transaction_count FROM (
+	SELECT
+		DISTINCT transactions.id
+	FROM
+		transactions
+	where
+	EXISTS
+	(
+		SELECT transaction_id FROM transaction_outputs
+		INNER JOIN addresses ON transaction_outputs.address_id = addresses.id
+		WHERE addresses.address = ?
+	)
+	OR
+	EXISTS
+	(
+		SELECT transaction_inputs.transaction_id FROM transaction_inputs
+		INNER JOIN transaction_outputs ON transaction_inputs.previous_transaction_output_id = transaction_outputs.id
+		INNER JOIN addresses ON transaction_outputs.address_id = addresses.id
+		WHERE addresses.address = ?
+	)
+) as transaction_ids
+`, address, address)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return uint64(count), nil
+	return res.TransactionCount, nil
 }
 
 // AcceptedTransactionsByBlockHashes retrieves a list of transactions that were accepted
