@@ -95,10 +95,10 @@ func TransactionsByAddressCount(ctx database.Context, address string) (uint64, e
 		return 0, err
 	}
 
-	var res struct {
+	var result struct {
 		TransactionCount uint64
 	}
-	_, err = db.QueryOne(&res, `
+	_, err = db.QueryOne(&result, `
 SELECT count(*) as transaction_count FROM (
 	SELECT
 		DISTINCT transactions.id
@@ -126,7 +126,7 @@ SELECT count(*) as transaction_count FROM (
 		return 0, err
 	}
 
-	return res.TransactionCount, nil
+	return result.TransactionCount, nil
 }
 
 // AcceptedTransactionsByBlockHashes retrieves a list of transactions that were accepted
