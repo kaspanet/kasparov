@@ -59,8 +59,9 @@ func Blocks(ctx database.Context, order Order, skip uint64, limit uint64,
 	preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Block, error) {
 
 	if limit == 0 {
-		return nil, nil
+		return []*dbmodels.Block{}, nil
 	}
+
 	db, err := ctx.DB()
 	if err != nil {
 		return nil, err

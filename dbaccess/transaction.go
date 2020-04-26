@@ -62,7 +62,7 @@ func TransactionsByAddress(ctx database.Context, address string, order Order, sk
 	[]*dbmodels.Transaction, error) {
 
 	if limit == 0 {
-		return nil, nil
+		return []*dbmodels.Transaction{}, nil
 	}
 
 	db, err := ctx.DB()
