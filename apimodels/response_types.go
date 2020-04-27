@@ -73,15 +73,3 @@ type FeeEstimateResponse struct {
 	NormalPriority float64 `json:"normalPriority"`
 	LowPriority    float64 `json:"lowPriority"`
 }
-
-// PaginatedTransactionsResponse is a json representation of a paginated transactions response
-type PaginatedTransactionsResponse struct {
-	Transactions []*TransactionResponse `json:"transactions"`
-	Total        uint64                 `json:"total"`
-}
-
-// PaginatedBlocksResponse is a json representation of a paginated blocks response
-type PaginatedBlocksResponse struct {
-	Blocks []*BlockResponse `json:"blocks"`
-	Total  uint64           `json:"total"`
-}
