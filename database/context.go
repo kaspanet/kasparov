@@ -14,6 +14,7 @@ type DB interface {
 	Insert(model ...interface{}) error
 	Update(model interface{}) error
 	Delete(model interface{}) error
+	QueryOne(model, query interface{}, params ...interface{}) (orm.Result, error)
 }
 
 // Context is an interface type representing the context in which queries run, currently relating to the
