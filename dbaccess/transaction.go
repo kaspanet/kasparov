@@ -61,6 +61,10 @@ func TransactionByHash(ctx database.Context, transactionHash string, preloadedFi
 func TransactionsByAddress(ctx database.Context, address string, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) (
 	[]*dbmodels.Transaction, error) {
 
+	if limit == 0 {
+		return []*dbmodels.Transaction{}, nil
+	}
+
 	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
