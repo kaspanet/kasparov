@@ -751,12 +751,17 @@ func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *database.TxContext, bloc
 		return err
 	}
 
-	blockHashesToIDs, err := getBlocksAndParentIDs(dbTx, blocks)
+	blockHashesToIDs, err := getBlocksAcceptedAndParentIDs(dbTx, blocks)
 	if err != nil {
 		return err
 	}
 
 	err = insertBlockParents(dbTx, blocks, blockHashesToIDs)
+	if err != nil {
+		return err
+	}
+
+	err = insertAcceptedBlocks(dbTx, blocks, blockHashesToIDs)
 	if err != nil {
 		return err
 	}

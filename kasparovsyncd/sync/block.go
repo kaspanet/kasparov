@@ -28,12 +28,15 @@ func insertBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, transa
 	return dbaccess.BulkInsert(dbTx, blocksToAdd)
 }
 
-func getBlocksAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
+func getBlocksAcceptedAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
 	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
 		blockSet[block.hash()] = struct{}{}
 		for _, parentHash := range block.Verbose.ParentHashes {
 			blockSet[parentHash] = struct{}{}
+		}
+		for _, acceptedBlockHash := range block.Verbose.AcceptedBlockHashes {
+			blockSet[acceptedBlockHash] = struct{}{}
 		}
 	}
 

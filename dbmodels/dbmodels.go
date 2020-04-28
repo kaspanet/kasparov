@@ -25,6 +25,7 @@ type Block struct {
 	IsChainBlock         bool           `pg:",use_zero"`
 	Mass                 uint64         `pg:",use_zero"`
 	ParentBlocks         []*Block       `pg:"many2many:parent_blocks,joinFK:parent_block_id"`
+	AcceptedBlocks       []*Block       `pg:"many2many:accepted_blocks,joinFK:accepted_block_id"`
 	Transactions         []*Transaction `pg:"many2many:transactions_to_blocks,joinFK:transaction_id"`
 }
 
@@ -32,10 +33,12 @@ type Block struct {
 var BlockFieldNames = struct {
 	AcceptingBlock,
 	ParentBlocks,
+	AcceptedBlocks,
 	Transactions FieldName
 }{
 	AcceptingBlock: "AcceptingBlock",
 	ParentBlocks:   "ParentBlocks",
+	AcceptedBlocks: "AcceptedBlocks",
 	Transactions:   "Transactions",
 }
 
@@ -43,6 +46,7 @@ var BlockFieldNames = struct {
 var BlockRecommendedPreloadedFields = []FieldName{
 	BlockFieldNames.AcceptingBlock,
 	BlockFieldNames.ParentBlocks,
+	BlockFieldNames.AcceptedBlocks,
 }
 
 // ParentBlock is the gorm model for the 'parent_blocks' table
@@ -60,6 +64,23 @@ var ParentBlockFieldNames = struct {
 }{
 	Block:       "Block",
 	ParentBlock: "ParentBlock",
+}
+
+// AcceptedBlock is the gorm model for the 'accepted_blocks' table
+type AcceptedBlock struct {
+	BlockID         uint64
+	Block           Block
+	AcceptedBlockID uint64
+	AcceptedBlock   Block
+}
+
+// AcceptedBlockFieldNames is a list of FieldNames for the 'AcceptedBlock' object
+var AcceptedBlockFieldNames = struct {
+	Block         FieldName
+	AcceptedBlock FieldName
+}{
+	Block:         "Block",
+	AcceptedBlock: "AcceptedBlock",
 }
 
 // RawBlock is the gorm model for the 'raw_blocks' table
