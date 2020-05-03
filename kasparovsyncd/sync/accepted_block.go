@@ -12,7 +12,7 @@ import (
 func insertAcceptedBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
 	acceptedBlocksToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
-		dbAcceptedBlocks, err := makeAcceptedBlocks(blockHashesToIDs, block.Verbose)
+		dbAcceptedBlocks, err := dbAcceptedBlocksFromVerboseBlock(blockHashesToIDs, block.Verbose)
 		if err != nil {
 			return err
 		}
@@ -27,7 +27,7 @@ func insertAcceptedBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock
 	return nil
 }
 
-func makeAcceptedBlocks(blockHashesToIDs map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.AcceptedBlock, error) {
+func dbAcceptedBlocksFromVerboseBlock(blockHashesToIDs map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.AcceptedBlock, error) {
 	// Exit early if this is the genesis block
 	if len(verboseBlock.AcceptedBlockHashes) == 0 {
 		return nil, nil

@@ -20,7 +20,7 @@ func insertBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, transa
 			blockMass += transactionHashesToTxsWithMetadata[tx.Hash].mass
 		}
 		var err error
-		blocksToAdd[i], err = makeDBBlock(block.Verbose, blockMass)
+		blocksToAdd[i], err = dbBlockFromVerboseBlock(block.Verbose, blockMass)
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ func getBlocksAcceptedAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVer
 	return blockHashesToIDs, nil
 }
 
-func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*dbmodels.Block, error) {
+func dbBlockFromVerboseBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*dbmodels.Block, error) {
 	bits, err := strconv.ParseUint(verboseBlock.Bits, 16, 32)
 	if err != nil {
 		return nil, err
