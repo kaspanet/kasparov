@@ -30,7 +30,7 @@ func insertAcceptedBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock
 func dbAcceptedBlocksFromVerboseBlock(blockHashesToIDs map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.AcceptedBlock, error) {
 	// Exit early if this is the genesis block
 	if len(verboseBlock.AcceptedBlockHashes) == 0 {
-		return nil, nil
+		return []*dbmodels.AcceptedBlock{}, nil
 	}
 
 	blockID, ok := blockHashesToIDs[verboseBlock.Hash]
