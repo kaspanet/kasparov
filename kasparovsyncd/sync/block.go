@@ -28,7 +28,7 @@ func insertBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, transa
 	return dbaccess.BulkInsert(dbTx, blocksToAdd)
 }
 
-func getBlocksAcceptedAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
+func getBlocksWithTheirAcceptedBlocksAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
 	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
 		blockSet[block.hash()] = struct{}{}
