@@ -75,6 +75,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block, selectedTipBlueScor
 		Bits:                 block.Bits,
 		Nonce:                serializer.BytesToUint64(block.Nonce),
 		ParentBlockHashes:    make([]string, len(block.ParentBlocks)),
+		AcceptedBlockHashes:  make([]string, len(block.AcceptedBlocks)),
 		BlueScore:            block.BlueScore,
 		IsChainBlock:         block.IsChainBlock,
 		Mass:                 block.Mass,
@@ -86,6 +87,9 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block, selectedTipBlueScor
 	blockRes.Confirmations = pointers.Uint64(confirmations(blockRes.AcceptingBlockBlueScore, selectedTipBlueScore))
 	for i, parent := range block.ParentBlocks {
 		blockRes.ParentBlockHashes[i] = parent.BlockHash
+	}
+	for i, acceptedBlock := range block.AcceptedBlocks {
+		blockRes.AcceptedBlockHashes[i] = acceptedBlock.BlockHash
 	}
 	return blockRes
 }

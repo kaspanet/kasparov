@@ -17,7 +17,7 @@ func insertRawBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, blo
 		if !ok {
 			return errors.Errorf("couldn't find block ID for block %s", block)
 		}
-		dbRawBlock, err := makeDBRawBlock(block.Raw, blockID)
+		dbRawBlock, err := dbRawBlockFromBlockData(block.Raw, blockID)
 		if err != nil {
 			return err
 		}
@@ -30,8 +30,8 @@ func insertRawBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, blo
 	return nil
 }
 
-func makeDBRawBlock(rawBlock string, blockID uint64) (*dbmodels.RawBlock, error) {
-	blockData, err := hex.DecodeString(rawBlock)
+func dbRawBlockFromBlockData(blockDataHex string, blockID uint64) (*dbmodels.RawBlock, error) {
+	blockData, err := hex.DecodeString(blockDataHex)
 	if err != nil {
 		return nil, err
 	}

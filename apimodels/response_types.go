@@ -60,6 +60,7 @@ type BlockResponse struct {
 	Nonce                   uint64   `json:"nonce"`
 	ParentBlockHashes       []string `json:"parentBlockHashes"`
 	AcceptingBlockHash      *string  `json:"acceptingBlockHash"`
+	AcceptedBlockHashes     []string `json:"acceptedBlockHashes"`
 	AcceptingBlockBlueScore *uint64  `json:"acceptingBlockBlueScore"`
 	BlueScore               uint64   `json:"blueScore"`
 	IsChainBlock            bool     `json:"isChainBlock"`

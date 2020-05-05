@@ -20,7 +20,7 @@ func insertBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, transa
 			blockMass += transactionHashesToTxsWithMetadata[tx.Hash].mass
 		}
 		var err error
-		blocksToAdd[i], err = makeDBBlock(block.Verbose, blockMass)
+		blocksToAdd[i], err = dbBlockFromVerboseBlock(block.Verbose, blockMass)
 		if err != nil {
 			return err
 		}
@@ -28,12 +28,15 @@ func insertBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, transa
 	return dbaccess.BulkInsert(dbTx, blocksToAdd)
 }
 
-func getBlocksAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
+func getBlocksWithTheirAcceptedBlocksAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (map[string]uint64, error) {
 	blockSet := make(map[string]struct{})
 	for _, block := range blocks {
 		blockSet[block.hash()] = struct{}{}
 		for _, parentHash := range block.Verbose.ParentHashes {
 			blockSet[parentHash] = struct{}{}
+		}
+		for _, acceptedBlockHash := range block.Verbose.AcceptedBlockHashes {
+			blockSet[acceptedBlockHash] = struct{}{}
 		}
 	}
 
@@ -55,7 +58,7 @@ func getBlocksAndParentIDs(dbTx *database.TxContext, blocks []*rawAndVerboseBloc
 	return blockHashesToIDs, nil
 }
 
-func makeDBBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*dbmodels.Block, error) {
+func dbBlockFromVerboseBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*dbmodels.Block, error) {
 	bits, err := strconv.ParseUint(verboseBlock.Bits, 16, 32)
 	if err != nil {
 		return nil, err
