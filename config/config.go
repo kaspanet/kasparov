@@ -57,7 +57,7 @@ func (kasparovFlags *KasparovFlags) ResolveKasparovFlags(parser *flags.Parser,
 	}
 
 	if kasparovFlags.RPCCert == "" && !kasparovFlags.DisableTLS && !isMigrate {
-		return errors.New("--notls has to be disabled if --cert is used")
+		return errors.New("either --notls or --rpccert must be specified")
 	}
 	if kasparovFlags.RPCCert != "" && kasparovFlags.DisableTLS && !isMigrate {
 		return errors.New("--cert should be omitted if --notls is used")
