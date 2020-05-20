@@ -386,7 +386,7 @@ func updateAddedChainBlocks(dbTx *database.TxContext, addedBlock *rpcmodel.Chain
 					return errors.Errorf("cannot spend an already spent transaction output: %s index: %d",
 						dbAcceptedTransaction.TransactionID, dbTransactionInput.Index)
 				}
-				dbaccess.UpdateTransactionOutputIsSpent(dbTx, dbPreviousTransactionOutput.ID, true)
+				err = dbaccess.UpdateTransactionOutputIsSpent(dbTx, dbPreviousTransactionOutput.ID, true)
 				if err != nil {
 					return err
 				}

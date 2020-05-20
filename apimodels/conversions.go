@@ -44,6 +44,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction, selectedTipBlueScore u
 			Value:        txOut.Value,
 			ScriptPubKey: hex.EncodeToString(txOut.ScriptPubKey),
 			Index:        txOut.Index,
+			IsSpent:      txOut.IsSpent,
 		}
 		if txOut.Address != nil {
 			txRes.Outputs[i].Address = txOut.Address.Address

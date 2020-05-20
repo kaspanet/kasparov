@@ -28,6 +28,7 @@ type TransactionOutputResponse struct {
 	AcceptingBlockHash      *string `json:"acceptingBlockHash,omitempty"`
 	AcceptingBlockBlueScore *uint64 `json:"acceptingBlockBlueScore,omitempty"`
 	Index                   uint32  `json:"index"`
+	IsSpent                 bool    `json:"isSpent"`
 	IsCoinbase              *bool   `json:"isCoinbase,omitempty"`
 	IsSpendable             *bool   `json:"isSpendable,omitempty"`
 	Confirmations           *uint64 `json:"confirmations,omitempty"`
