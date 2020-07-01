@@ -12,7 +12,7 @@ import (
 func insertBlockParents(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, blockHashesToIDs map[string]uint64) error {
 	parentsToAdd := make([]interface{}, 0)
 	for _, block := range blocks {
-		dbBlockParents, err := makeBlockParents(blockHashesToIDs, block.Verbose)
+		dbBlockParents, err := dbParentBlocksFromVerboseBlock(blockHashesToIDs, block.Verbose)
 		if err != nil {
 			return err
 		}
@@ -27,7 +27,7 @@ func insertBlockParents(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, 
 	return nil
 }
 
-func makeBlockParents(blockHashesToIDs map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.ParentBlock, error) {
+func dbParentBlocksFromVerboseBlock(blockHashesToIDs map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.ParentBlock, error) {
 	// Exit early if this is the genesis block
 	if len(verboseBlock.ParentHashes) == 0 {
 		return nil, nil

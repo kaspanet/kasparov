@@ -4,7 +4,7 @@ package apimodels
 type TransactionResponse struct {
 	TransactionHash         string                       `json:"transactionHash"`
 	TransactionID           string                       `json:"transactionId"`
-	AcceptingBlockHash      *string                      `json:"acceptingBlockHash,omitempty"`
+	AcceptingBlockHash      *string                      `json:"acceptingBlockHash"`
 	AcceptingBlockBlueScore *uint64                      `json:"acceptingBlockBlueScore,omitempty"`
 	SubnetworkID            string                       `json:"subnetworkId"`
 	LockTime                uint64                       `json:"lockTime"`
@@ -28,6 +28,7 @@ type TransactionOutputResponse struct {
 	AcceptingBlockHash      *string `json:"acceptingBlockHash,omitempty"`
 	AcceptingBlockBlueScore *uint64 `json:"acceptingBlockBlueScore,omitempty"`
 	Index                   uint32  `json:"index"`
+	IsSpent                 bool    `json:"isSpent"`
 	IsCoinbase              *bool   `json:"isCoinbase,omitempty"`
 	IsSpendable             *bool   `json:"isSpendable,omitempty"`
 	Confirmations           *uint64 `json:"confirmations,omitempty"`
@@ -41,6 +42,12 @@ type TransactionInputResponse struct {
 	SignatureScript                string `json:"signatureScript"`
 	Sequence                       uint64 `json:"sequence"`
 	Address                        string `json:"address"`
+	Index                          uint32 `json:"index"`
+}
+
+// TransactionsResponse is a json representation of a transactions response
+type TransactionsResponse struct {
+	Transactions []*TransactionResponse `json:"transactions"`
 }
 
 // BlockResponse is a json representation of a block
@@ -55,6 +62,7 @@ type BlockResponse struct {
 	Nonce                   uint64   `json:"nonce"`
 	ParentBlockHashes       []string `json:"parentBlockHashes"`
 	AcceptingBlockHash      *string  `json:"acceptingBlockHash"`
+	AcceptedBlockHashes     []string `json:"acceptedBlockHashes"`
 	AcceptingBlockBlueScore *uint64  `json:"acceptingBlockBlueScore"`
 	BlueScore               uint64   `json:"blueScore"`
 	IsChainBlock            bool     `json:"isChainBlock"`
@@ -67,16 +75,4 @@ type FeeEstimateResponse struct {
 	HighPriority   float64 `json:"highPriority"`
 	NormalPriority float64 `json:"normalPriority"`
 	LowPriority    float64 `json:"lowPriority"`
-}
-
-// PaginatedTransactionsResponse is a json representation of a paginated transactions response
-type PaginatedTransactionsResponse struct {
-	Transactions []*TransactionResponse `json:"transactions"`
-	Total        uint64                 `json:"total"`
-}
-
-// PaginatedBlocksResponse is a json representation of a paginated blocks response
-type PaginatedBlocksResponse struct {
-	Blocks []*BlockResponse `json:"blocks"`
-	Total  uint64           `json:"total"`
 }

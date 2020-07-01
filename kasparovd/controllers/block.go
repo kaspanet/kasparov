@@ -43,9 +43,9 @@ func GetBlockByHashHandler(blockHash string) (interface{}, error) {
 
 // GetBlocksHandler searches for all blocks
 func GetBlocksHandler(orderString string, skip, limit int64) (interface{}, error) {
-	if limit > maxGetBlocksLimit || limit < 0 {
+	if limit > maxGetBlocksLimit || limit < 1 {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("limit higher than %d or lower than 0 was requested", maxGetBlocksLimit))
+			errors.Errorf("limit higher than %d or lower than 1 was requested", maxGetBlocksLimit))
 	}
 
 	if skip < 0 {
@@ -73,13 +73,10 @@ func GetBlocksHandler(orderString string, skip, limit int64) (interface{}, error
 		blockResponses[i] = apimodels.ConvertBlockModelToBlockResponse(block, selectedTipBlueScore)
 	}
 
-	total, err := dbaccess.BlocksCount(database.NoTx())
-	if err != nil {
-		return nil, err
-	}
+	return blockResponses, nil
+}
 
-	return apimodels.PaginatedBlocksResponse{
-		Blocks: blockResponses,
-		Total:  total,
-	}, nil
+// GetBlockCountHandler returns the total number of blocks.
+func GetBlockCountHandler() (interface{}, error) {
+	return dbaccess.BlocksCount(database.NoTx())
 }

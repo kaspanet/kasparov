@@ -8,7 +8,7 @@ import (
 // Used to specify which fields to preload
 type FieldName string
 
-// Block is the gorm model for the 'blocks' table
+// Block is the database model for the 'blocks' table
 type Block struct {
 	ID                   uint64 `pg:",pk"`
 	BlockHash            string `pg:",use_zero"`
@@ -25,6 +25,7 @@ type Block struct {
 	IsChainBlock         bool           `pg:",use_zero"`
 	Mass                 uint64         `pg:",use_zero"`
 	ParentBlocks         []*Block       `pg:"many2many:parent_blocks,joinFK:parent_block_id"`
+	AcceptedBlocks       []*Block       `pg:"many2many:accepted_blocks,joinFK:accepted_block_id"`
 	Transactions         []*Transaction `pg:"many2many:transactions_to_blocks,joinFK:transaction_id"`
 }
 
@@ -32,10 +33,12 @@ type Block struct {
 var BlockFieldNames = struct {
 	AcceptingBlock,
 	ParentBlocks,
+	AcceptedBlocks,
 	Transactions FieldName
 }{
 	AcceptingBlock: "AcceptingBlock",
 	ParentBlocks:   "ParentBlocks",
+	AcceptedBlocks: "AcceptedBlocks",
 	Transactions:   "Transactions",
 }
 
@@ -43,9 +46,10 @@ var BlockFieldNames = struct {
 var BlockRecommendedPreloadedFields = []FieldName{
 	BlockFieldNames.AcceptingBlock,
 	BlockFieldNames.ParentBlocks,
+	BlockFieldNames.AcceptedBlocks,
 }
 
-// ParentBlock is the gorm model for the 'parent_blocks' table
+// ParentBlock is the database model for the 'parent_blocks' table
 type ParentBlock struct {
 	BlockID       uint64
 	Block         Block
@@ -62,7 +66,24 @@ var ParentBlockFieldNames = struct {
 	ParentBlock: "ParentBlock",
 }
 
-// RawBlock is the gorm model for the 'raw_blocks' table
+// AcceptedBlock is the database model for the 'accepted_blocks' table
+type AcceptedBlock struct {
+	BlockID         uint64
+	Block           Block
+	AcceptedBlockID uint64
+	AcceptedBlock   Block
+}
+
+// AcceptedBlockFieldNames is a list of FieldNames for the 'AcceptedBlock' object
+var AcceptedBlockFieldNames = struct {
+	Block         FieldName
+	AcceptedBlock FieldName
+}{
+	Block:         "Block",
+	AcceptedBlock: "AcceptedBlock",
+}
+
+// RawBlock is the database model for the 'raw_blocks' table
 type RawBlock struct {
 	BlockID   uint64
 	Block     Block
@@ -76,14 +97,14 @@ var RawBlockFieldNames = struct {
 	Block: "Block",
 }
 
-// Subnetwork is the gorm model for the 'subnetworks' table
+// Subnetwork is the database model for the 'subnetworks' table
 type Subnetwork struct {
 	ID           uint64 `pg:",pk"`
 	SubnetworkID string `pg:",use_zero"`
 	GasLimit     *uint64
 }
 
-// Transaction is the gorm model for the 'transactions' table
+// Transaction is the database model for the 'transactions' table
 type Transaction struct {
 	ID                 uint64 `pg:",pk"`
 	AcceptingBlockID   *uint64
@@ -140,7 +161,7 @@ var TransactionRecommendedPreloadedFields = []FieldName{
 	TransactionFieldNames.InputsAddresses,
 }
 
-// TransactionBlock is the gorm model for the 'transactions_to_blocks' table
+// TransactionBlock is the database model for the 'transactions_to_blocks' table
 type TransactionBlock struct {
 	tableName     struct{} `pg:"transactions_to_blocks"`
 	TransactionID uint64   `pg:",use_zero"`
@@ -165,7 +186,7 @@ var TransactionBlockFieldNames = struct {
 	Block:       "Block",
 }
 
-// TransactionOutput is the gorm model for the 'transaction_outputs' table
+// TransactionOutput is the database model for the 'transaction_outputs' table
 type TransactionOutput struct {
 	ID            uint64 `pg:",pk"`
 	TransactionID uint64 `pg:",use_zero"`
@@ -191,7 +212,7 @@ var TransactionOutputFieldNames = struct {
 	TransactionSubnetwork:     "Transaction.Subnetwork",
 }
 
-// TransactionInput is the gorm model for the 'transaction_inputs' table
+// TransactionInput is the database model for the 'transaction_inputs' table
 type TransactionInput struct {
 	ID                          uint64 `pg:",pk"`
 	TransactionID               uint64 `pg:",use_zero"`
@@ -212,13 +233,13 @@ var TransactionInputFieldNames = struct {
 	PreviousTransactionOutput: "PreviousTransactionOutput",
 }
 
-// Address is the gorm model for the 'addresses' table
+// Address is the database model for the 'addresses' table
 type Address struct {
 	ID      uint64 `pg:",pk"`
 	Address string `pg:",use_zero"`
 }
 
-// RawTransaction is the gorm model for the 'raw_transactions' table
+// RawTransaction is the database model for the 'raw_transactions' table
 type RawTransaction struct {
 	TransactionID   uint64 `pg:",use_zero"`
 	Transaction     Transaction

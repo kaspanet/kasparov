@@ -73,9 +73,9 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 // GetTransactionsByAddressHandler searches for all transactions
 // where the given address is either an input or an output.
 func GetTransactionsByAddressHandler(address string, skip, limit int64) (interface{}, error) {
-	if limit > maxGetTransactionsLimit {
+	if limit > maxGetTransactionsLimit || limit < 1 {
 		return nil, httpserverutils.NewHandlerError(http.StatusBadRequest,
-			errors.Errorf("limit higher than %d or lower than 0 was requested", maxGetTransactionsLimit))
+			errors.Errorf("limit higher than %d or lower than 1 was requested", maxGetTransactionsLimit))
 	}
 
 	if skip < 0 {
@@ -103,14 +103,42 @@ func GetTransactionsByAddressHandler(address string, skip, limit int64) (interfa
 		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
 	}
 
-	total, err := dbaccess.TransactionsByAddressCount(database.NoTx(), address)
+	return txResponses, nil
+}
+
+// GetTransactionCountByAddressHandler returns the total
+// number of transactions by address.
+func GetTransactionCountByAddressHandler(address string) (interface{}, error) {
+	if err := validateAddress(address); err != nil {
+		return nil, err
+	}
+
+	return dbaccess.TransactionsByAddressCount(database.NoTx(), address)
+}
+
+// GetTransactionsByBlockHashHandler retrieves all transactions
+// included by the block with the given blockHash.
+func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
+	txs, err := dbaccess.TransactionsByBlockHash(database.NoTx(), blockHash, dbmodels.TransactionRecommendedPreloadedFields...)
+	if err != nil {
+		return nil, err
+	}
+	if len(txs) == 0 {
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no block with the given block hash was found"))
+	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
 	if err != nil {
 		return nil, err
 	}
 
-	return apimodels.PaginatedTransactionsResponse{
+	txResponses := make([]*apimodels.TransactionResponse, len(txs))
+	for i, tx := range txs {
+		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
+	}
+
+	return apimodels.TransactionsResponse{
 		Transactions: txResponses,
-		Total:        total,
 	}, nil
 }
 

@@ -62,6 +62,10 @@ func TransactionByHash(ctx database.Context, transactionHash string, preloadedFi
 func TransactionsByAddress(ctx database.Context, address string, order Order, skip uint64, limit uint64, preloadedFields ...dbmodels.FieldName) (
 	[]*dbmodels.Transaction, error) {
 
+	if limit == 0 {
+		return []*dbmodels.Transaction{}, nil
+	}
+
 	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
@@ -70,7 +74,7 @@ func TransactionsByAddress(ctx database.Context, address string, order Order, sk
 	var txs []*dbmodels.Transaction
 	query := db.Model(&txs)
 	query = joinTxInputsTxOutputsAndAddresses(query).
-		ColumnExpr("DISTINCT ON (transaction.id) transaction.*").
+		DistinctOn("transaction.id").
 		Where("out_addresses.address = ?", address).
 		WhereOr("in_addresses.address = ?", address).
 		Limit(int(limit)).
@@ -96,18 +100,38 @@ func TransactionsByAddressCount(ctx database.Context, address string) (uint64, e
 		return 0, err
 	}
 
-	query := db.Model(&dbmodels.Transaction{}).
-		ColumnExpr("DISTINCT (transaction.id)")
-	count, err := joinTxInputsTxOutputsAndAddresses(query).
-		Where("out_addresses.address = ?", address).
-		WhereOr("in_addresses.address = ?", address).
-		Count()
+	var result struct {
+		TransactionCount uint64
+	}
+	_, err = db.QueryOne(&result, `
+SELECT count(*) as transaction_count FROM (
+	SELECT
+		DISTINCT transactions.id
+	FROM
+		transactions
+	where
+	EXISTS
+	(
+		SELECT transaction_id FROM transaction_outputs
+		INNER JOIN addresses ON transaction_outputs.address_id = addresses.id
+		WHERE addresses.address = ?
+	)
+	OR
+	EXISTS
+	(
+		SELECT transaction_inputs.transaction_id FROM transaction_inputs
+		INNER JOIN transaction_outputs ON transaction_inputs.previous_transaction_output_id = transaction_outputs.id
+		INNER JOIN addresses ON transaction_outputs.address_id = addresses.id
+		WHERE addresses.address = ?
+	)
+) as transaction_ids
+`, address, address)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return uint64(count), nil
+	return result.TransactionCount, nil
 }
 
 // AcceptedTransactionsByBlockHashes retrieves a list of transactions that were accepted
@@ -263,6 +287,30 @@ func TransactionsByIDs(ctx database.Context, transactionIDs []string, preloadedF
 	query := db.Model(&transactions).
 		Where("transaction.transaction_id IN (?)", pg.In(transactionIDs))
 	query = preloadFields(query, preloadedFields)
+	err = query.Select()
+	if err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
+}
+
+// TransactionsByBlockHash retrieves a list of transactions included by the block
+// with the given blockHash
+func TransactionsByBlockHash(ctx database.Context, blockHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+	db, err := ctx.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	var transactions []*dbmodels.Transaction
+	query := db.Model(&transactions).
+		Join("INNER JOIN transactions_to_blocks ON transactions_to_blocks.transaction_id = transaction.id").
+		Join("INNER JOIN blocks ON blocks.id = transactions_to_blocks.block_id").
+		Where("blocks.block_hash = ?", blockHash).
+		Order("transactions_to_blocks.index ASC")
+	query = preloadFields(query, preloadedFields)
+
 	err = query.Select()
 	if err != nil {
 		return nil, err

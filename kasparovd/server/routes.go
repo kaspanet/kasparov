@@ -59,6 +59,16 @@ func addRoutes(router *mux.Router) {
 		Methods("GET")
 
 	router.HandleFunc(
+		fmt.Sprintf("/transactions/address/{%s}/count", routeParamAddress),
+		httpserverutils.MakeHandler(getTransactionCountByAddressHandler)).
+		Methods("GET")
+
+	router.HandleFunc(
+		fmt.Sprintf("/transactions/block/{%s}", routeParamBlockHash),
+		httpserverutils.MakeHandler(getTransactionsByBlockHashHandler)).
+		Methods("GET")
+
+	router.HandleFunc(
 		fmt.Sprintf("/utxos/address/{%s}", routeParamAddress),
 		httpserverutils.MakeHandler(getUTXOsByAddressHandler)).
 		Methods("GET")
@@ -71,6 +81,11 @@ func addRoutes(router *mux.Router) {
 	router.HandleFunc(
 		"/blocks",
 		httpserverutils.MakeHandler(getBlocksHandler)).
+		Methods("GET")
+
+	router.HandleFunc(
+		"/blocks/count",
+		httpserverutils.MakeHandler(getBlockCountHandler)).
 		Methods("GET")
 
 	router.HandleFunc(
@@ -125,6 +140,17 @@ func getTransactionsByAddressHandler(_ *httpserverutils.ServerContext, _ *http.R
 	return controllers.GetTransactionsByAddressHandler(routeParams[routeParamAddress], skip, limit)
 }
 
+func getTransactionCountByAddressHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
+	_ []byte) (interface{}, error) {
+	return controllers.GetTransactionCountByAddressHandler(routeParams[routeParamAddress])
+}
+
+func getTransactionsByBlockHashHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
+	_ []byte) (interface{}, error) {
+
+	return controllers.GetTransactionsByBlockHashHandler(routeParams[routeParamBlockHash])
+}
+
 func getUTXOsByAddressHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
 	_ []byte) (interface{}, error) {
 
@@ -159,6 +185,11 @@ func getBlocksHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[s
 		order = orderParamValue
 	}
 	return controllers.GetBlocksHandler(order, skip, limit)
+}
+
+func getBlockCountHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[string]string, _ map[string]string,
+	_ []byte) (interface{}, error) {
+	return controllers.GetBlockCountHandler()
 }
 
 func postTransactionHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[string]string, _ map[string]string,

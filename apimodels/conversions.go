@@ -6,6 +6,7 @@ import (
 	"github.com/kaspanet/kaspad/util/pointers"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/pkg/errors"
+	"sort"
 
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/serializer"
@@ -38,28 +39,39 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction, selectedTipBlueScore u
 		txRes.AcceptingBlockHash = &tx.AcceptingBlock.BlockHash
 		txRes.AcceptingBlockBlueScore = &tx.AcceptingBlock.BlueScore
 	}
+
 	txRes.Confirmations = pointers.Uint64(confirmations(txRes.AcceptingBlockBlueScore, selectedTipBlueScore))
 	for i, txOut := range tx.TransactionOutputs {
 		txRes.Outputs[i] = &TransactionOutputResponse{
 			Value:        txOut.Value,
 			ScriptPubKey: hex.EncodeToString(txOut.ScriptPubKey),
 			Index:        txOut.Index,
+			IsSpent:      txOut.IsSpent,
 		}
 		if txOut.Address != nil {
 			txRes.Outputs[i].Address = txOut.Address.Address
 		}
 	}
+	sort.Slice(txRes.Outputs, func(i, j int) bool {
+		return txRes.Outputs[i].Index < txRes.Outputs[j].Index
+	})
+
 	for i, txIn := range tx.TransactionInputs {
 		txRes.Inputs[i] = &TransactionInputResponse{
 			PreviousTransactionID:          txIn.PreviousTransactionOutput.Transaction.TransactionID,
 			PreviousTransactionOutputIndex: txIn.PreviousTransactionOutput.Index,
 			SignatureScript:                hex.EncodeToString(txIn.SignatureScript),
 			Sequence:                       serializer.BytesToUint64(txIn.Sequence),
+			Index:                          txIn.Index,
 		}
 		if txIn.PreviousTransactionOutput.Address != nil {
 			txRes.Inputs[i].Address = txIn.PreviousTransactionOutput.Address.Address
 		}
 	}
+	sort.Slice(txRes.Inputs, func(i, j int) bool {
+		return txRes.Inputs[i].Index < txRes.Inputs[j].Index
+	})
+
 	return txRes
 }
 
@@ -75,6 +87,7 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block, selectedTipBlueScor
 		Bits:                 block.Bits,
 		Nonce:                serializer.BytesToUint64(block.Nonce),
 		ParentBlockHashes:    make([]string, len(block.ParentBlocks)),
+		AcceptedBlockHashes:  make([]string, len(block.AcceptedBlocks)),
 		BlueScore:            block.BlueScore,
 		IsChainBlock:         block.IsChainBlock,
 		Mass:                 block.Mass,
@@ -86,6 +99,9 @@ func ConvertBlockModelToBlockResponse(block *dbmodels.Block, selectedTipBlueScor
 	blockRes.Confirmations = pointers.Uint64(confirmations(blockRes.AcceptingBlockBlueScore, selectedTipBlueScore))
 	for i, parent := range block.ParentBlocks {
 		blockRes.ParentBlockHashes[i] = parent.BlockHash
+	}
+	for i, acceptedBlock := range block.AcceptedBlocks {
+		blockRes.AcceptedBlockHashes[i] = acceptedBlock.BlockHash
 	}
 	return blockRes
 }

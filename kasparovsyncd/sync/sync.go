@@ -386,7 +386,7 @@ func updateAddedChainBlocks(dbTx *database.TxContext, addedBlock *rpcmodel.Chain
 					return errors.Errorf("cannot spend an already spent transaction output: %s index: %d",
 						dbAcceptedTransaction.TransactionID, dbTransactionInput.Index)
 				}
-				dbaccess.UpdateTransactionOutputIsSpent(dbTx, dbPreviousTransactionOutput.ID, true)
+				err = dbaccess.UpdateTransactionOutputIsSpent(dbTx, dbPreviousTransactionOutput.ID, true)
 				if err != nil {
 					return err
 				}
@@ -751,12 +751,17 @@ func bulkInsertBlocksData(client *jsonrpc.Client, dbTx *database.TxContext, bloc
 		return err
 	}
 
-	blockHashesToIDs, err := getBlocksAndParentIDs(dbTx, blocks)
+	blockHashesToIDs, err := getBlocksWithTheirAcceptedBlocksAndParentIDs(dbTx, blocks)
 	if err != nil {
 		return err
 	}
 
 	err = insertBlockParents(dbTx, blocks, blockHashesToIDs)
+	if err != nil {
+		return err
+	}
+
+	err = insertAcceptedBlocks(dbTx, blocks, blockHashesToIDs)
 	if err != nil {
 		return err
 	}
