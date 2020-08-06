@@ -1,7 +1,7 @@
 package sync
 
 import (
-	"github.com/kaspanet/kaspad/rpcmodel"
+	rpcmodel "github.com/kaspanet/kaspad/rpc/model"
 )
 
 func stringsSetToSlice(set map[string]struct{}) []string {

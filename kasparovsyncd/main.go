@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	defer panics.HandlePanic(log, nil)
+	defer panics.HandlePanic(log, "main", nil)
 	interrupt := signal.InterruptListener()
 
 	err := config.Parse()
@@ -73,7 +73,7 @@ func main() {
 	defer jsonrpc.Close()
 
 	doneChan := make(chan struct{}, 1)
-	spawn(func() {
+	spawn("main-sync.StartSync", func() {
 		err := sync.StartSync(doneChan)
 		if err != nil {
 			panic(err)

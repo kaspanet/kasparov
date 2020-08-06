@@ -4,7 +4,7 @@ import (
 	"github.com/kaspanet/kasparov/database"
 	"path"
 
-	"github.com/kaspanet/kaspad/rpcmodel"
+	rpcmodel "github.com/kaspanet/kaspad/rpc/model"
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"

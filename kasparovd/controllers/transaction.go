@@ -15,7 +15,7 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 
-	"github.com/kaspanet/kaspad/rpcmodel"
+	rpcmodel "github.com/kaspanet/kaspad/rpc/model"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kaspad/wire"
 )
