@@ -25,7 +25,7 @@ func Start(listenAddr string) func() {
 		Addr:    listenAddr,
 		Handler: handlers.CORS()(router),
 	}
-	spawn(func() {
+	spawn("server-Start", func() {
 		log.Infof("Kasparovd is listening on %s", listenAddr)
 		log.Errorf("%s", httpServer.ListenAndServe())
 	})

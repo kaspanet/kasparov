@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kaspanet/kaspad/rpcmodel"
+	rpcmodel "github.com/kaspanet/kaspad/rpc/model"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/pkg/errors"

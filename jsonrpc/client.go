@@ -9,7 +9,7 @@ import (
 
 	"github.com/kaspanet/kaspad/util/daghash"
 
-	"github.com/kaspanet/kaspad/rpcclient"
+	rpcclient "github.com/kaspanet/kaspad/rpc/client"
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/wire"
 )

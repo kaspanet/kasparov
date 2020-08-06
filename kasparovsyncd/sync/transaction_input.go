@@ -5,7 +5,7 @@ import (
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 
-	"github.com/kaspanet/kaspad/rpcmodel"
+	rpcmodel "github.com/kaspanet/kaspad/rpc/model"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
