@@ -5,13 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/kaspanet/kaspad/domainmessage"
 	"net/http"
 
 	"github.com/kaspanet/go-secp256k1"
 	"github.com/kaspanet/kaspad/txscript"
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
-	"github.com/kaspanet/kaspad/wire"
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/pkg/errors"
 )
@@ -111,33 +111,33 @@ func selectUTXOs(utxos []*apimodels.TransactionOutputResponse, totalToSpend uint
 }
 
 func generateTx(privateKey *secp256k1.PrivateKey, selectedUTXOs []*apimodels.TransactionOutputResponse, sompisToSend uint64, change uint64,
-	toAddress util.Address, fromAddress util.Address) (*wire.MsgTx, error) {
+	toAddress util.Address, fromAddress util.Address) (*domainmessage.MsgTx, error) {
 
-	txIns := make([]*wire.TxIn, len(selectedUTXOs))
+	txIns := make([]*domainmessage.TxIn, len(selectedUTXOs))
 	for i, utxo := range selectedUTXOs {
 		txID, err := daghash.NewTxIDFromStr(utxo.TransactionID)
 		if err != nil {
 			return nil, err
 		}
 
-		txIns[i] = wire.NewTxIn(wire.NewOutpoint(txID, utxo.Index), []byte{})
+		txIns[i] = domainmessage.NewTxIn(domainmessage.NewOutpoint(txID, utxo.Index), []byte{})
 	}
 
 	toScript, err := txscript.PayToAddrScript(toAddress)
 	if err != nil {
 		return nil, err
 	}
-	mainTxOut := wire.NewTxOut(sompisToSend, toScript)
+	mainTxOut := domainmessage.NewTxOut(sompisToSend, toScript)
 
 	fromScript, err := txscript.PayToAddrScript(fromAddress)
 	if err != nil {
 		return nil, err
 	}
-	changeTxOut := wire.NewTxOut(change, fromScript)
+	changeTxOut := domainmessage.NewTxOut(change, fromScript)
 
-	txOuts := []*wire.TxOut{mainTxOut, changeTxOut}
+	txOuts := []*domainmessage.TxOut{mainTxOut, changeTxOut}
 
-	tx := wire.NewNativeMsgTx(wire.TxVersion, txIns, txOuts)
+	tx := domainmessage.NewNativeMsgTx(domainmessage.TxVersion, txIns, txOuts)
 
 	for i, txIn := range tx.TxIn {
 		signatureScript, err := txscript.SignatureScript(tx, i, fromScript, txscript.SigHashAll, privateKey, true)
@@ -150,7 +150,7 @@ func generateTx(privateKey *secp256k1.PrivateKey, selectedUTXOs []*apimodels.Tra
 	return tx, nil
 }
 
-func sendTx(conf *sendConfig, msgTx *wire.MsgTx) error {
+func sendTx(conf *sendConfig, msgTx *domainmessage.MsgTx) error {
 	txBuffer := bytes.NewBuffer(make([]byte, 0, msgTx.SerializeSize()))
 	if err := msgTx.KaspaEncode(txBuffer, 0); err != nil {
 		return err
