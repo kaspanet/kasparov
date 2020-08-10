@@ -2,6 +2,7 @@ package sync
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kaspad/domainmessage"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
-	"github.com/kaspanet/kaspad/wire"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 
@@ -176,8 +176,8 @@ func calcTxMass(dbTx *database.TxContext, transaction *rpcmodel.TxRawResult) (ui
 	return blockdag.CalcTxMass(util.NewTx(msgTx), orderedPrevScriptPubKeys), nil
 }
 
-func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*wire.MsgTx, error) {
-	txIns := make([]*wire.TxIn, len(tx.Vin))
+func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*domainmessage.MsgTx, error) {
+	txIns := make([]*domainmessage.TxIn, len(tx.Vin))
 	for i, txIn := range tx.Vin {
 		prevTxID, err := daghash.NewTxIDFromStr(txIn.TxID)
 		if err != nil {
@@ -187,8 +187,8 @@ func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*wire.MsgTx, error) {
 		if err != nil {
 			return nil, err
 		}
-		txIns[i] = &wire.TxIn{
-			PreviousOutpoint: wire.Outpoint{
+		txIns[i] = &domainmessage.TxIn{
+			PreviousOutpoint: domainmessage.Outpoint{
 				TxID:  *prevTxID,
 				Index: txIn.Vout,
 			},
@@ -196,13 +196,13 @@ func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*wire.MsgTx, error) {
 			Sequence:        txIn.Sequence,
 		}
 	}
-	txOuts := make([]*wire.TxOut, len(tx.Vout))
+	txOuts := make([]*domainmessage.TxOut, len(tx.Vout))
 	for i, txOut := range tx.Vout {
 		scriptPubKey, err := hex.DecodeString(txOut.ScriptPubKey.Hex)
 		if err != nil {
 			return nil, err
 		}
-		txOuts[i] = &wire.TxOut{
+		txOuts[i] = &domainmessage.TxOut{
 			Value:        txOut.Value,
 			ScriptPubKey: scriptPubKey,
 		}
@@ -212,11 +212,11 @@ func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*wire.MsgTx, error) {
 		return nil, err
 	}
 	if subnetworkID.IsEqual(subnetworkid.SubnetworkIDNative) {
-		return wire.NewNativeMsgTx(tx.Version, txIns, txOuts), nil
+		return domainmessage.NewNativeMsgTx(tx.Version, txIns, txOuts), nil
 	}
 	payload, err := hex.DecodeString(tx.Payload)
 	if err != nil {
 		return nil, err
 	}
-	return wire.NewSubnetworkMsgTx(tx.Version, txIns, txOuts, subnetworkID, tx.Gas, payload), nil
+	return domainmessage.NewSubnetworkMsgTx(tx.Version, txIns, txOuts, subnetworkID, tx.Gas, payload), nil
 }

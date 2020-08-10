@@ -1,6 +1,7 @@
 package jsonrpc
 
 import (
+	"github.com/kaspanet/kaspad/domainmessage"
 	"io/ioutil"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 
 	rpcclient "github.com/kaspanet/kaspad/rpc/client"
 	"github.com/kaspanet/kaspad/util"
-	"github.com/kaspanet/kaspad/wire"
 )
 
 // Client represents a connection to the JSON-RPC API of a full node
@@ -35,7 +35,7 @@ func GetClient() (*Client, error) {
 // BlockAddedMsg defines the message received in onBlockAdded
 type BlockAddedMsg struct {
 	ChainHeight uint64
-	Header      *wire.BlockHeader
+	Header      *domainmessage.BlockHeader
 }
 
 // ChainChangedMsg defines the message received in onChainChanged
@@ -100,7 +100,7 @@ func newClient(connCfg *rpcclient.ConnConfig, subscribeToNotifications bool) (*C
 	var notificationHandlers *rpcclient.NotificationHandlers
 	if subscribeToNotifications {
 		notificationHandlers = &rpcclient.NotificationHandlers{
-			OnFilteredBlockAdded: func(height uint64, header *wire.BlockHeader,
+			OnFilteredBlockAdded: func(height uint64, header *domainmessage.BlockHeader,
 				txs []*util.Tx) {
 				client.OnBlockAdded <- &BlockAddedMsg{
 					ChainHeight: height,
