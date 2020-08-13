@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/kaspanet/kaspad/domainmessage"
+	"github.com/kaspanet/kaspad/network/domainmessage"
 	"net/http"
 
 	"github.com/kaspanet/go-secp256k1"
-	"github.com/kaspanet/kaspad/txscript"
+	"github.com/kaspanet/kaspad/domain/txscript"
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kasparov/apimodels"

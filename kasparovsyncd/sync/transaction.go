@@ -2,12 +2,12 @@ package sync
 
 import (
 	"encoding/hex"
-	"github.com/kaspanet/kaspad/domainmessage"
+	"github.com/kaspanet/kaspad/network/domainmessage"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 
-	"github.com/kaspanet/kaspad/blockdag"
-	rpcmodel "github.com/kaspanet/kaspad/rpc/model"
+	"github.com/kaspanet/kaspad/domain/blockdag"
+	rpcmodel "github.com/kaspanet/kaspad/network/rpc/model"
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kaspad/util/subnetworkid"

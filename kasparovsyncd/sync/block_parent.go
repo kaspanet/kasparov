@@ -1,7 +1,7 @@
 package sync
 
 import (
-	rpcmodel "github.com/kaspanet/kaspad/rpc/model"
+	rpcmodel "github.com/kaspanet/kaspad/network/rpc/model"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
