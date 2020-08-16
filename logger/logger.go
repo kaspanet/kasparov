@@ -2,7 +2,7 @@ package logger
 
 import (
 	"fmt"
-	"github.com/kaspanet/kaspad/logs"
+	"github.com/kaspanet/kaspad/infrastructure/logs"
 	"github.com/pkg/errors"
 	"os"
 )

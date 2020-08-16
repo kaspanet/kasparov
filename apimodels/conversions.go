@@ -2,7 +2,7 @@ package apimodels
 
 import (
 	"encoding/hex"
-	"github.com/kaspanet/kaspad/dagconfig"
+	"github.com/kaspanet/kaspad/domain/dagconfig"
 	"github.com/kaspanet/kaspad/util/pointers"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/pkg/errors"

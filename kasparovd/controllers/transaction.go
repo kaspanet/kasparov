@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/kaspanet/kaspad/domainmessage"
+	"github.com/kaspanet/kaspad/network/domainmessage"
 	"github.com/kaspanet/kasparov/database"
 	"net/http"
 
@@ -16,7 +16,7 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 
-	rpcmodel "github.com/kaspanet/kaspad/rpc/model"
+	rpcmodel "github.com/kaspanet/kaspad/network/rpc/model"
 	"github.com/kaspanet/kaspad/util/daghash"
 )
 

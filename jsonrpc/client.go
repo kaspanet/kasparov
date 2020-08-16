@@ -1,7 +1,7 @@
 package jsonrpc
 
 import (
-	"github.com/kaspanet/kaspad/domainmessage"
+	"github.com/kaspanet/kaspad/network/domainmessage"
 	"io/ioutil"
 	"time"
 
@@ -10,7 +10,7 @@ import (
 
 	"github.com/kaspanet/kaspad/util/daghash"
 
-	rpcclient "github.com/kaspanet/kaspad/rpc/client"
+	rpcclient "github.com/kaspanet/kaspad/network/rpc/client"
 	"github.com/kaspanet/kaspad/util"
 )
 

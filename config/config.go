@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/kaspanet/kaspad/config"
+	"github.com/kaspanet/kaspad/infrastructure/config"
 	"github.com/kaspanet/kasparov/logger"
 	"github.com/pkg/errors"
 )
