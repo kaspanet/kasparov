@@ -1,10 +1,11 @@
 package sync
 
 import (
+	"strconv"
+
+	"github.com/kaspanet/kaspad/util/mstime"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
-	"strconv"
-	"time"
 
 	rpcmodel "github.com/kaspanet/kaspad/network/rpc/model"
 	"github.com/kaspanet/kasparov/dbaccess"
@@ -70,7 +71,7 @@ func dbBlockFromVerboseBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass 
 		HashMerkleRoot:       verboseBlock.HashMerkleRoot,
 		AcceptedIDMerkleRoot: verboseBlock.AcceptedIDMerkleRoot,
 		UTXOCommitment:       verboseBlock.UTXOCommitment,
-		Timestamp:            time.Unix(verboseBlock.Time, 0),
+		Timestamp:            mstime.UnixMilliseconds(verboseBlock.Time).ToNativeTime(),
 		Bits:                 uint32(bits),
 		Nonce:                serializer.Uint64ToBytes(verboseBlock.Nonce),
 		BlueScore:            verboseBlock.BlueScore,
