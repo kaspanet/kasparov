@@ -1,11 +1,11 @@
 package jsonrpc
 
 import (
-	"github.com/kaspanet/kaspad/infrastructure/logs"
-	rpcclient "github.com/kaspanet/kaspad/network/rpc/client"
+	kaspadlogger "github.com/kaspanet/kaspad/infrastructure/logger"
+	rpcclient "github.com/kaspanet/kaspad/infrastructure/network/rpc/client"
 	"github.com/kaspanet/kasparov/logger"
 )
 
 func init() {
-	rpcclient.UseLogger(logger.BackendLog, logs.LevelInfo)
+	rpcclient.UseLogger(logger.BackendLog, kaspadlogger.LevelInfo)
 }

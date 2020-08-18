@@ -1,7 +1,7 @@
 package mqtt
 
 import (
-	rpcmodel "github.com/kaspanet/kaspad/network/rpc/model"
+	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
 	"github.com/kaspanet/kasparov/apimodels"
 )
 
