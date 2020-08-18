@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/kaspanet/kaspad/network/domainmessage"
+	"github.com/kaspanet/kaspad/app/appmessage"
 	"net/http"
 
 	"github.com/kaspanet/go-secp256k1"
@@ -111,33 +111,33 @@ func selectUTXOs(utxos []*apimodels.TransactionOutputResponse, totalToSpend uint
 }
 
 func generateTx(privateKey *secp256k1.PrivateKey, selectedUTXOs []*apimodels.TransactionOutputResponse, sompisToSend uint64, change uint64,
-	toAddress util.Address, fromAddress util.Address) (*domainmessage.MsgTx, error) {
+	toAddress util.Address, fromAddress util.Address) (*appmessage.MsgTx, error) {
 
-	txIns := make([]*domainmessage.TxIn, len(selectedUTXOs))
+	txIns := make([]*appmessage.TxIn, len(selectedUTXOs))
 	for i, utxo := range selectedUTXOs {
 		txID, err := daghash.NewTxIDFromStr(utxo.TransactionID)
 		if err != nil {
 			return nil, err
 		}
 
-		txIns[i] = domainmessage.NewTxIn(domainmessage.NewOutpoint(txID, utxo.Index), []byte{})
+		txIns[i] = appmessage.NewTxIn(appmessage.NewOutpoint(txID, utxo.Index), []byte{})
 	}
 
 	toScript, err := txscript.PayToAddrScript(toAddress)
 	if err != nil {
 		return nil, err
 	}
-	mainTxOut := domainmessage.NewTxOut(sompisToSend, toScript)
+	mainTxOut := appmessage.NewTxOut(sompisToSend, toScript)
 
 	fromScript, err := txscript.PayToAddrScript(fromAddress)
 	if err != nil {
 		return nil, err
 	}
-	changeTxOut := domainmessage.NewTxOut(change, fromScript)
+	changeTxOut := appmessage.NewTxOut(change, fromScript)
 
-	txOuts := []*domainmessage.TxOut{mainTxOut, changeTxOut}
+	txOuts := []*appmessage.TxOut{mainTxOut, changeTxOut}
 
-	tx := domainmessage.NewNativeMsgTx(domainmessage.TxVersion, txIns, txOuts)
+	tx := appmessage.NewNativeMsgTx(appmessage.TxVersion, txIns, txOuts)
 
 	for i, txIn := range tx.TxIn {
 		signatureScript, err := txscript.SignatureScript(tx, i, fromScript, txscript.SigHashAll, privateKey, true)
@@ -150,7 +150,7 @@ func generateTx(privateKey *secp256k1.PrivateKey, selectedUTXOs []*apimodels.Tra
 	return tx, nil
 }
 
-func sendTx(conf *sendConfig, msgTx *domainmessage.MsgTx) error {
+func sendTx(conf *sendConfig, msgTx *appmessage.MsgTx) error {
 	txBuffer := bytes.NewBuffer(make([]byte, 0, msgTx.SerializeSize()))
 	if err := msgTx.KaspaEncode(txBuffer, 0); err != nil {
 		return err

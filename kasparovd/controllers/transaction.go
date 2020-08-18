@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/kaspanet/kaspad/network/domainmessage"
+	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/database"
 	"net/http"
 
@@ -16,7 +16,7 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 
-	rpcmodel "github.com/kaspanet/kaspad/network/rpc/model"
+	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
 	"github.com/kaspanet/kaspad/util/daghash"
 )
 
@@ -165,7 +165,7 @@ func PostTransaction(requestBody []byte) error {
 	}
 
 	txReader := bytes.NewReader(txBytes)
-	tx := &domainmessage.MsgTx{}
+	tx := &appmessage.MsgTx{}
 	err = tx.KaspaDecode(txReader, 0)
 	if err != nil {
 		return httpserverutils.NewHandlerErrorWithCustomClientMessage(http.StatusUnprocessableEntity,

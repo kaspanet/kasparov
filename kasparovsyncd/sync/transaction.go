@@ -2,12 +2,12 @@ package sync
 
 import (
 	"encoding/hex"
-	"github.com/kaspanet/kaspad/network/domainmessage"
+	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 
 	"github.com/kaspanet/kaspad/domain/blockdag"
-	rpcmodel "github.com/kaspanet/kaspad/network/rpc/model"
+	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
@@ -176,8 +176,8 @@ func calcTxMass(dbTx *database.TxContext, transaction *rpcmodel.TxRawResult) (ui
 	return blockdag.CalcTxMass(util.NewTx(msgTx), orderedPrevScriptPubKeys), nil
 }
 
-func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*domainmessage.MsgTx, error) {
-	txIns := make([]*domainmessage.TxIn, len(tx.Vin))
+func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*appmessage.MsgTx, error) {
+	txIns := make([]*appmessage.TxIn, len(tx.Vin))
 	for i, txIn := range tx.Vin {
 		prevTxID, err := daghash.NewTxIDFromStr(txIn.TxID)
 		if err != nil {
@@ -187,8 +187,8 @@ func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*domainmessage.MsgTx, 
 		if err != nil {
 			return nil, err
 		}
-		txIns[i] = &domainmessage.TxIn{
-			PreviousOutpoint: domainmessage.Outpoint{
+		txIns[i] = &appmessage.TxIn{
+			PreviousOutpoint: appmessage.Outpoint{
 				TxID:  *prevTxID,
 				Index: txIn.Vout,
 			},
@@ -196,13 +196,13 @@ func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*domainmessage.MsgTx, 
 			Sequence:        txIn.Sequence,
 		}
 	}
-	txOuts := make([]*domainmessage.TxOut, len(tx.Vout))
+	txOuts := make([]*appmessage.TxOut, len(tx.Vout))
 	for i, txOut := range tx.Vout {
 		scriptPubKey, err := hex.DecodeString(txOut.ScriptPubKey.Hex)
 		if err != nil {
 			return nil, err
 		}
-		txOuts[i] = &domainmessage.TxOut{
+		txOuts[i] = &appmessage.TxOut{
 			Value:        txOut.Value,
 			ScriptPubKey: scriptPubKey,
 		}
@@ -212,11 +212,11 @@ func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*domainmessage.MsgTx, 
 		return nil, err
 	}
 	if subnetworkID.IsEqual(subnetworkid.SubnetworkIDNative) {
-		return domainmessage.NewNativeMsgTx(tx.Version, txIns, txOuts), nil
+		return appmessage.NewNativeMsgTx(tx.Version, txIns, txOuts), nil
 	}
 	payload, err := hex.DecodeString(tx.Payload)
 	if err != nil {
 		return nil, err
 	}
-	return domainmessage.NewSubnetworkMsgTx(tx.Version, txIns, txOuts, subnetworkID, tx.Gas, payload), nil
+	return appmessage.NewSubnetworkMsgTx(tx.Version, txIns, txOuts, subnetworkID, tx.Gas, payload), nil
 }
