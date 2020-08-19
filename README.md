@@ -90,4 +90,3 @@ is used for this project.
 ## License
 
 Kasparov is licensed under the copyfree [ISC License](https://choosealicense.com/licenses/isc/).
-
