@@ -151,18 +151,13 @@ func syncSelectedParentChain(client *kaspadrpc.Client) error {
 func fetchBlock(client *kaspadrpc.Client, blockHash *daghash.Hash) (
 	*rawAndVerboseBlock, error) {
 	log.Debugf("Getting block %s from the RPC server", blockHash)
-	blockHexResponse, err := client.GetBlockHex(blockHash.String(), "")
-	if err != nil {
-		return nil, err
-	}
-
-	verboseBlock, err := client.GetBlockVerboseTx(blockHash, nil)
+	blockHexResponse, err := client.GetBlock(blockHash.String(), "", true, true)
 	if err != nil {
 		return nil, err
 	}
 	return &rawAndVerboseBlock{
 		Raw:     blockHexResponse.BlockHex,
-		Verbose: verboseBlock,
+		Verbose: blockHexResponse.BlockVerboseData,
 	}, nil
 }
 
