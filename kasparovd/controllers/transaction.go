@@ -11,12 +11,11 @@ import (
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/jsonrpc"
+	"github.com/kaspanet/kasparov/kaspadrpc"
 
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 
-	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
 	"github.com/kaspanet/kaspad/util/daghash"
 )
 
@@ -144,7 +143,7 @@ func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
 
 // PostTransaction forwards a raw transaction to the JSON-RPC API server
 func PostTransaction(requestBody []byte) error {
-	client, err := jsonrpc.GetClient()
+	client, err := kaspadrpc.GetClient()
 	if err != nil {
 		return err
 	}
@@ -173,9 +172,9 @@ func PostTransaction(requestBody []byte) error {
 			"error decoding raw transaction")
 	}
 
-	_, err = client.SendRawTransaction(tx, true)
+	_, err = client.SendRawTransaction(tx)
 	if err != nil {
-		if rpcErr := &(rpcmodel.RPCError{}); errors.As(err, &rpcErr) {
+		if rpcErr := &(appmessage.RPCError{}); errors.As(err, &rpcErr) {
 			return httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, err)
 		}
 		return err
