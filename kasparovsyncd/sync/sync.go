@@ -151,7 +151,7 @@ func syncSelectedParentChain(client *kaspadrpc.Client) error {
 func fetchBlock(client *kaspadrpc.Client, blockHash *daghash.Hash) (
 	*rawAndVerboseBlock, error) {
 	log.Debugf("Getting block %s from the RPC server", blockHash)
-	blockHexResponse, err := client.GetBlock(blockHash.String(), "", true, true)
+	blockHexResponse, err := client.GetBlock(blockHash.String(), "", true, true, true)
 	if err != nil {
 		return nil, err
 	}
@@ -628,7 +628,7 @@ func canHandleChainChangedMsg(chainChanged *appmessage.ChainChangedNotificationM
 
 // addBlocks inserts data in the given rawBlocks and verboseBlocks pairwise
 // into the database.
-func addBlocks(client *kaspadrpc.Client, rawBlocks []string, verboseBlocks []rpcmodel.GetBlockVerboseResult) error {
+func addBlocks(client *kaspadrpc.Client, rawBlocks []string, verboseBlocks []*appmessage.BlockVerboseData) error {
 	dbTx, err := database.NewTx()
 	if err != nil {
 		return err
@@ -648,11 +648,11 @@ func addBlocks(client *kaspadrpc.Client, rawBlocks []string, verboseBlocks []rpc
 
 		block := &rawAndVerboseBlock{
 			Raw:     rawBlock,
-			Verbose: &verboseBlocks[i],
+			Verbose: verboseBlocks[i],
 		}
 		missingAncestors, err := fetchMissingAncestors(client, dbTx, &rawAndVerboseBlock{
 			Raw:     rawBlock,
-			Verbose: &verboseBlocks[i],
+			Verbose: verboseBlocks[i],
 		}, blockHashesToRawAndVerboseBlock)
 		if err != nil {
 			return err

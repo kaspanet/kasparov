@@ -14,8 +14,8 @@ func insertSubnetworks(client *kaspadrpc.Client, dbTx *database.TxContext, block
 
 	subnetworkSet := make(map[string]struct{})
 	for _, block := range blocks {
-		for _, transaction := range block.Verbose.RawTx {
-			subnetworkSet[transaction.Subnetwork] = struct{}{}
+		for _, transaction := range block.Verbose.TransactionVerboseData {
+			subnetworkSet[transaction.SubnetworkID] = struct{}{}
 		}
 	}
 

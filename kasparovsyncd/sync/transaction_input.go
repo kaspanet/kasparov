@@ -2,10 +2,10 @@ package sync
 
 import (
 	"encoding/hex"
+	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 
-	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
@@ -96,8 +96,8 @@ func insertTransactionInputs(dbTx *database.TxContext, transactionHashesToTxsWit
 	return dbaccess.BulkInsert(dbTx, inputsToAdd)
 }
 
-func isTransactionCoinbase(transaction *rpcmodel.TxRawResult) (bool, error) {
-	subnetwork, err := subnetworkid.NewFromStr(transaction.Subnetwork)
+func isTransactionCoinbase(transaction *appmessage.TransactionVerboseData) (bool, error) {
+	subnetwork, err := subnetworkid.NewFromStr(transaction.SubnetworkID)
 	if err != nil {
 		return false, err
 	}

@@ -59,7 +59,7 @@ func publishTransactionNotificationForAddress(transaction *apimodels.Transaction
 }
 
 // PublishAcceptedTransactionsNotifications publishes notification for each accepted transaction of the given chain-block
-func PublishAcceptedTransactionsNotifications(addedChainBlocks []appmessage.ChainChangedChainBlock) error {
+func PublishAcceptedTransactionsNotifications(addedChainBlocks []*appmessage.ChainChangedChainBlock) error {
 	if !isConnected() {
 		return nil
 	}

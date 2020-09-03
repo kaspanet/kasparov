@@ -1,13 +1,13 @@
 package sync
 
 import (
+	"github.com/kaspanet/kaspad/app/appmessage"
 	"strconv"
 
 	"github.com/kaspanet/kaspad/util/mstime"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/serializer"
 
-	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/pkg/errors"
@@ -17,7 +17,7 @@ func insertBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, transa
 	blocksToAdd := make([]interface{}, len(blocks))
 	for i, block := range blocks {
 		blockMass := uint64(0)
-		for _, tx := range block.Verbose.RawTx {
+		for _, tx := range block.Verbose.TransactionVerboseData {
 			blockMass += transactionHashesToTxsWithMetadata[tx.Hash].mass
 		}
 		var err error
@@ -59,7 +59,7 @@ func getBlocksWithTheirAcceptedBlocksAndParentIDs(dbTx *database.TxContext, bloc
 	return blockHashesToIDs, nil
 }
 
-func dbBlockFromVerboseBlock(verboseBlock *rpcmodel.GetBlockVerboseResult, mass uint64) (*dbmodels.Block, error) {
+func dbBlockFromVerboseBlock(verboseBlock *appmessage.BlockVerboseData, mass uint64) (*dbmodels.Block, error) {
 	bits, err := strconv.ParseUint(verboseBlock.Bits, 16, 32)
 	if err != nil {
 		return nil, err
