@@ -1,8 +1,6 @@
 package sync
 
 import (
-	"bytes"
-	"encoding/hex"
 	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/database"
 
@@ -153,23 +151,17 @@ func syncSelectedParentChain(client *kaspadrpc.Client) error {
 func fetchBlock(client *kaspadrpc.Client, blockHash *daghash.Hash) (
 	*rawAndVerboseBlock, error) {
 	log.Debugf("Getting block %s from the RPC server", blockHash)
-	msgBlock, err := client.GetBlock(blockHash, nil)
+	blockHexResponse, err := client.GetBlockHex(blockHash.String(), "")
 	if err != nil {
 		return nil, err
 	}
-	writer := bytes.NewBuffer(make([]byte, 0, msgBlock.SerializeSize()))
-	err = msgBlock.Serialize(writer)
-	if err != nil {
-		return nil, err
-	}
-	rawBlock := hex.EncodeToString(writer.Bytes())
 
 	verboseBlock, err := client.GetBlockVerboseTx(blockHash, nil)
 	if err != nil {
 		return nil, err
 	}
 	return &rawAndVerboseBlock{
-		Raw:     rawBlock,
+		Raw:     blockHexResponse.BlockHex,
 		Verbose: verboseBlock,
 	}, nil
 }
