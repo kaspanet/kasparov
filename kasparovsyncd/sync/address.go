@@ -14,10 +14,10 @@ func insertAddresses(dbTx *database.TxContext, transactionHashesToTxsWithMetadat
 			continue
 		}
 		for _, txOut := range transaction.verboseTx.Vout {
-			if txOut.ScriptPubKey.Address == nil {
+			if txOut.ScriptPubKey.Address == "" {
 				continue
 			}
-			addressSet[*txOut.ScriptPubKey.Address] = struct{}{}
+			addressSet[txOut.ScriptPubKey.Address] = struct{}{}
 		}
 	}
 	addresses := stringsSetToSlice(addressSet)

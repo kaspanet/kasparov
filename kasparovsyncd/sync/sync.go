@@ -85,28 +85,28 @@ func syncBlocks(client *kaspadrpc.Client) error {
 	if err != nil {
 		return err
 	}
-	var startHash *string
+	var startHash string
 	if startBlock != nil {
-		startHash = &startBlock.BlockHash
+		startHash = startBlock.BlockHash
 	}
 
 	for {
-		if startHash != nil {
-			log.Debugf("Calling getBlocks with start hash %s", *startHash)
+		if startHash != "" {
+			log.Debugf("Calling getBlocks with start hash %s", startHash)
 		} else {
 			log.Debugf("Calling getBlocks with no start hash")
 		}
-		blocksResult, err := client.GetBlocks(true, true, startHash)
+		blocksResult, err := client.GetBlocks(startHash, true, true)
 		if err != nil {
 			return err
 		}
-		if len(blocksResult.Hashes) == 0 {
+		if len(blocksResult.BlockHashes) == 0 {
 			break
 		}
-		log.Debugf("Got %d blocks", len(blocksResult.Hashes))
+		log.Debugf("Got %d blocks", len(blocksResult.BlockHashes))
 
-		startHash = &blocksResult.Hashes[len(blocksResult.Hashes)-1]
-		err = addBlocks(client, blocksResult.RawBlocks, blocksResult.VerboseBlocks)
+		startHash = blocksResult.BlockHashes[len(blocksResult.BlockHashes)-1]
+		err = addBlocks(client, blocksResult.BlockHexes, blocksResult.BlockVerboseData)
 		if err != nil {
 			return err
 		}
@@ -128,7 +128,7 @@ func syncSelectedParentChain(client *kaspadrpc.Client) error {
 
 	for {
 		log.Debugf("Calling getChainFromBlock with start hash %s", startHash)
-		chainFromBlockResult, err := client.GetChainFromBlock(false, &startHash)
+		chainFromBlockResult, err := client.GetChainFromBlock(startHash, false)
 		if err != nil {
 			return err
 		}

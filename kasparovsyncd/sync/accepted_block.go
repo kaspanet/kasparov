@@ -1,7 +1,7 @@
 package sync
 
 import (
-	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
+	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
@@ -27,7 +27,7 @@ func insertAcceptedBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBlock
 	return nil
 }
 
-func dbAcceptedBlocksFromVerboseBlock(blockHashesToIDs map[string]uint64, verboseBlock *rpcmodel.GetBlockVerboseResult) ([]*dbmodels.AcceptedBlock, error) {
+func dbAcceptedBlocksFromVerboseBlock(blockHashesToIDs map[string]uint64, verboseBlock *appmessage.BlockVerboseData) ([]*dbmodels.AcceptedBlock, error) {
 	// Exit early if this is the genesis block
 	if len(verboseBlock.AcceptedBlockHashes) == 0 {
 		return []*dbmodels.AcceptedBlock{}, nil
