@@ -45,9 +45,13 @@ func insertSubnetworks(client *kaspadrpc.Client, dbTx *database.TxContext, block
 		if err != nil {
 			return nil, err
 		}
+		var gasLimit *uint64
+		if subnetwork.GasLimit > 0 {
+			gasLimit = &subnetwork.GasLimit
+		}
 		subnetworksToAdd[i] = &dbmodels.Subnetwork{
 			SubnetworkID: subnetworkID,
-			GasLimit:     subnetwork.GasLimit,
+			GasLimit:     gasLimit,
 		}
 	}
 
