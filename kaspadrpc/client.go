@@ -58,7 +58,7 @@ func NewClient(cfg *config.KasparovFlags, subscribeToNotifications bool) (*Clien
 			client.OnChainChanged <- notification
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "error requesting block-added notifications")
+			return nil, errors.Wrapf(err, "error requesting chain-changed notifications")
 		}
 
 	}
