@@ -30,6 +30,7 @@ func GetClient() (*Client, error) {
 	return clientInstance, nil
 }
 
+// NewClient creates a new Client
 func NewClient(cfg *config.KasparovFlags, subscribeToNotifications bool) (*Client, error) {
 	rpcAddress, err := cfg.NetParams().NormalizeRPCServerAddress(cfg.RPCServer)
 	if err != nil {
