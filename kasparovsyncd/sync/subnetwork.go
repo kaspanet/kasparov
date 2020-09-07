@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func insertSubnetworks(client *kaspadrpc.KasparovClient, dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (
+func insertSubnetworks(client *kaspadrpc.Client, dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (
 	subnetworkIDsToIDs map[string]uint64, err error) {
 
 	subnetworkSet := make(map[string]struct{})

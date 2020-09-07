@@ -11,26 +11,26 @@ import (
 
 const timeout = 10 * time.Second
 
-// KasparovClient represents a connection to the JSON-RPC API of a full node
-type KasparovClient struct {
+// Client represents a connection to the JSON-RPC API of a full node
+type Client struct {
 	*rpcclient.RPCClient
 
 	OnBlockAdded   chan *appmessage.BlockAddedNotificationMessage
 	OnChainChanged chan *appmessage.ChainChangedNotificationMessage
 }
 
-var client *KasparovClient
+var clientInstance *Client
 
 // GetClient returns an instance of the RPC client, in case we have an active connection
-func GetClient() (*KasparovClient, error) {
-	if client == nil {
+func GetClient() (*Client, error) {
+	if clientInstance == nil {
 		return nil, errors.New("RPC is not connected")
 	}
 
-	return client, nil
+	return clientInstance, nil
 }
 
-func NewClient(cfg *config.KasparovFlags, subscribeToNotifications bool) (*KasparovClient, error) {
+func NewClient(cfg *config.KasparovFlags, subscribeToNotifications bool) (*Client, error) {
 	rpcAddress, err := cfg.NetParams().NormalizeRPCServerAddress(cfg.RPCServer)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func NewClient(cfg *config.KasparovFlags, subscribeToNotifications bool) (*Kaspa
 	}
 	rpcClient.SetTimeout(timeout)
 
-	kasparovClient := &KasparovClient{
+	client := &Client{
 		RPCClient:      rpcClient,
 		OnBlockAdded:   make(chan *appmessage.BlockAddedNotificationMessage),
 		OnChainChanged: make(chan *appmessage.ChainChangedNotificationMessage),
@@ -49,20 +49,20 @@ func NewClient(cfg *config.KasparovFlags, subscribeToNotifications bool) (*Kaspa
 
 	if subscribeToNotifications {
 		err = rpcClient.RegisterForBlockAddedNotifications(func(notification *appmessage.BlockAddedNotificationMessage) {
-			kasparovClient.OnBlockAdded <- notification
+			client.OnBlockAdded <- notification
 		})
 		if err != nil {
 			return nil, errors.Wrapf(err, "error requesting block-added notifications")
 		}
 		err = rpcClient.RegisterForChainChangedNotifications(func(notification *appmessage.ChainChangedNotificationMessage) {
-			kasparovClient.OnChainChanged <- notification
+			client.OnChainChanged <- notification
 		})
 		if err != nil {
 			return nil, errors.Wrapf(err, "error requesting chain-changed notifications")
 		}
 	}
 
-	client = kasparovClient
+	clientInstance = client
 
-	return kasparovClient, nil
+	return client, nil
 }

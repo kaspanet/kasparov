@@ -37,7 +37,7 @@ func StartSync(doneChan chan struct{}) error {
 
 // fetchInitialData downloads all data that's currently missing from
 // the database.
-func fetchInitialData(client *kaspadrpc.KasparovClient) error {
+func fetchInitialData(client *kaspadrpc.Client) error {
 	log.Infof("Syncing past blocks")
 	err := syncBlocks(client)
 	if err != nil {
@@ -53,7 +53,7 @@ func fetchInitialData(client *kaspadrpc.KasparovClient) error {
 }
 
 // sync keeps the database in sync with the node via notifications
-func sync(client *kaspadrpc.KasparovClient, doneChan chan struct{}) error {
+func sync(client *kaspadrpc.Client, doneChan chan struct{}) error {
 	// Handle client notifications until we're told to stop
 	for {
 		select {
@@ -77,7 +77,7 @@ func sync(client *kaspadrpc.KasparovClient, doneChan chan struct{}) error {
 
 // syncBlocks attempts to download all DAG blocks starting with
 // the bluest block, and then inserts them into the database.
-func syncBlocks(client *kaspadrpc.KasparovClient) error {
+func syncBlocks(client *kaspadrpc.Client) error {
 	// Start syncing from the bluest block hash. We use blue score to
 	// simulate the "last" block we have because blue-block order is
 	// the order that the node uses in the various JSONRPC calls.
@@ -118,7 +118,7 @@ func syncBlocks(client *kaspadrpc.KasparovClient) error {
 // syncSelectedParentChain attempts to download the selected parent
 // chain starting with the bluest chain-block, and then updates the
 // database accordingly.
-func syncSelectedParentChain(client *kaspadrpc.KasparovClient) error {
+func syncSelectedParentChain(client *kaspadrpc.Client) error {
 	// Start syncing from the selected tip hash
 	startBlock, err := dbaccess.SelectedTip(database.NoTx())
 	if err != nil {
@@ -148,7 +148,7 @@ func syncSelectedParentChain(client *kaspadrpc.KasparovClient) error {
 
 // fetchBlock downloads the serialized block and raw block data of
 // the block with hash blockHash.
-func fetchBlock(client *kaspadrpc.KasparovClient, blockHash *daghash.Hash) (
+func fetchBlock(client *kaspadrpc.Client, blockHash *daghash.Hash) (
 	*rawAndVerboseBlock, error) {
 	log.Debugf("Getting block %s from the RPC server", blockHash)
 	blockHexResponse, err := client.GetBlock(blockHash.String(), "", true, true, true)
@@ -166,7 +166,7 @@ func fetchBlock(client *kaspadrpc.KasparovClient, blockHash *daghash.Hash) (
 // all addChainBlocks.
 // Note that if this function may take a nil dbTx, in which case it would start
 // a database transaction by itself and commit it before returning.
-func updateSelectedParentChain(client *kaspadrpc.KasparovClient, removedChainHashes []string, addedChainBlocks []*appmessage.ChainChangedChainBlock) error {
+func updateSelectedParentChain(client *kaspadrpc.Client, removedChainHashes []string, addedChainBlocks []*appmessage.ChainChangedChainBlock) error {
 	unacceptedTransactions, err := dbaccess.AcceptedTransactionsByBlockHashes(database.NoTx(), removedChainHashes, dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return err
@@ -232,7 +232,7 @@ func updateSelectedParentChain(client *kaspadrpc.KasparovClient, removedChainHas
 // fetchAndAddMissingAddedChainBlocks takes cares of cases where a block referenced in a selectedParent-chain
 // have not yet been added to the database. In that case - it fetches it and its missing ancestors and add them
 // to the database.
-func fetchAndAddMissingAddedChainBlocks(client *kaspadrpc.KasparovClient, dbTx *database.TxContext, addedChainBlocks []*appmessage.ChainChangedChainBlock) (missingBlockHashes []string, err error) {
+func fetchAndAddMissingAddedChainBlocks(client *kaspadrpc.Client, dbTx *database.TxContext, addedChainBlocks []*appmessage.ChainChangedChainBlock) (missingBlockHashes []string, err error) {
 	missingBlockHashes = make([]string, 0)
 	for _, block := range addedChainBlocks {
 		dbBlock, err := dbaccess.BlockByHash(dbTx, block.Hash)
@@ -399,7 +399,7 @@ func updateAddedChainBlocks(dbTx *database.TxContext, addedBlock *appmessage.Cha
 	return nil
 }
 
-func handleBlockAddedMsg(client *kaspadrpc.KasparovClient, blockAdded *appmessage.BlockAddedNotificationMessage) error {
+func handleBlockAddedMsg(client *kaspadrpc.Client, blockAdded *appmessage.BlockAddedNotificationMessage) error {
 	blockHash := blockAdded.Block.Header.BlockHash()
 	blockExists, err := dbaccess.DoesBlockExist(database.NoTx(), blockHash.String())
 	if err != nil {
@@ -435,7 +435,7 @@ func handleBlockAddedMsg(client *kaspadrpc.KasparovClient, blockAdded *appmessag
 	return nil
 }
 
-func fetchAndAddBlock(client *kaspadrpc.KasparovClient, dbTx *database.TxContext,
+func fetchAndAddBlock(client *kaspadrpc.Client, dbTx *database.TxContext,
 	blockHash *daghash.Hash) (addedBlockHashes []string, err error) {
 
 	block, err := fetchBlock(client, blockHash)
@@ -462,7 +462,7 @@ func fetchAndAddBlock(client *kaspadrpc.KasparovClient, dbTx *database.TxContext
 	return addedBlockHashes, nil
 }
 
-func fetchMissingAncestors(client *kaspadrpc.KasparovClient, dbTx *database.TxContext, block *rawAndVerboseBlock,
+func fetchMissingAncestors(client *kaspadrpc.Client, dbTx *database.TxContext, block *rawAndVerboseBlock,
 	blockExistingInMemory map[string]*rawAndVerboseBlock) ([]*rawAndVerboseBlock, error) {
 
 	pendingBlocks := []*rawAndVerboseBlock{block}
@@ -549,7 +549,7 @@ func enqueueChainChangedMsg(chainChanged *appmessage.ChainChangedNotificationMes
 
 // processChainChangedMsgs processes all pending onChainChanged messages.
 // Messages that cannot yet be processed are re-enqueued.
-func processChainChangedMsgs(client *kaspadrpc.KasparovClient) error {
+func processChainChangedMsgs(client *kaspadrpc.Client) error {
 	var unprocessedChainChangedMessages []*appmessage.ChainChangedNotificationMessage
 	for _, chainChanged := range pendingChainChangedMsgs {
 		canHandle, err := canHandleChainChangedMsg(chainChanged)
@@ -570,7 +570,7 @@ func processChainChangedMsgs(client *kaspadrpc.KasparovClient) error {
 	return nil
 }
 
-func handleChainChangedMsg(client *kaspadrpc.KasparovClient, chainChanged *appmessage.ChainChangedNotificationMessage) error {
+func handleChainChangedMsg(client *kaspadrpc.Client, chainChanged *appmessage.ChainChangedNotificationMessage) error {
 	removedHashes := chainChanged.RemovedChainBlockHashes
 	addedBlocks := chainChanged.AddedChainBlocks
 	err := updateSelectedParentChain(client, removedHashes, addedBlocks)
@@ -628,7 +628,7 @@ func canHandleChainChangedMsg(chainChanged *appmessage.ChainChangedNotificationM
 
 // addBlocks inserts data in the given rawBlocks and verboseBlocks pairwise
 // into the database.
-func addBlocks(client *kaspadrpc.KasparovClient, rawBlocks []string, verboseBlocks []*appmessage.BlockVerboseData) error {
+func addBlocks(client *kaspadrpc.Client, rawBlocks []string, verboseBlocks []*appmessage.BlockVerboseData) error {
 	dbTx, err := database.NewTx()
 	if err != nil {
 		return err
@@ -675,7 +675,7 @@ func addBlocks(client *kaspadrpc.KasparovClient, rawBlocks []string, verboseBloc
 
 // bulkInsertBlocksData inserts the given blocks and their data (transactions
 // and new subnetworks data) to the database in chunks.
-func bulkInsertBlocksData(client *kaspadrpc.KasparovClient, dbTx *database.TxContext, blocks []*rawAndVerboseBlock) error {
+func bulkInsertBlocksData(client *kaspadrpc.Client, dbTx *database.TxContext, blocks []*rawAndVerboseBlock) error {
 	subnetworkIDToID, err := insertSubnetworks(client, dbTx, blocks)
 	if err != nil {
 		return err
