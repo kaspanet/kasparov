@@ -16,7 +16,7 @@ func create() error {
 	}
 
 	fmt.Println("This is your private key, granting access to all wallet funds. Keep it safe. Use it only when sending Kaspa.")
-	fmt.Printf("Private key (hex):\t%x\n\n", privateKey.Serialize())
+	fmt.Printf("Private key (hex):\t%x\n\n", privateKey.Serialize()[:])
 
 	fmt.Println("These are your public addresses for each network, where money is to be sent.")
 	publicKey, err := privateKey.SchnorrPublicKey()
