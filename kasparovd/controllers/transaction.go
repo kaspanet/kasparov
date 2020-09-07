@@ -172,7 +172,7 @@ func PostTransaction(requestBody []byte) error {
 			"error decoding raw transaction")
 	}
 
-	_, err = client.SendRawTransaction(tx)
+	_, err = client.SubmitTransaction(tx)
 	if err != nil {
 		if rpcErr := &(appmessage.RPCError{}); errors.As(err, &rpcErr) {
 			return httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, err)

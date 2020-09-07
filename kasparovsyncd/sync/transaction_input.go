@@ -29,12 +29,12 @@ func insertTransactionInputs(dbTx *database.TxContext, transactionHashesToTxsWit
 		}
 
 		newNonCoinbaseTransactions[txHash] = transaction
-		inputsCount += len(transaction.verboseTx.Vin)
-		for i := range transaction.verboseTx.Vin {
-			txIn := transaction.verboseTx.Vin[i]
+		inputsCount += len(transaction.verboseTx.TransactionVerboseInputs)
+		for i := range transaction.verboseTx.TransactionVerboseInputs {
+			txIn := transaction.verboseTx.TransactionVerboseInputs[i]
 			outpoint := dbaccess.Outpoint{
 				TransactionID: txIn.TxID,
-				Index:         txIn.Vout,
+				Index:         txIn.OutputIndex,
 			}
 			outpointsSet[outpoint] = struct{}{}
 		}
@@ -71,17 +71,17 @@ func insertTransactionInputs(dbTx *database.TxContext, transactionHashesToTxsWit
 	inputsToAdd := make([]interface{}, inputsCount)
 	inputIndex := 0
 	for _, transaction := range newNonCoinbaseTransactions {
-		for i, txIn := range transaction.verboseTx.Vin {
+		for i, txIn := range transaction.verboseTx.TransactionVerboseInputs {
 			scriptSig, err := hex.DecodeString(txIn.ScriptSig.Hex)
 			if err != nil {
 				return nil
 			}
 			prevOutputID, ok := outpointsToIDs[dbaccess.Outpoint{
 				TransactionID: txIn.TxID,
-				Index:         txIn.Vout,
+				Index:         txIn.OutputIndex,
 			}]
 			if !ok || prevOutputID == 0 {
-				return errors.Errorf("couldn't find ID for outpoint (%s:%d)", txIn.TxID, txIn.Vout)
+				return errors.Errorf("couldn't find ID for outpoint (%s:%d)", txIn.TxID, txIn.OutputIndex)
 			}
 			inputsToAdd[inputIndex] = &dbmodels.TransactionInput{
 				TransactionID:               transaction.id,

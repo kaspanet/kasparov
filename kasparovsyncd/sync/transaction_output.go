@@ -21,7 +21,7 @@ func insertTransactionOutputs(dbTx *database.TxContext, transactionHashesToTxsWi
 		if !transaction.isNew {
 			continue
 		}
-		for i, txOut := range transaction.verboseTx.Vout {
+		for i, txOut := range transaction.verboseTx.TransactionVerboseOutputs {
 			scriptPubKey, err := hex.DecodeString(txOut.ScriptPubKey.Hex)
 			if err != nil {
 				return errors.WithStack(err)

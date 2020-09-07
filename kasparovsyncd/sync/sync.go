@@ -166,7 +166,7 @@ func fetchBlock(client *kaspadrpc.Client, blockHash *daghash.Hash) (
 // all addChainBlocks.
 // Note that if this function may take a nil dbTx, in which case it would start
 // a database transaction by itself and commit it before returning.
-func updateSelectedParentChain(client *kaspadrpc.Client, removedChainHashes []string, addedChainBlocks []*appmessage.ChainChangedChainBlock) error {
+func updateSelectedParentChain(client *kaspadrpc.Client, removedChainHashes []string, addedChainBlocks []*appmessage.ChainBlock) error {
 	unacceptedTransactions, err := dbaccess.AcceptedTransactionsByBlockHashes(database.NoTx(), removedChainHashes, dbmodels.TransactionRecommendedPreloadedFields...)
 	if err != nil {
 		return err
@@ -232,7 +232,7 @@ func updateSelectedParentChain(client *kaspadrpc.Client, removedChainHashes []st
 // fetchAndAddMissingAddedChainBlocks takes cares of cases where a block referenced in a selectedParent-chain
 // have not yet been added to the database. In that case - it fetches it and its missing ancestors and add them
 // to the database.
-func fetchAndAddMissingAddedChainBlocks(client *kaspadrpc.Client, dbTx *database.TxContext, addedChainBlocks []*appmessage.ChainChangedChainBlock) (missingBlockHashes []string, err error) {
+func fetchAndAddMissingAddedChainBlocks(client *kaspadrpc.Client, dbTx *database.TxContext, addedChainBlocks []*appmessage.ChainBlock) (missingBlockHashes []string, err error) {
 	missingBlockHashes = make([]string, 0)
 	for _, block := range addedChainBlocks {
 		dbBlock, err := dbaccess.BlockByHash(dbTx, block.Hash)
@@ -324,7 +324,7 @@ func updateRemovedChainHashes(dbTx *database.TxContext, removedHash string) erro
 // * All its Transactions are set AcceptingBlockID = addedBlock
 // * The block is set IsChainBlock = true
 // This function will return an error if any of the above are in an unexpected state
-func updateAddedChainBlocks(dbTx *database.TxContext, addedBlock *appmessage.ChainChangedChainBlock) error {
+func updateAddedChainBlocks(dbTx *database.TxContext, addedBlock *appmessage.ChainBlock) error {
 	dbAddedBlock, err := dbaccess.BlockByHash(dbTx, addedBlock.Hash)
 	if err != nil {
 		return err

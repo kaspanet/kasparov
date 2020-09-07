@@ -148,11 +148,11 @@ func calcTxMass(dbTx *database.TxContext, transaction *appmessage.TransactionVer
 		return 0, err
 	}
 
-	outpoints := make([]*dbaccess.Outpoint, 0, len(transaction.Vin))
-	for _, txIn := range transaction.Vin {
+	outpoints := make([]*dbaccess.Outpoint, 0, len(transaction.TransactionVerboseInputs))
+	for _, txIn := range transaction.TransactionVerboseInputs {
 		outpoints = append(outpoints, &dbaccess.Outpoint{
 			TransactionID: txIn.TxID,
-			Index:         txIn.Vout,
+			Index:         txIn.OutputIndex,
 		})
 	}
 	prevDBTransactionsOutputs, err := dbaccess.TransactionOutputsByOutpoints(dbTx, outpoints)
@@ -168,16 +168,16 @@ func calcTxMass(dbTx *database.TxContext, transaction *appmessage.TransactionVer
 		}
 		prevScriptPubKeysMap[txID][prevDBTransactionsOutput.Index] = prevDBTransactionsOutput.ScriptPubKey
 	}
-	orderedPrevScriptPubKeys := make([][]byte, len(transaction.Vin))
-	for i, txIn := range transaction.Vin {
+	orderedPrevScriptPubKeys := make([][]byte, len(transaction.TransactionVerboseInputs))
+	for i, txIn := range transaction.TransactionVerboseInputs {
 		orderedPrevScriptPubKeys[i] = prevScriptPubKeysMap[txIn.TxID][uint32(i)]
 	}
 	return blockdag.CalcTxMass(util.NewTx(msgTx), orderedPrevScriptPubKeys), nil
 }
 
 func convertTxRawResultToMsgTx(tx *appmessage.TransactionVerboseData) (*appmessage.MsgTx, error) {
-	txIns := make([]*appmessage.TxIn, len(tx.Vin))
-	for i, txIn := range tx.Vin {
+	txIns := make([]*appmessage.TxIn, len(tx.TransactionVerboseInputs))
+	for i, txIn := range tx.TransactionVerboseInputs {
 		prevTxID, err := daghash.NewTxIDFromStr(txIn.TxID)
 		if err != nil {
 			return nil, err
@@ -189,14 +189,14 @@ func convertTxRawResultToMsgTx(tx *appmessage.TransactionVerboseData) (*appmessa
 		txIns[i] = &appmessage.TxIn{
 			PreviousOutpoint: appmessage.Outpoint{
 				TxID:  *prevTxID,
-				Index: txIn.Vout,
+				Index: txIn.OutputIndex,
 			},
 			SignatureScript: signatureScript,
 			Sequence:        txIn.Sequence,
 		}
 	}
-	txOuts := make([]*appmessage.TxOut, len(tx.Vout))
-	for i, txOut := range tx.Vout {
+	txOuts := make([]*appmessage.TxOut, len(tx.TransactionVerboseOutputs))
+	for i, txOut := range tx.TransactionVerboseOutputs {
 		scriptPubKey, err := hex.DecodeString(txOut.ScriptPubKey.Hex)
 		if err != nil {
 			return nil, err

@@ -13,7 +13,7 @@ func insertAddresses(dbTx *database.TxContext, transactionHashesToTxsWithMetadat
 		if !transaction.isNew {
 			continue
 		}
-		for _, txOut := range transaction.verboseTx.Vout {
+		for _, txOut := range transaction.verboseTx.TransactionVerboseOutputs {
 			if txOut.ScriptPubKey.Address == "" {
 				continue
 			}

@@ -10,7 +10,7 @@ import (
 const SelectedParentChainTopic = "dag/selected-parent-chain"
 
 // PublishSelectedParentChainNotifications publishes notifications for changes in the selected parent chain
-func PublishSelectedParentChainNotifications(removedChainHashes []string, addedChainBlocks []*appmessage.ChainChangedChainBlock) error {
+func PublishSelectedParentChainNotifications(removedChainHashes []string, addedChainBlocks []*appmessage.ChainBlock) error {
 	if !isConnected() {
 		return nil
 	}
