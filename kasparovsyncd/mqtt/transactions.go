@@ -1,10 +1,10 @@
 package mqtt
 
 import (
+	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/database"
 	"path"
 
-	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
@@ -59,7 +59,7 @@ func publishTransactionNotificationForAddress(transaction *apimodels.Transaction
 }
 
 // PublishAcceptedTransactionsNotifications publishes notification for each accepted transaction of the given chain-block
-func PublishAcceptedTransactionsNotifications(addedChainBlocks []rpcmodel.ChainBlock) error {
+func PublishAcceptedTransactionsNotifications(addedChainBlocks []*appmessage.ChainBlock) error {
 	if !isConnected() {
 		return nil
 	}

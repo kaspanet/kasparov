@@ -7,7 +7,6 @@ import (
 	"github.com/kaspanet/kasparov/serializer"
 
 	"github.com/kaspanet/kaspad/domain/blockdag"
-	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
 	"github.com/kaspanet/kaspad/util"
 	"github.com/kaspanet/kaspad/util/daghash"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
@@ -18,7 +17,7 @@ import (
 )
 
 type txWithMetadata struct {
-	verboseTx *rpcmodel.TxRawResult
+	verboseTx *appmessage.TransactionVerboseData
 	id        uint64
 	isNew     bool
 	mass      uint64
@@ -61,8 +60,8 @@ func insertTransactions(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, 
 	for _, block := range blocks {
 		// We do not directly iterate over block.Verbose.RawTx because it is a slice of values, and iterating
 		// over such will re-use the same address, making all pointers pointing into it point to the same address
-		for i := range block.Verbose.RawTx {
-			transaction := &block.Verbose.RawTx[i]
+		for i := range block.Verbose.TransactionVerboseData {
+			transaction := block.Verbose.TransactionVerboseData[i]
 			transactionHashesToTxsWithMetadata[transaction.Hash] = &txWithMetadata{
 				verboseTx: transaction,
 			}
@@ -103,9 +102,9 @@ func insertTransactions(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, 
 			return nil, err
 		}
 
-		subnetworkID, ok := subnetworkIDsToIDs[verboseTx.Subnetwork]
+		subnetworkID, ok := subnetworkIDsToIDs[verboseTx.SubnetworkID]
 		if !ok {
-			return nil, errors.Errorf("couldn't find ID for subnetwork %s", verboseTx.Subnetwork)
+			return nil, errors.Errorf("couldn't find ID for subnetwork %s", verboseTx.SubnetworkID)
 		}
 
 		transactionsToAdd[i] = &dbmodels.Transaction{
@@ -143,17 +142,17 @@ func insertTransactions(dbTx *database.TxContext, blocks []*rawAndVerboseBlock, 
 	return transactionHashesToTxsWithMetadata, nil
 }
 
-func calcTxMass(dbTx *database.TxContext, transaction *rpcmodel.TxRawResult) (uint64, error) {
+func calcTxMass(dbTx *database.TxContext, transaction *appmessage.TransactionVerboseData) (uint64, error) {
 	msgTx, err := convertTxRawResultToMsgTx(transaction)
 	if err != nil {
 		return 0, err
 	}
 
-	outpoints := make([]*dbaccess.Outpoint, 0, len(transaction.Vin))
-	for _, txIn := range transaction.Vin {
+	outpoints := make([]*dbaccess.Outpoint, 0, len(transaction.TransactionVerboseInputs))
+	for _, txIn := range transaction.TransactionVerboseInputs {
 		outpoints = append(outpoints, &dbaccess.Outpoint{
 			TransactionID: txIn.TxID,
-			Index:         txIn.Vout,
+			Index:         txIn.OutputIndex,
 		})
 	}
 	prevDBTransactionsOutputs, err := dbaccess.TransactionOutputsByOutpoints(dbTx, outpoints)
@@ -169,16 +168,16 @@ func calcTxMass(dbTx *database.TxContext, transaction *rpcmodel.TxRawResult) (ui
 		}
 		prevScriptPubKeysMap[txID][prevDBTransactionsOutput.Index] = prevDBTransactionsOutput.ScriptPubKey
 	}
-	orderedPrevScriptPubKeys := make([][]byte, len(transaction.Vin))
-	for i, txIn := range transaction.Vin {
+	orderedPrevScriptPubKeys := make([][]byte, len(transaction.TransactionVerboseInputs))
+	for i, txIn := range transaction.TransactionVerboseInputs {
 		orderedPrevScriptPubKeys[i] = prevScriptPubKeysMap[txIn.TxID][uint32(i)]
 	}
 	return blockdag.CalcTxMass(util.NewTx(msgTx), orderedPrevScriptPubKeys), nil
 }
 
-func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*appmessage.MsgTx, error) {
-	txIns := make([]*appmessage.TxIn, len(tx.Vin))
-	for i, txIn := range tx.Vin {
+func convertTxRawResultToMsgTx(tx *appmessage.TransactionVerboseData) (*appmessage.MsgTx, error) {
+	txIns := make([]*appmessage.TxIn, len(tx.TransactionVerboseInputs))
+	for i, txIn := range tx.TransactionVerboseInputs {
 		prevTxID, err := daghash.NewTxIDFromStr(txIn.TxID)
 		if err != nil {
 			return nil, err
@@ -190,14 +189,14 @@ func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*appmessage.MsgTx, err
 		txIns[i] = &appmessage.TxIn{
 			PreviousOutpoint: appmessage.Outpoint{
 				TxID:  *prevTxID,
-				Index: txIn.Vout,
+				Index: txIn.OutputIndex,
 			},
 			SignatureScript: signatureScript,
 			Sequence:        txIn.Sequence,
 		}
 	}
-	txOuts := make([]*appmessage.TxOut, len(tx.Vout))
-	for i, txOut := range tx.Vout {
+	txOuts := make([]*appmessage.TxOut, len(tx.TransactionVerboseOutputs))
+	for i, txOut := range tx.TransactionVerboseOutputs {
 		scriptPubKey, err := hex.DecodeString(txOut.ScriptPubKey.Hex)
 		if err != nil {
 			return nil, err
@@ -207,7 +206,7 @@ func convertTxRawResultToMsgTx(tx *rpcmodel.TxRawResult) (*appmessage.MsgTx, err
 			ScriptPubKey: scriptPubKey,
 		}
 	}
-	subnetworkID, err := subnetworkid.NewFromStr(tx.Subnetwork)
+	subnetworkID, err := subnetworkid.NewFromStr(tx.SubnetworkID)
 	if err != nil {
 		return nil, err
 	}

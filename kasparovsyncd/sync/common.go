@@ -1,7 +1,7 @@
 package sync
 
 import (
-	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
+	"github.com/kaspanet/kaspad/app/appmessage"
 )
 
 func stringsSetToSlice(set map[string]struct{}) []string {
@@ -19,7 +19,7 @@ func stringsSetToSlice(set map[string]struct{}) []string {
 // either its verbose representation.
 type rawAndVerboseBlock struct {
 	Raw     string
-	Verbose *rpcmodel.GetBlockVerboseResult
+	Verbose *appmessage.BlockVerboseData
 }
 
 func (r *rawAndVerboseBlock) String() string {

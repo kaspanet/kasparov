@@ -17,7 +17,7 @@ func insertTransactionBlocks(dbTx *database.TxContext, blocks []*rawAndVerboseBl
 		if !ok {
 			return errors.Errorf("couldn't find block ID for block %s", block)
 		}
-		for i, tx := range block.Verbose.RawTx {
+		for i, tx := range block.Verbose.TransactionVerboseData {
 			transactionBlocksToAdd = append(transactionBlocksToAdd, &dbmodels.TransactionBlock{
 				TransactionID: transactionHashesToTxsWithMetadata[tx.Hash].id,
 				BlockID:       blockID,

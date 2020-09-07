@@ -1,7 +1,7 @@
 package mqtt
 
 import (
-	rpcmodel "github.com/kaspanet/kaspad/infrastructure/network/rpc/model"
+	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/apimodels"
 )
 
@@ -10,7 +10,7 @@ import (
 const SelectedParentChainTopic = "dag/selected-parent-chain"
 
 // PublishSelectedParentChainNotifications publishes notifications for changes in the selected parent chain
-func PublishSelectedParentChainNotifications(removedChainHashes []string, addedChainBlocks []rpcmodel.ChainBlock) error {
+func PublishSelectedParentChainNotifications(removedChainHashes []string, addedChainBlocks []*appmessage.ChainBlock) error {
 	if !isConnected() {
 		return nil
 	}

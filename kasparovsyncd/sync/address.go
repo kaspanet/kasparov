@@ -13,11 +13,11 @@ func insertAddresses(dbTx *database.TxContext, transactionHashesToTxsWithMetadat
 		if !transaction.isNew {
 			continue
 		}
-		for _, txOut := range transaction.verboseTx.Vout {
-			if txOut.ScriptPubKey.Address == nil {
+		for _, txOut := range transaction.verboseTx.TransactionVerboseOutputs {
+			if txOut.ScriptPubKey.Address == "" {
 				continue
 			}
-			addressSet[*txOut.ScriptPubKey.Address] = struct{}{}
+			addressSet[txOut.ScriptPubKey.Address] = struct{}{}
 		}
 	}
 	addresses := stringsSetToSlice(addressSet)

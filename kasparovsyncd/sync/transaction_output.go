@@ -21,14 +21,14 @@ func insertTransactionOutputs(dbTx *database.TxContext, transactionHashesToTxsWi
 		if !transaction.isNew {
 			continue
 		}
-		for i, txOut := range transaction.verboseTx.Vout {
+		for i, txOut := range transaction.verboseTx.TransactionVerboseOutputs {
 			scriptPubKey, err := hex.DecodeString(txOut.ScriptPubKey.Hex)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 			var addressID *uint64
-			if txOut.ScriptPubKey.Address != nil {
-				addressID = pointers.Uint64(addressesToAddressIDs[*txOut.ScriptPubKey.Address])
+			if txOut.ScriptPubKey.Address != "" {
+				addressID = pointers.Uint64(addressesToAddressIDs[txOut.ScriptPubKey.Address])
 			}
 			outputsToAdd = append(outputsToAdd, &dbmodels.TransactionOutput{
 				TransactionID: transaction.id,

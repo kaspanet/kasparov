@@ -4,18 +4,18 @@ import (
 	"github.com/kaspanet/kasparov/database"
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/dbmodels"
-	"github.com/kaspanet/kasparov/jsonrpc"
+	"github.com/kaspanet/kasparov/kaspadrpc"
 
 	"github.com/pkg/errors"
 )
 
-func insertSubnetworks(client *jsonrpc.Client, dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (
+func insertSubnetworks(client *kaspadrpc.Client, dbTx *database.TxContext, blocks []*rawAndVerboseBlock) (
 	subnetworkIDsToIDs map[string]uint64, err error) {
 
 	subnetworkSet := make(map[string]struct{})
 	for _, block := range blocks {
-		for _, transaction := range block.Verbose.RawTx {
-			subnetworkSet[transaction.Subnetwork] = struct{}{}
+		for _, transaction := range block.Verbose.TransactionVerboseData {
+			subnetworkSet[transaction.SubnetworkID] = struct{}{}
 		}
 	}
 
@@ -45,9 +45,13 @@ func insertSubnetworks(client *jsonrpc.Client, dbTx *database.TxContext, blocks 
 		if err != nil {
 			return nil, err
 		}
+		var gasLimit *uint64
+		if subnetwork.GasLimit > 0 {
+			gasLimit = &subnetwork.GasLimit
+		}
 		subnetworksToAdd[i] = &dbmodels.Subnetwork{
 			SubnetworkID: subnetworkID,
-			GasLimit:     subnetwork.GasLimit,
+			GasLimit:     gasLimit,
 		}
 	}
 

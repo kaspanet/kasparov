@@ -12,7 +12,7 @@ import (
 	"github.com/kaspanet/kaspad/infrastructure/os/signal"
 	"github.com/kaspanet/kaspad/util/panics"
 	"github.com/kaspanet/kasparov/database"
-	"github.com/kaspanet/kasparov/jsonrpc"
+	"github.com/kaspanet/kasparov/kaspadrpc"
 	"github.com/kaspanet/kasparov/kasparovsyncd/config"
 	"github.com/kaspanet/kasparov/kasparovsyncd/mqtt"
 	"github.com/kaspanet/kasparov/version"
@@ -66,11 +66,11 @@ func main() {
 	}
 	defer mqtt.Close()
 
-	err = jsonrpc.Connect(&config.ActiveConfig().KasparovFlags, true)
+	client, err := kaspadrpc.NewClient(&config.ActiveConfig().KasparovFlags, true)
 	if err != nil {
 		panic(errors.Errorf("Error connecting to servers: %s", err))
 	}
-	defer jsonrpc.Close()
+	defer client.Close()
 
 	doneChan := make(chan struct{}, 1)
 	spawn("main-sync.StartSync", func() {
