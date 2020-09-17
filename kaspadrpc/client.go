@@ -42,10 +42,11 @@ func NewClient(cfg *config.KasparovFlags, subscribeToNotifications bool) (*Clien
 	}
 	rpcClient.SetTimeout(timeout)
 
+	const channelCapacity = 1_000_000
 	client := &Client{
 		RPCClient:      rpcClient,
-		OnBlockAdded:   make(chan *appmessage.BlockAddedNotificationMessage),
-		OnChainChanged: make(chan *appmessage.ChainChangedNotificationMessage),
+		OnBlockAdded:   make(chan *appmessage.BlockAddedNotificationMessage, channelCapacity),
+		OnChainChanged: make(chan *appmessage.ChainChangedNotificationMessage, channelCapacity),
 	}
 
 	if subscribeToNotifications {
