@@ -16,6 +16,7 @@ import (
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/pkg/errors"
 
+	"github.com/kaspanet/kaspad/infrastructure/network/rpcclient"
 	"github.com/kaspanet/kaspad/util/daghash"
 )
 
@@ -174,7 +175,7 @@ func PostTransaction(requestBody []byte) error {
 
 	_, err = client.SubmitTransaction(tx)
 	if err != nil {
-		if rpcErr := &(appmessage.RPCError{}); errors.As(err, &rpcErr) {
+		if errors.Is(err, rpcclient.ErrRPC) {
 			return httpserverutils.NewHandlerError(http.StatusUnprocessableEntity, err)
 		}
 		return err
