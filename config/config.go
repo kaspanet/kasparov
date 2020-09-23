@@ -20,11 +20,7 @@ type KasparovFlags struct {
 	DBUser      string `long:"dbuser" description:"Database user" required:"true"`
 	DBPassword  string `long:"dbpass" description:"Database password" required:"true"`
 	DBName      string `long:"dbname" description:"Database name" required:"true"`
-	RPCUser     string `short:"u" long:"rpcuser" description:"RPC username"`
-	RPCPassword string `short:"P" long:"rpcpass" default-mask:"-" description:"RPC password"`
 	RPCServer   string `short:"s" long:"rpcserver" description:"RPC server to connect to"`
-	RPCCert     string `short:"c" long:"rpccert" description:"RPC server certificate chain for validation"`
-	DisableTLS  bool   `long:"notls" description:"Disable TLS"`
 	Profile     string `long:"profile" description:"Enable HTTP profiling on the given port"`
 	config.NetworkFlags
 }
@@ -46,21 +42,8 @@ func (kasparovFlags *KasparovFlags) ResolveKasparovFlags(parser *flags.Parser,
 		}
 	}
 
-	if kasparovFlags.RPCUser == "" && !isMigrate {
-		return errors.New("--rpcuser is required")
-	}
-	if kasparovFlags.RPCPassword == "" && !isMigrate {
-		return errors.New("--rpcpass is required")
-	}
 	if kasparovFlags.RPCServer == "" && !isMigrate {
 		return errors.New("--rpcserver is required")
-	}
-
-	if kasparovFlags.RPCCert == "" && !kasparovFlags.DisableTLS && !isMigrate {
-		return errors.New("either --notls or --rpccert must be specified")
-	}
-	if kasparovFlags.RPCCert != "" && kasparovFlags.DisableTLS && !isMigrate {
-		return errors.New("--cert should be omitted if --notls is used")
 	}
 
 	if isMigrate {
