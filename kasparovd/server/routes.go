@@ -69,6 +69,11 @@ func addRoutes(router *mux.Router) {
 		Methods("GET")
 
 	router.HandleFunc(
+		fmt.Sprintf("/transaction/id/{%s}/doublespends", routeParamTxID),
+		httpserverutils.MakeHandler(getTransactionDoublespendsHandler)).
+		Methods("GET")
+
+	router.HandleFunc(
 		fmt.Sprintf("/utxos/address/{%s}", routeParamAddress),
 		httpserverutils.MakeHandler(getUTXOsByAddressHandler)).
 		Methods("GET")
@@ -149,6 +154,12 @@ func getTransactionsByBlockHashHandler(_ *httpserverutils.ServerContext, _ *http
 	_ []byte) (interface{}, error) {
 
 	return controllers.GetTransactionsByBlockHashHandler(routeParams[routeParamBlockHash])
+}
+
+func getTransactionDoublespendsHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
+	_ []byte) (interface{}, error) {
+
+	return controllers.GetTransactionDoublespends(routeParams[routeParamTxID])
 }
 
 func getUTXOsByAddressHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,

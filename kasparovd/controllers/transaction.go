@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
+
 	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/database"
-	"net/http"
 
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
@@ -139,6 +140,14 @@ func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
 
 	return apimodels.TransactionsResponse{
 		Transactions: txResponses,
+	}, nil
+}
+
+// GetTransactionDoublespends returns array of transactions that spend
+// at least one of the same inputs as the given transaction
+func GetTransactionDoublespends(txID string) (interface{}, error) {
+	return apimodels.TransactionDoublespendsResponse{
+		Transactions: make([]*apimodels.TransactionResponse, 0),
 	}, nil
 }
 
