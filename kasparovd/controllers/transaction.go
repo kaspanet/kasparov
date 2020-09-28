@@ -151,7 +151,7 @@ func GetTransactionDoublespends(txID string) (interface{}, error) {
 			errors.Errorf("The given txid is not a hex-encoded %d-byte hash", daghash.TxIDSize))
 	}
 
-	txs, err := dbaccess.TransactionDoublespends(database.NoTx(), txID, )
+	txs, err := dbaccess.TransactionDoublespends(database.NoTx(), txID)
 	if err != nil {
 		return nil, err
 	}
