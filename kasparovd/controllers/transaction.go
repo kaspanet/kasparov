@@ -146,8 +146,28 @@ func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
 // GetTransactionDoublespends returns array of transactions that spend
 // at least one of the same inputs as the given transaction
 func GetTransactionDoublespends(txID string) (interface{}, error) {
+	if bytes, err := hex.DecodeString(txID); err != nil || len(bytes) != daghash.TxIDSize {
+		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
+			errors.Errorf("The given txid is not a hex-encoded %d-byte hash", daghash.TxIDSize))
+	}
+
+	txs, err := dbaccess.TransactionDoublespends(database.NoTx(), txID, )
+	if err != nil {
+		return nil, err
+	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	txResponses := make([]*apimodels.TransactionResponse, len(txs))
+	for i, tx := range txs {
+		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
+	}
+
 	return apimodels.TransactionDoublespendsResponse{
-		Transactions: make([]*apimodels.TransactionResponse, 0),
+		Transactions: txResponses,
 	}, nil
 }
 
