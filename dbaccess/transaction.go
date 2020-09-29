@@ -189,17 +189,17 @@ func TransactionDoubleSpends(ctx database.Context, txID string, preloadedFields 
 		return nil, err
 	}
 
-	origInputs := db.Model(&dbmodels.TransactionInput{}).
+	originalInputs := db.Model(&dbmodels.TransactionInput{}).
 		Column("transaction_input.transaction_id", "transaction_input.index").
 		Join("INNER JOIN transactions").
 		JoinOn("transactions.id = transaction_input.transaction_id").
 		Where("transactions.transaction_id = ?", txID)
 	txIDs := db.Model(&dbmodels.TransactionInput{}).
-		With("orig_inputs", origInputs).
+		With("original_inputs", originalInputs).
 		Column("transaction_input.transaction_id").
-		Join("INNER JOIN orig_inputs").
-		JoinOn("orig_inputs.index = transaction_input.index").
-		Where("transaction_input.transaction_id != orig_inputs.transaction_id")
+		Join("INNER JOIN original_inputs").
+		JoinOn("original_inputs.index = transaction_input.index").
+		Where("transaction_input.transaction_id != original_inputs.transaction_id")
 
 	var txs []*dbmodels.Transaction
 	query := db.Model(&txs).
