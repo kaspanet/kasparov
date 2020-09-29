@@ -77,7 +77,7 @@ type FeeEstimateResponse struct {
 	LowPriority    float64 `json:"lowPriority"`
 }
 
-// TransactionDoublespendsResponse is a json representation of transaction doublespends response
-type TransactionDoublespendsResponse struct {
+// TransactionDoubleSpendsResponse is a json representation of transaction doublespends response
+type TransactionDoubleSpendsResponse struct {
 	Transactions []*TransactionResponse `json:"transactions"`
 }

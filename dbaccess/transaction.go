@@ -182,8 +182,8 @@ func AcceptedTransactionsByBlockID(ctx database.Context, blockID uint64, preload
 	return transactions, nil
 }
 
-// TransactionDoublespends retrieves transactions, that have at least one input which is the same as in transaction that has the provided hash
-func TransactionDoublespends(ctx database.Context, transactionHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+// TransactionDoubleSpends retrieves transactions, that have at least one input which is the same as in transaction that has the provided hash
+func TransactionDoubleSpends(ctx database.Context, transactionHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
