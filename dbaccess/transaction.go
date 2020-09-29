@@ -182,8 +182,8 @@ func AcceptedTransactionsByBlockID(ctx database.Context, blockID uint64, preload
 	return transactions, nil
 }
 
-// TransactionDoubleSpends retrieves transactions, that have at least one input which is the same as in transaction that has the provided hash
-func TransactionDoubleSpends(ctx database.Context, transactionHash string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
+// TransactionDoubleSpends retrieves transactions, that have at least one input which is the same as in transaction that has the provided txID
+func TransactionDoubleSpends(ctx database.Context, txID string, preloadedFields ...dbmodels.FieldName) ([]*dbmodels.Transaction, error) {
 	db, err := ctx.DB()
 	if err != nil {
 		return nil, err
@@ -193,7 +193,7 @@ func TransactionDoubleSpends(ctx database.Context, transactionHash string, prelo
 		Column("transaction_input.transaction_id", "transaction_input.index").
 		Join("INNER JOIN transactions").
 		JoinOn("transactions.id = transaction_input.transaction_id").
-		Where("transactions.transaction_hash = ?", transactionHash)
+		Where("transactions.transaction_id = ?", txID)
 	txIDs := db.Model(&dbmodels.TransactionInput{}).
 		With("orig_inputs", origInputs).
 		Column("transaction_input.transaction_id").
