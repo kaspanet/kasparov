@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
+
 	"github.com/kaspanet/kaspad/app/appmessage"
 	"github.com/kaspanet/kasparov/database"
-	"net/http"
 
 	"github.com/kaspanet/kasparov/apimodels"
 	"github.com/kaspanet/kasparov/dbaccess"
@@ -138,6 +139,34 @@ func GetTransactionsByBlockHashHandler(blockHash string) (interface{}, error) {
 	}
 
 	return apimodels.TransactionsResponse{
+		Transactions: txResponses,
+	}, nil
+}
+
+// GetTransactionDoubleSpends returns array of transactions that spend
+// at least one of the same inputs as the given transaction
+func GetTransactionDoubleSpends(txID string) (interface{}, error) {
+	if bytes, err := hex.DecodeString(txID); err != nil || len(bytes) != daghash.TxIDSize {
+		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
+			errors.Errorf("The given txid is not a hex-encoded %d-byte hash", daghash.TxIDSize))
+	}
+
+	txs, err := dbaccess.TransactionDoubleSpends(database.NoTx(), txID)
+	if err != nil {
+		return nil, err
+	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	txResponses := make([]*apimodels.TransactionResponse, len(txs))
+	for i, tx := range txs {
+		txResponses[i] = apimodels.ConvertTxModelToTxResponse(tx, selectedTipBlueScore)
+	}
+
+	return apimodels.TransactionDoubleSpendsResponse{
 		Transactions: txResponses,
 	}, nil
 }
