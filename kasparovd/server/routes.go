@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/kaspanet/kasparov/kaspadrpc"
+	"github.com/kaspanet/kasparov/version"
+
 	"github.com/kaspanet/kasparov/dbaccess"
 	"github.com/kaspanet/kasparov/httpserverutils"
 	"github.com/kaspanet/kasparov/kasparovd/controllers"
@@ -33,10 +36,26 @@ const (
 )
 
 func mainHandler(_ *httpserverutils.ServerContext, _ *http.Request, _ map[string]string, _ map[string]string, _ []byte) (interface{}, error) {
+	client, err := kaspadrpc.GetClient()
+	if err != nil {
+		return nil, err
+	}
+
+	rpcServerVersion, err := client.GetVersion()
+	if err != nil {
+		return nil, err
+	}
+
 	return struct {
-		Message string `json:"message"`
+		Message          string `json:"message"`
+		KasparovVersion  string `json:"kasparovVersion"`
+		RPCServerVersion string `json:"rpcServerVersion"`
+		Docs             string `json:"docs"`
 	}{
-		Message: "Kasparov server is running",
+		Message:          "Kasparov server is running",
+		KasparovVersion:  version.Version(),
+		RPCServerVersion: rpcServerVersion.Version,
+		Docs:             "https://docs.kas.pa/kaspa/components/kasparov-api-server/api/methods",
 	}, nil
 }
 
