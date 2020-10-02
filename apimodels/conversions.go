@@ -2,11 +2,12 @@ package apimodels
 
 import (
 	"encoding/hex"
+	"sort"
+
 	"github.com/kaspanet/kaspad/domain/dagconfig"
 	"github.com/kaspanet/kaspad/util/pointers"
 	"github.com/kaspanet/kaspad/util/subnetworkid"
 	"github.com/pkg/errors"
-	"sort"
 
 	"github.com/kaspanet/kasparov/dbmodels"
 	"github.com/kaspanet/kasparov/serializer"
@@ -71,6 +72,24 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction, selectedTipBlueScore u
 	sort.Slice(txRes.Inputs, func(i, j int) bool {
 		return txRes.Inputs[i].Index < txRes.Inputs[j].Index
 	})
+
+	return txRes
+}
+
+// ConvertTxModelToTxIncludingBlocksResponse converts a transaction database object to a TransactionIncludingBlocksResponse
+func ConvertTxModelToTxIncludingBlocksResponse(tx *dbmodels.Transaction, selectedTipBlueScore uint64) *TransactionIncludingBlocksResponse {
+	txRes := &TransactionIncludingBlocksResponse{
+		TransactionResponse: *ConvertTxModelToTxResponse(tx, selectedTipBlueScore),
+		Blocks:              make([]*BlockResponse, len(tx.Blocks)),
+	}
+
+	if tx.AcceptingBlock != nil {
+		txRes.AcceptingBlock = ConvertBlockModelToBlockResponse(tx.AcceptingBlock, selectedTipBlueScore)
+	}
+
+	for i, block := range tx.Blocks {
+		txRes.Blocks[i] = ConvertBlockModelToBlockResponse(&block, selectedTipBlueScore)
+	}
 
 	return txRes
 }

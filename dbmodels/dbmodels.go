@@ -161,6 +161,18 @@ var TransactionRecommendedPreloadedFields = []FieldName{
 	TransactionFieldNames.InputsAddresses,
 }
 
+// TransactionRecommendedPreloadedFieldsIncludingBlocks is a list of fields recommended to preload when getting transactions including blocks
+var TransactionRecommendedPreloadedFieldsIncludingBlocks = []FieldName{
+	TransactionFieldNames.AcceptingBlock,
+	TransactionFieldNames.Subnetwork,
+	TransactionFieldNames.RawTransaction,
+	TransactionFieldNames.TransactionOutputs,
+	TransactionFieldNames.OutputsAddresses,
+	TransactionFieldNames.InputsPreviousTransactions,
+	TransactionFieldNames.InputsAddresses,
+	TransactionFieldNames.Blocks,
+}
+
 // TransactionBlock is the database model for the 'transactions_to_blocks' table
 type TransactionBlock struct {
 	tableName     struct{} `pg:"transactions_to_blocks"`

@@ -71,6 +71,54 @@ func GetTransactionByHashHandler(txHash string) (interface{}, error) {
 	return txResponse, nil
 }
 
+// GetTransactionByIDIncludingBlocksHandler returns a transaction by a given transaction ID.
+func GetTransactionByIDIncludingBlocksHandler(txID string) (interface{}, error) {
+	if bytes, err := hex.DecodeString(txID); err != nil || len(bytes) != daghash.TxIDSize {
+		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
+			errors.Errorf("The given txid is not a hex-encoded %d-byte hash", daghash.TxIDSize))
+	}
+
+	tx, err := dbaccess.TransactionByID(database.NoTx(), txID, dbmodels.TransactionRecommendedPreloadedFieldsIncludingBlocks...)
+	if err != nil {
+		return nil, err
+	}
+	if tx == nil {
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no transaction with the given txid was found"))
+	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	txResponse := apimodels.ConvertTxModelToTxIncludingBlocksResponse(tx, selectedTipBlueScore)
+	return txResponse, nil
+}
+
+// GetTransactionByHashIncludingBlocksHandler returns a transaction by a given transaction ID.
+func GetTransactionByHashIncludingBlocksHandler(txHash string) (interface{}, error) {
+	if bytes, err := hex.DecodeString(txHash); err != nil || len(bytes) != daghash.HashSize {
+		return nil, httpserverutils.NewHandlerError(http.StatusUnprocessableEntity,
+			errors.Errorf("The given txhash is not a hex-encoded %d-byte hash", daghash.HashSize))
+	}
+
+	tx, err := dbaccess.TransactionByHash(database.NoTx(), txHash, dbmodels.TransactionRecommendedPreloadedFieldsIncludingBlocks...)
+	if err != nil {
+		return nil, err
+	}
+	if tx == nil {
+		return nil, httpserverutils.NewHandlerError(http.StatusNotFound, errors.New("no transaction with the given txhash was found"))
+	}
+
+	selectedTipBlueScore, err := dbaccess.SelectedTipBlueScore(database.NoTx())
+	if err != nil {
+		return nil, err
+	}
+
+	txResponse := apimodels.ConvertTxModelToTxIncludingBlocksResponse(tx, selectedTipBlueScore)
+	return txResponse, nil
+}
+
 // GetTransactionsByAddressHandler searches for all transactions
 // where the given address is either an input or an output.
 func GetTransactionsByAddressHandler(address string, skip, limit int64) (interface{}, error) {

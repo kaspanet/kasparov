@@ -19,6 +19,13 @@ type TransactionResponse struct {
 	Confirmations           *uint64                      `json:"confirmations,omitempty"`
 }
 
+// TransactionIncludingBlocksResponse is a json representation of a transaction including blocks
+type TransactionIncludingBlocksResponse struct {
+	TransactionResponse
+	Blocks         []*BlockResponse `json:"includingBlocks"`
+	AcceptingBlock *BlockResponse   `json:"acceptedFrom"`
+}
+
 // TransactionOutputResponse is a json representation of a transaction output
 type TransactionOutputResponse struct {
 	TransactionID           string  `json:"transactionId,omitempty"`

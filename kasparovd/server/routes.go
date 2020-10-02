@@ -54,6 +54,16 @@ func addRoutes(router *mux.Router) {
 		Methods("GET")
 
 	router.HandleFunc(
+		fmt.Sprintf("/transaction/id/{%s}/includingblocks", routeParamTxID),
+		httpserverutils.MakeHandler(getTransactionByIDIncludingBlocksHandler)).
+		Methods("GET")
+
+	router.HandleFunc(
+		fmt.Sprintf("/transaction/hash/{%s}/includingblocks", routeParamTxHash),
+		httpserverutils.MakeHandler(getTransactionByHashIncludingBlocksHandler)).
+		Methods("GET")
+
+	router.HandleFunc(
 		fmt.Sprintf("/transactions/address/{%s}", routeParamAddress),
 		httpserverutils.MakeHandler(getTransactionsByAddressHandler)).
 		Methods("GET")
@@ -129,6 +139,18 @@ func getTransactionByHashHandler(_ *httpserverutils.ServerContext, _ *http.Reque
 	_ []byte) (interface{}, error) {
 
 	return controllers.GetTransactionByHashHandler(routeParams[routeParamTxHash])
+}
+
+func getTransactionByIDIncludingBlocksHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
+	_ []byte) (interface{}, error) {
+
+	return controllers.GetTransactionByIDIncludingBlocksHandler(routeParams[routeParamTxID])
+}
+
+func getTransactionByHashIncludingBlocksHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, _ map[string]string,
+	_ []byte) (interface{}, error) {
+
+	return controllers.GetTransactionByHashIncludingBlocksHandler(routeParams[routeParamTxHash])
 }
 
 func getTransactionsByAddressHandler(_ *httpserverutils.ServerContext, _ *http.Request, routeParams map[string]string, queryParams map[string]string,
