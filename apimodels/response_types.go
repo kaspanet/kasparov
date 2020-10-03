@@ -37,6 +37,7 @@ type TransactionOutputResponse struct {
 // TransactionInputResponse is a json representation of a transaction input
 type TransactionInputResponse struct {
 	TransactionID                  string `json:"transactionId,omitempty"`
+	Value                          uint64 `json:"value"`
 	PreviousTransactionID          string `json:"previousTransactionId"`
 	PreviousTransactionOutputIndex uint32 `json:"previousTransactionOutputIndex"`
 	SignatureScript                string `json:"signatureScript"`

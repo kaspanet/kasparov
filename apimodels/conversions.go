@@ -66,6 +66,7 @@ func ConvertTxModelToTxResponse(tx *dbmodels.Transaction, selectedTipBlueScore u
 		}
 		if txIn.PreviousTransactionOutput.Address != nil {
 			txRes.Inputs[i].Address = txIn.PreviousTransactionOutput.Address.Address
+			txRes.Inputs[i].Value = txIn.PreviousTransactionOutput.Value
 		}
 	}
 	sort.Slice(txRes.Inputs, func(i, j int) bool {
